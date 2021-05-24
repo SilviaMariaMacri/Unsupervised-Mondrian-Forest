@@ -1,15 +1,8 @@
-problemi:
-	i tagli hanno senso come vengono? forse probabilità scelta dimensione è sbagliata
-
-
-
-
-#%%
 import numpy as np
 import random
 import pandas as pd
 
-#%% 
+ 
 
 # l = estremi degli intervalli
 # data = dataframe di dati
@@ -53,6 +46,9 @@ def Mondrian(data,t0,l,lifetime):
 			
 			# cut
 			x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
+			#x = 
+
+
 
 
 			l_min = l.copy()
@@ -84,10 +80,11 @@ def Mondrian(data,t0,l,lifetime):
 
 
 
-def Mondrian_completo(dat,t0,spazio_iniziale,lifetime): 
+def Mondrian_completo(data,t0,spazio_iniziale,lifetime): 
 	
 	
-	data = dat[np.arange(len(spazio_iniziale))]
+	#data = dat[np.arange(len(spazio_iniziale))]
+	
 	
 
 	m=[]
@@ -167,7 +164,7 @@ def Mondrian_completo(dat,t0,spazio_iniziale,lifetime):
 
 
 
-#%%
+
 
 
 
@@ -238,8 +235,8 @@ def Partizione(df):
 		point_tot = point_tot.drop_duplicates()
 		point_tot.index = np.arange(0,len(point_tot),1)
 
-		
-	
+
+
 
 
 
@@ -360,7 +357,7 @@ def Partizione(df):
 					
 
 
-#%%
+
 
 
 
@@ -402,7 +399,7 @@ def Count(lim,data):
 	return lim
 
 
-#%%
+
 
 
 
@@ -411,7 +408,7 @@ def Count(lim,data):
 
 def Class(lim_class,X):	
 	
-	X = pd.DataFrame(X)
+	
 	
 	cl = []
 	
@@ -420,20 +417,26 @@ def Class(lim_class,X):
 	
 	
 	for i in X:
+		count=0
 		for j in range(len(lim_class)):
+			count += 1
+			partial_count=[]
 			for k in range(len(X[0])):
-				if (X[k]>lim_class[str(k)+'min'].iloc[j]) & (X[k]<lim_class[str(j)+'max'].iloc[j]):
+				if (i[k]>lim_class[str(k)+'min'].iloc[j]) & (i[k]<lim_class[str(k)+'max'].iloc[j]):
 					partial_count.append(0)
 				else:
 					break
 			if len(partial_count) == len(X[0]):
-				cl.append(lim_class['class'].iloc[j])
+				cl.append(lim_class['class'].iloc[j])  
 				break
+			else:
+				if count==len(lim_class):
+					cl.append('nan')
 			
-				
+	X = pd.DataFrame(X)			
 	X['class_data'] = cl
 		
-	return cl
+	return X
 
 
 
@@ -476,18 +479,24 @@ iris = datasets.load_iris()
 data = pd.DataFrame(dat[0])
 data['class']=dat[1]
 X = dat[0]
-
+'''
 #iris
-#data = pd.DataFrame(iris.data)
-#data[[0,1]]#,2]]
+data = pd.DataFrame(iris.data)
+data[[0,1,2]]
+'''
 
 
 t0=0
 spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()] ]     
-                  #[[4, 8], [2, 5]]#, [1,7]]  
+#spazio_iniziale = [[4, 8], [2, 5], [1,7]]  
 lifetime=2
 
+#%%
+import matplotlib.pylab as plt
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
 
+ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
+ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
 
 #%%
 
@@ -497,7 +506,7 @@ lim,w = Partizione(df)
 #per ogni classe, conta i punti all'interno di ogni partizione
 lim_class = Count(lim,data)
 #classifica ogni dato non precedentemente classificato a seconda della partizione
-
+# Class(lim_class,X)
 
 
 
@@ -550,7 +559,7 @@ ax.scatter(w[0],w[1],color='r')
 
 
 
-
+#%%
 
 
 

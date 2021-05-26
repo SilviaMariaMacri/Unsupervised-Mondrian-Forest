@@ -1,13 +1,15 @@
 import numpy as np
 import random
 import pandas as pd
+from sklearn.linear_model import LogisticRegression
+import matplotlib.pylab as plt
 
  
 
 # l = estremi degli intervalli
 # data = dataframe di dati
 
-def Mondrian(data,t0,l,lifetime):
+def Mondrian(data,t0,l,lifetime,father):
 
 
 	# array di lunghezze intervalli 
@@ -45,6 +47,8 @@ def Mondrian(data,t0,l,lifetime):
 		if data[d_cut].max() != data[d_cut].min():
 			
 			# cut
+			#clf = svm.SVC(kernel='linear') # Linear Kernel
+			#clf.fit(data[d_cut], data['class'])
 			x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
 			#x = 
 
@@ -55,18 +59,23 @@ def Mondrian(data,t0,l,lifetime):
 			l_max = l.copy()
 			l_min[d_cut] = [l[d_cut][0],x]
 			l_max[d_cut] = [x,l[d_cut][1]]
+			
 
 			risultato1 = [t0, l_min]
 			risultato2 = [t0, l_max]
 			
 			
-			risultato = [risultato1, risultato2, x, t0, d_cut]
+		
+			
+			
+			risultato = [risultato1, risultato2, x, t0, d_cut, father]
 
 
 
 
 		
 			return risultato
+		
 
 
 	else:
@@ -88,7 +97,8 @@ def Mondrian_completo(data,t0,spazio_iniziale,lifetime):
 	
 
 	m=[]
-	m0 = [ t0,spazio_iniziale ]
+	count_part_number = 0
+	m0 = [ t0,spazio_iniziale,count_part_number ] 
 	m.append(m0)
 
 
@@ -97,6 +107,17 @@ def Mondrian_completo(data,t0,spazio_iniziale,lifetime):
 	tempo = []
 	dim = []
 	
+	
+	
+	part_intervalli = []
+	#part_x = []
+	part_tempo = []
+	#part_dim = []
+		
+	father = []
+	part_number = []
+	
+	
 	for i in range(len(spazio_iniziale)):
 		for j in range(2):
 			
@@ -104,24 +125,53 @@ def Mondrian_completo(data,t0,spazio_iniziale,lifetime):
 			x.append(spazio_iniziale[i][j])
 			tempo.append(t0)
 			dim.append(i)
+			
+			
+	#nuovo
+	part_intervalli.append(np.reshape(spazio_iniziale,(1,len(spazio_iniziale)*2))[0])	
+	part_tempo.append(t0)
+	father.append('nan')
+	part_number.append(count_part_number)
+	
+			
+			
 		
-		
-		
+	
+	
 	for i in m:
+
 	
 		try:
 			
+
+			 
+		 
+			mondrian = Mondrian(data,i[0],i[1],lifetime,i[2])
 			
-			mondrian = Mondrian(data,i[0],i[1],lifetime)
-			m.append(mondrian[0])
-			m.append(mondrian[1])
+			m.append([mondrian[0][0],mondrian[0][1],count_part_number+1])
+			count_part_number += 1
+			part_number.append(count_part_number)
 			
-		
+			m.append([mondrian[1][0],mondrian[1][1],count_part_number+1])
+			count_part_number += 1
+			part_number.append(count_part_number)
+			
+			
 			
 			intervalli.append(np.reshape(mondrian[0][1],(1,len(spazio_iniziale)*2))[0])
 			x.append(mondrian[2])
 			tempo.append(mondrian[3])
 			dim.append(mondrian[4])
+			
+			
+			#nuovo			
+			for j in range(2):
+				part_intervalli.append(np.reshape(mondrian[j][1],(1,len(spazio_iniziale)*2))[0])
+				#part_x.append(mondrian[2])
+				part_tempo.append(mondrian[3])
+				#part_dim.append(mondrian[4])
+				father.append(mondrian[5])
+				
 
 
 
@@ -130,28 +180,45 @@ def Mondrian_completo(data,t0,spazio_iniziale,lifetime):
 		
 		
 	
-	df_intervalli = pd.DataFrame(intervalli)
+	
 	nomi = []
 	for i in range(len(spazio_iniziale)):
 		for j in ['min','max']:
 			nomi.append(str(i)+j)
-	df_intervalli.columns = nomi
-
 	
+
+	df_intervalli = pd.DataFrame(intervalli)
+	df_intervalli.columns = nomi
 	df_altro = {'x':x,'tempo':tempo,'dim':dim}
 	df_altro = pd.DataFrame(df_altro)
-	
 	valori_per_partizione = pd.merge(df_altro, df_intervalli, left_index=True, right_index=True)
+	
+	
+	df_part_intervalli = pd.DataFrame(part_intervalli)
+	df_part_intervalli.columns = nomi	
+	df_part = {'tempo':part_tempo,'father':father,'part_number':part_number}
+	df_part = pd.DataFrame(df_part)
+	#df_part.loc[ (df_part['part_number'] not in df_part['father']==True),'leaf'] = True
+	#df_part.loc[*[(df_part['part_number'].iloc[i] not in df_part['father']) for i in range(len(df_part))]]	=True	
+
+
+	leaf = []
+	for i in range(len(df_part)):
+		if df_part['part_number'].iloc[i] not in df_part['father'].unique():
+			leaf.append(True)
+		else:
+			leaf.append(False)
 		
+			
 		
+	df_part['leaf'] = leaf
 		
 	
+	partizione = pd.merge(df_part, df_part_intervalli, left_index=True, right_index=True)
 
 
 
-
-			
-	return m,valori_per_partizione
+	return partizione,valori_per_partizione
 			
 
 
@@ -441,20 +508,151 @@ def Class(lim_class,X):
 
 
 
+
+#%%
+from matplotlib.pyplot import cm
+
+def PartitionPlot(p,r):
+	
+	
+	h1 = [['min','max'],
+		  ['min','max'],
+	      ['min','max'],
+	      ['min','max']]
+	h1 = pd.DataFrame(h1)
+	
+	
+	
+	h2 = [['min','min'],
+	      ['min','min'],
+	      ['max','max'],
+	      ['max','max']]
+	h2 = pd.DataFrame(h2)
+	h2.columns = [2,3]
+	
+	
+	
+	h3 = [['min','min'],
+	      ['max','max'],
+	      ['min','min'],
+	      ['max','max']]
+	h3 = pd.DataFrame(h3)
+	h3.columns = [4,5]
+	
+	
+	h = pd.concat([h1,h2,h3],axis=1)
+	
+	order = [[0, 1, 2, 3, 4, 5],[2, 3, 0, 1, 4, 5],[2, 3, 4, 5, 0, 1]]
+	
+	
+	
+	p = partizione.copy()
+	
+	color=cm.rainbow(np.linspace(0,1,len(p)))
+	ax = plt.axes(projection='3d')
+	
+	
+	for i,c in zip(range(len(p)),color):
+		
+		for j in range(len(h)):
+			for k in order:
+				x_min = p['0'+h[k[0]].iloc[j]].iloc[i]
+				x_max = p['0'+h[k[1]].iloc[j]].iloc[i]
+				y_min = p['1'+h[k[2]].iloc[j]].iloc[i]
+				y_max = p['1'+h[k[3]].iloc[j]].iloc[i]
+				z_min = p['2'+h[k[4]].iloc[j]].iloc[i]
+				z_max = p['2'+h[k[5]].iloc[j]].iloc[i]
+				rx = r*(x_max-x_min)
+				ry = r*(y_max-y_min)
+				rz = r*(z_max-z_min)
+				
+				ax.plot([x_min+rx,x_max-rx],
+			            [y_min+ry,y_max-ry],
+						[z_min+rz,z_max-rz],
+						color='b')
+				
+	plt.show()
+	
+	return
+
+
+			
+#%%
+ax = plt.axes(projection='3d')
+ax.plot([1,1],[1,2],[3,3])
+
+	
+
+						
+#%%	
 	
 
 
-#%% 
+	ax = plt.axes(projection='3d')
+	i=0
+#ax.scatter3D(data[0], data[1], data[2])#, c=zdata, cmap='Greens');
+
+#for i in range(len(lim)):
+	ax.plot([lim['0min'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1min'].iloc[i]],[lim['2min'].iloc[i],lim['2min'].iloc[i]])
+	ax.plot([lim['0min'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1min'].iloc[i]],[lim['2max'].iloc[i],lim['2max'].iloc[i]])
+	ax.plot([lim['0min'].iloc[i],lim['0max'].iloc[i]],[lim['1max'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2min'].iloc[i]])
+	ax.plot([lim['0min'].iloc[i],lim['0max'].iloc[i]],[lim['1max'].iloc[i],lim['1max'].iloc[i]],[lim['2max'].iloc[i],lim['2max'].iloc[i]])
+
+#for i in range(len(lim)):
+	ax.plot([lim['0min'].iloc[i],lim['0min'].iloc[i]],[lim['1min'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2min'].iloc[i]])
+	ax.plot([lim['0min'].iloc[i],lim['0min'].iloc[i]],[lim['1min'].iloc[i],lim['1max'].iloc[i]],[lim['2max'].iloc[i],lim['2max'].iloc[i]])
+	ax.plot([lim['0max'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2min'].iloc[i]])
+	ax.plot([lim['0max'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1max'].iloc[i]],[lim['2max'].iloc[i],lim['2max'].iloc[i]])
+
+#for i in range(len(lim)):
+	ax.plot([lim['0min'].iloc[i],lim['0min'].iloc[i]],[lim['1min'].iloc[i],lim['1min'].iloc[i]],[lim['2min'].iloc[i],lim['2max'].iloc[i]])
+	ax.plot([lim['0min'].iloc[i],lim['0min'].iloc[i]],[lim['1max'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2max'].iloc[i]])
+	ax.plot([lim['0max'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1min'].iloc[i]],[lim['2min'].iloc[i],lim['2max'].iloc[i]])
+	ax.plot([lim['0max'].iloc[i],lim['0max'].iloc[i]],[lim['1max'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2max'].iloc[i]])
+
+
+#%%   prova logistic ecc ecc
+mean1 = (1, 1)
+cov1 = [[1, 0], [0, 1]]
+x1 = np.random.multivariate_normal(mean1, cov1, 100)
+x1=pd.DataFrame(x1)
+x1['cl']=0
+
+
+mean2 = (4, 4)
+cov2 = [[1, 0], [0, 1]]
+x2 = np.random.multivariate_normal(mean2, cov2, 100)
+x2=pd.DataFrame(x2)
+x2['cl']=1
+
+
+X = pd.concat([x1,x2])
+
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
+#ax.scatter(X[0],X[1])
+ax.scatter(x1[0],x1[1])
+	
+ax.scatter(x2[0],x2[1])
+	
+	
+#%%
+
+from sklearn.linear_model import LogisticRegression
+
+ 
+clf = LogisticRegression(penalty='none').fit(np.array(X[0]).reshape((200,1)), np.array(X['cl']).reshape((200,1)))
+
+clf.coef_
+#array([[3.22627498]])
+
+clf.intercept_
+#array([-7.98655553])
 
 
 
 
 
-
-
-
-
-
+x= -intercept/coef
 
 
 
@@ -474,7 +672,7 @@ dat = datasets.make_moons(n_samples=100,noise=0.2)
 iris = datasets.load_iris()
 
 
-
+'''
 #make_moons
 data = pd.DataFrame(dat[0])
 data['class']=dat[1]
@@ -483,37 +681,34 @@ X = dat[0]
 #iris
 data = pd.DataFrame(iris.data)
 data[[0,1,2]]
-'''
+
 
 
 t0=0
-spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()] ]     
-#spazio_iniziale = [[4, 8], [2, 5], [1,7]]  
-lifetime=2
+#spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()] ]     
+spazio_iniziale = [[4, 8], [2, 5], [1,7]]  
+lifetime=0.4
 
 #%%
-import matplotlib.pylab as plt
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
 
-ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
-ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
-
-#%%
 
 #crea partizione a partire dai dati
-m,df = Mondrian_completo(data,t0,spazio_iniziale,lifetime)
+partizione,df = Mondrian_completo(data,t0,spazio_iniziale,lifetime)
 lim,w = Partizione(df)
+#lim=lim[['0min','0max','1min','1max','2min','2max']]
 #per ogni classe, conta i punti all'interno di ogni partizione
-lim_class = Count(lim,data)
+#lim_class = Count(lim,data)
 #classifica ogni dato non precedentemente classificato a seconda della partizione
-# Class(lim_class,X)
+# Class(lim_class,X)+
+
+
 
 
 
 #%%
 
 
-import matplotlib.pylab as plt
+
 
 
 

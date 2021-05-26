@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pylab as plt
 
+
  
 
 # l = estremi degli intervalli
@@ -47,10 +48,9 @@ def Mondrian(data,t0,l,lifetime,father):
 		if data[d_cut].max() != data[d_cut].min():
 			
 			# cut
-			#clf = svm.SVC(kernel='linear') # Linear Kernel
-			#clf.fit(data[d_cut], data['class'])
-			x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
-			#x = 
+			#x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
+			clf = LogisticRegression(penalty='none').fit(np.array(data[d_cut]).reshape((len(data),1)), np.array(data['class']).reshape((len(data),1)))
+			x = -clf.intercept_[0]/clf.coef_[0][0]
 
 
 
@@ -509,10 +509,46 @@ def Class(lim_class,X):
 
 
 
-#%%
+
+
+
 from matplotlib.pyplot import cm
 
-def PartitionPlot(p,r):
+
+
+
+def PartitionPlot3D(part):
+	
+	p = part[['0min','0max','1min','1max','2min','2max']]
+	p.columns = ['xmin','xmax','ymin','ymax','zmin','zmax']
+	
+	p['indice'] = np.arange(1,len(p)+1,1)
+	
+#	p['delta_x'] = p['xmax'].max() - p['xmin'].min()
+#	p['delta_y'] = p['ymax'].max() - p['ymin'].min()
+#	p['delta_z'] = p['zmax'].max() - p['zmin'].min()
+	
+	
+	p = (p.eval("xmin_r = xmin + (xmax-xmin)*0.05*indice")
+		 .eval("ymin_r = ymin + (ymax-ymin)*0.05*indice")
+		 .eval("zmin_r = zmin + (zmax-zmin)*0.05*indice")
+		 .eval("xmax_r = xmax - (xmax-xmin)*0.05*indice")
+		 .eval("ymax_r = ymax - (ymax-ymin)*0.05*indice")
+		 .eval("zmax_r = zmax - (zmax-zmin)*0.05*indice")
+		 )
+
+#	p = (p.eval("xmin_r = xmin + delta_x*0.05")
+#		 .eval("ymin_r = ymin + delta_x*0.05")
+#		 .eval("zmin_r = zmin + delta_y*0.05")
+#		 .eval("xmax_r = xmax - delta_y*0.05")
+#		 .eval("ymax_r = ymax - delta_z*0.05")
+#		 .eval("zmax_r = zmax - delta_z*0.05")
+#		 )
+	
+	p = p[['xmin_r','xmax_r','ymin_r','ymax_r','zmin_r','zmax_r']]
+	p.columns = ['0min','0max','1min','1max','2min','2max']
+	
+	
 	
 	
 	h1 = [['min','max'],
@@ -546,14 +582,13 @@ def PartitionPlot(p,r):
 	
 	
 	
-	p = partizione.copy()
+	
 	
 	color=cm.rainbow(np.linspace(0,1,len(p)))
 	ax = plt.axes(projection='3d')
 	
 	
 	for i,c in zip(range(len(p)),color):
-		
 		for j in range(len(h)):
 			for k in order:
 				x_min = p['0'+h[k[0]].iloc[j]].iloc[i]
@@ -562,53 +597,126 @@ def PartitionPlot(p,r):
 				y_max = p['1'+h[k[3]].iloc[j]].iloc[i]
 				z_min = p['2'+h[k[4]].iloc[j]].iloc[i]
 				z_max = p['2'+h[k[5]].iloc[j]].iloc[i]
-				rx = r*(x_max-x_min)
-				ry = r*(y_max-y_min)
-				rz = r*(z_max-z_min)
 				
-				ax.plot([x_min+rx,x_max-rx],
-			            [y_min+ry,y_max-ry],
-						[z_min+rz,z_max-rz],
-						color='b')
+				ax.plot([x_min,x_max],
+			            [y_min,y_max],
+						[z_min,z_max],
+						color=c)
 				
 	plt.show()
 	
 	return
 
 
-			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #%%
-ax = plt.axes(projection='3d')
-ax.plot([1,1],[1,2],[3,3])
+from sklearn import datasets
+ 
+dat = datasets.make_moons(n_samples=200,noise=0.2)
+iris = datasets.load_iris()
+
+
+
+#make_moons
+data = pd.DataFrame(dat[0])
+data['class']=dat[1]
+X = dat[0]
+'''
+#iris
+data = pd.DataFrame(iris.data)
+data[[0,1,2]]
+'''
+
+
+t0=0
+spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()] ]     
+#spazio_iniziale = [[4, 8], [2, 5], [1,7]]  
+lifetime=1
+
+#%%
+
+
+
+
+
+#crea partizione a partire dai dati
+part,df = Mondrian_completo(data,t0,spazio_iniziale,lifetime)
+lim,w = Partizione(df)
+#lim=lim[['0min','0max','1min','1max','2min','2max']]
+#per ogni classe, conta i punti all'interno di ogni partizione
+#lim_class = Count(lim,data)
+#classifica ogni dato non precedentemente classificato a seconda della partizione
+# Class(lim_class,X)
+
+
+
+
+
+
+
+#%%
+
+
+
+
 
 	
-
-						
-#%%	
+	
+	fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
+	
+	for i in range(len(df[df['dim']==0])):
+		ax.vlines(df.query('dim==0')['x'].iloc[i],df.query('dim==0')['1min'].iloc[i],df.query('dim==0')['1max'].iloc[i],color='b')#, linestyle = '--', color=color[i], linewidth=1) # - QD_peaks[i][1]
+		#ax.text(df.query('dim==0')['cut'].iloc[i],df.query('dim==0')['d1x'].iloc[i],df.query('dim==0')['tempo'].iloc[i].round(4),color='b')#,  fontsize=12, color=color[i])
+	
+	
+	for i in range(len(df[df['dim']==1])):
+		ax.hlines(df.query('dim==1')['x'].iloc[i],df.query('dim==1')['0min'].iloc[i],df.query('dim==1')['0max'].iloc[i],color='orange')#, linestyle = '--', color=color[i], linewidth=1) # - QD_peaks[i][1]
+		#ax.text(df.query('dim==1')['d0x'].iloc[i],df.query('dim==1')['cut'].iloc[i],df.query('dim==1')['tempo'].iloc[i].round(4))#,  fontsize=12, color=color[i])
+	
+	
+	ax.scatter(data[data['class']==0][0],data[data['class']==0][1],color='b')
+	ax.scatter(data[data['class']==1][0],data[data['class']==1][1],color='orange')
 	
 
 
-	ax = plt.axes(projection='3d')
-	i=0
-#ax.scatter3D(data[0], data[1], data[2])#, c=zdata, cmap='Greens');
 
-#for i in range(len(lim)):
-	ax.plot([lim['0min'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1min'].iloc[i]],[lim['2min'].iloc[i],lim['2min'].iloc[i]])
-	ax.plot([lim['0min'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1min'].iloc[i]],[lim['2max'].iloc[i],lim['2max'].iloc[i]])
-	ax.plot([lim['0min'].iloc[i],lim['0max'].iloc[i]],[lim['1max'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2min'].iloc[i]])
-	ax.plot([lim['0min'].iloc[i],lim['0max'].iloc[i]],[lim['1max'].iloc[i],lim['1max'].iloc[i]],[lim['2max'].iloc[i],lim['2max'].iloc[i]])
+#%%
+	
+	
+fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
 
-#for i in range(len(lim)):
-	ax.plot([lim['0min'].iloc[i],lim['0min'].iloc[i]],[lim['1min'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2min'].iloc[i]])
-	ax.plot([lim['0min'].iloc[i],lim['0min'].iloc[i]],[lim['1min'].iloc[i],lim['1max'].iloc[i]],[lim['2max'].iloc[i],lim['2max'].iloc[i]])
-	ax.plot([lim['0max'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2min'].iloc[i]])
-	ax.plot([lim['0max'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1max'].iloc[i]],[lim['2max'].iloc[i],lim['2max'].iloc[i]])
+for i in lim.index:
+	
+	ax.vlines(lim['0min'].iloc[i],lim['1min'].iloc[i],lim['1max'].iloc[i])		
+	ax.vlines(lim['0max'].iloc[i],lim['1min'].iloc[i],lim['1max'].iloc[i])
+	ax.hlines(lim['1min'].iloc[i],lim['0min'].iloc[i],lim['0max'].iloc[i])
+	ax.hlines(lim['1max'].iloc[i],lim['0min'].iloc[i],lim['0max'].iloc[i])
+	
+	
+	
+ax.scatter(w[0],w[1],color='r')
 
-#for i in range(len(lim)):
-	ax.plot([lim['0min'].iloc[i],lim['0min'].iloc[i]],[lim['1min'].iloc[i],lim['1min'].iloc[i]],[lim['2min'].iloc[i],lim['2max'].iloc[i]])
-	ax.plot([lim['0min'].iloc[i],lim['0min'].iloc[i]],[lim['1max'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2max'].iloc[i]])
-	ax.plot([lim['0max'].iloc[i],lim['0max'].iloc[i]],[lim['1min'].iloc[i],lim['1min'].iloc[i]],[lim['2min'].iloc[i],lim['2max'].iloc[i]])
-	ax.plot([lim['0max'].iloc[i],lim['0max'].iloc[i]],[lim['1max'].iloc[i],lim['1max'].iloc[i]],[lim['2min'].iloc[i],lim['2max'].iloc[i]])
+#ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
+#ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
+
+
+
+
+
+
 
 
 #%%   prova logistic ecc ecc
@@ -635,7 +743,7 @@ ax.scatter(x1[0],x1[1])
 ax.scatter(x2[0],x2[1])
 	
 	
-#%%
+
 
 from sklearn.linear_model import LogisticRegression
 
@@ -652,359 +760,14 @@ clf.intercept_
 
 
 
-x= -intercept/coef
+#= -intercept/coef
 
 
 
 	
 	
-
-
-
-
-
-
-
-#%%
-from sklearn import datasets
- 
-dat = datasets.make_moons(n_samples=100,noise=0.2)
-iris = datasets.load_iris()
-
-
-'''
-#make_moons
-data = pd.DataFrame(dat[0])
-data['class']=dat[1]
-X = dat[0]
-'''
-#iris
-data = pd.DataFrame(iris.data)
-data[[0,1,2]]
-
-
-
-t0=0
-#spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()] ]     
-spazio_iniziale = [[4, 8], [2, 5], [1,7]]  
-lifetime=0.4
-
-#%%
-
-
-#crea partizione a partire dai dati
-partizione,df = Mondrian_completo(data,t0,spazio_iniziale,lifetime)
-lim,w = Partizione(df)
-#lim=lim[['0min','0max','1min','1max','2min','2max']]
-#per ogni classe, conta i punti all'interno di ogni partizione
-#lim_class = Count(lim,data)
-#classifica ogni dato non precedentemente classificato a seconda della partizione
-# Class(lim_class,X)+
-
-
-
-
-
-#%%
-
-
-
-
-
-
-
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
-
-for i in range(len(df[df['dim']==0])):
-	ax.vlines(df.query('dim==0')['x'].iloc[i],df.query('dim==0')['1min'].iloc[i],df.query('dim==0')['1max'].iloc[i],color='b')#, linestyle = '--', color=color[i], linewidth=1) # - QD_peaks[i][1]
-	#ax.text(df.query('dim==0')['cut'].iloc[i],df.query('dim==0')['d1x'].iloc[i],df.query('dim==0')['tempo'].iloc[i].round(4),color='b')#,  fontsize=12, color=color[i])
-
-
-for i in range(len(df[df['dim']==1])):
-	ax.hlines(df.query('dim==1')['x'].iloc[i],df.query('dim==1')['0min'].iloc[i],df.query('dim==1')['0max'].iloc[i],color='orange')#, linestyle = '--', color=color[i], linewidth=1) # - QD_peaks[i][1]
-	#ax.text(df.query('dim==1')['d0x'].iloc[i],df.query('dim==1')['cut'].iloc[i],df.query('dim==1')['tempo'].iloc[i].round(4))#,  fontsize=12, color=color[i])
-
-
-#ax.scatter(data[0],data[1])
-
-ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
-ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
-
-
-
-
-#%%
-	
-	
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
-
-for i in lim.index:
-	
-	ax.vlines(lim['0min'].iloc[i],lim['1min'].iloc[i],lim['1max'].iloc[i])		
-	ax.vlines(lim['0max'].iloc[i],lim['1min'].iloc[i],lim['1max'].iloc[i])
-	ax.hlines(lim['1min'].iloc[i],lim['0min'].iloc[i],lim['0max'].iloc[i])
-	ax.hlines(lim['1max'].iloc[i],lim['0min'].iloc[i],lim['0max'].iloc[i])
-	
-	
-	
-ax.scatter(w[0],w[1],color='r')
-
-#ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
-#ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
-
-
-
-#%%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-	
-		
-
-
 
 			
 			
 			
 			
-			
-			
-			
-			
-			
-		
-		
-	
-		
-		
-		
-			
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#%%
-
-
-
-
-
-import mondrianforest
-from sklearn import datasets, model_selection
-
-
-iris = datasets.load_iris()
-forest = mondrianforest.MondrianTreeClassifier()
-
-cv = model_selection.ShuffleSplit(n_splits=20, test_size=0.10)
-scores = model_selection.cross_val_score(forest, iris.data, iris.target, cv=cv)
-
-print(scores.mean(), scores.std())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#%%     calcolare partizione
-
-
-#########  solo per  dim = 2
-
-
-
-def Partizione(df):
-	
-
-
-	
-	x_per_dim = []
-	for i in df['dim'].unique():
-		nomi_colonne=[]
-		for j in df.columns:
-			if (j.startswith(str(i))==False):
-				nomi_colonne.append(j)
-	
-		x_con_limiti = df[df['dim']==i].sort_values('x')[nomi_colonne]
-		x_con_limiti.index = np.arange(0,len(x_con_limiti),1)
-		x_con_limiti.columns = [str(x_con_limiti['dim'].unique()[0])+'x' if k=='x' else k for k in x_con_limiti.columns]
-		
-		x_per_dim.append(x_con_limiti)
-	
-
-
-
-
-	# da qui è solo per due dimensioni
-
-
-	x=x_per_dim[0]
-	y=x_per_dim[1]
-
-
-	hx=[]
-	for i in range(len(x)):
-		a = [x['0x'].iloc[i],x['1min'].iloc[i]]
-		b = [x['0x'].iloc[i],x['1max'].iloc[i]]
-		hx.append(a)
-		hx.append(b)
-	
-	hx = pd.DataFrame(hx)	
-	
-	
-	hy=[]
-	for i in range(len(y)):
-		a = [y['0min'].iloc[i],y['1x'].iloc[i]]
-		b = [y['0max'].iloc[i],y['1x'].iloc[i]]
-		hy.append(a)
-		hy.append(b)
-	
-	hy = pd.DataFrame(hy)		
-
-
-
-
-
-	# dataframe con estremi partizioni ordinati
-	w = pd.concat([hx,hy]).sort_values(by=[0,1])
-	w.index=np.arange(0,len(w),1)
-
-
-
-
-
-	a=[]
-	for i in range(len(w)):
-		for j in range(len(w)):
-			if j>i:
-				if (w[0].iloc[i]==w[0].iloc[j]) & (w[1].iloc[i]==w[1].iloc[j]):
-					a.append(j)
-			
-		
-	w=w.drop(a)
-			
-	w.index=np.arange(0,len(w),1)
-
-
-
-
-
-	estremi=[]
-
-
-	for i in range(len(w)):
-	
-	
-	#if w[0].iloc[i] != max(w[0]):
-	
-	
-	
-		a=[]
-		a.append(w[0].iloc[i]) #x_min
-		b=[]
-		for j in range(len(w)):
-			if w[0].iloc[i] != max(w[0]):
-				if (w[0].iloc[j]>w[0].iloc[i]) & (w[1].iloc[j]==w[1].iloc[i]):
-					
-					
-					b.append(w[0].iloc[j])
-					
-
-		#a.append(w[0].iloc[j])
-					#break
-					
-					 
-		a.append(w[1].iloc[i]) #y_min 
-		
-		
-	
-		w1 = w[w[0]==a[0]]
-		
-		w2=[]
-		for j in range(len(b)):
-			w2.append(w[w[0]==b[j]])
-			
-		
-		for j in range(len(w2)):
-			w12 = pd.merge(w1.set_index(1),w2[j].set_index(1), left_index=True, right_index=True)
-			w12 = w12[w12.index>w[1].iloc[i]]
-			
-			if w12.empty !=True:
-				
-				a.append(b[j]) #x_max
-				a.append(min(w12[w12.index>w[1].iloc[i]].index)) #y_max
-			
-				estremi.append(a)
-				break
-
-
-
-
-
-	estremi_df = pd.DataFrame(estremi)#.dropna()
-	estremi_df.columns = ['x_min','y_min','x_max','y_max']
-
-	estremi_df.index=np.arange(0,len(estremi_df),1)
-	
-	
-	
-	return estremi_df,w
-	
-	
-	
-	
-
-
-
-

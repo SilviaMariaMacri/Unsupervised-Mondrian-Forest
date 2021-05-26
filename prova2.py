@@ -3,9 +3,49 @@ import random
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pylab as plt
+from sklearn import datasets
 
+#%%
 
  
+dat = datasets.make_moons(n_samples=200,noise=0.2)
+iris = datasets.load_iris()
+
+
+
+#make_moons
+data = pd.DataFrame(dat[0])
+data['class']=dat[1]
+X = dat[0]
+'''
+#iris
+data = pd.DataFrame(iris.data)
+data[[0,1,2]]
+'''
+
+
+t0=0
+spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()] ]     
+#spazio_iniziale = [[4, 8], [2, 5], [1,7]]  
+lifetime=1
+
+#%%
+
+
+
+
+
+#crea partizione a partire dai dati
+part,df = Mondrian_completo(data,t0,spazio_iniziale,lifetime)
+lim,w = Partizione(df)
+#lim=lim[['0min','0max','1min','1max','2min','2max']]
+#per ogni classe, conta i punti all'interno di ogni partizione
+#lim_class = Count(lim,data)
+#classifica ogni dato non precedentemente classificato a seconda della partizione
+# Class(lim_class,X)
+
+
+#%% 
 
 # l = estremi degli intervalli
 # data = dataframe di dati
@@ -21,6 +61,8 @@ def Mondrian(data,t0,l,lifetime,father):
 		
 	# linear dimension
 	LD = sum(ld)
+	print('ld: ',ld)
+	print('LD: ',LD)
 	
 	
 	# dimensioni
@@ -36,50 +78,60 @@ def Mondrian(data,t0,l,lifetime,father):
 	time_cut = np.random.exponential(1/LD) 
 	t0 += time_cut
 	
-
-	if t0 < lifetime:
- 
-
-		# genera dimesione cut
-		d_cut = random.choices(d, weights=ld, k=1)[0] 
-		
-		
-
-		if data[d_cut].max() != data[d_cut].min():
-			
-			# cut
-			#x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
-			clf = LogisticRegression(penalty='none').fit(np.array(data[d_cut]).reshape((len(data),1)), np.array(data['class']).reshape((len(data),1)))
-			x = -clf.intercept_[0]/clf.coef_[0][0]
-
-
-
-
-			l_min = l.copy()
-			l_max = l.copy()
-			l_min[d_cut] = [l[d_cut][0],x]
-			l_max[d_cut] = [x,l[d_cut][1]]
-			
-
-			risultato1 = [t0, l_min]
-			risultato2 = [t0, l_max]
-			
-			
-		
-			
-			
-			risultato = [risultato1, risultato2, x, t0, d_cut, father]
-
-
-
-
-		
-			return risultato
-		
-
-
-	else:
+	
+	if t0 > lifetime:
 		return
+	
+	
+	if len(data['class'].unique())<2:
+		return
+	
+	
+	# genera dimesione cut
+	d_cut = random.choices(d, weights=ld, k=1)[0] 
+		
+	
+	if data[d_cut].max() == data[d_cut].min():
+		return
+	
+	
+	
+	# cut
+	#x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
+	clf = LogisticRegression(penalty='none').fit(np.array(data[d_cut]).reshape((len(data),1)), np.array(data['class']).reshape((len(data),1)))
+	x = -clf.intercept_[0]/clf.coef_[0][0]
+	
+	
+	
+	if (x<l[d_cut][0]) or (x>l[d_cut][1]):
+		return
+				
+				
+				
+			
+	l_min = l.copy()
+	l_max = l.copy()
+	l_min[d_cut] = [l[d_cut][0],x]
+	l_max[d_cut] = [x,l[d_cut][1]]
+			
+
+	risultato1 = [t0, l_min]
+	risultato2 = [t0, l_max]
+			
+			
+		
+			
+			
+	risultato = [risultato1, risultato2, x, t0, d_cut, father]
+
+
+
+
+		
+	return risultato
+		
+		
+
 
 
 
@@ -460,8 +512,8 @@ def Count(lim,data):
 		
 	for i in range(len(count_class)):
 		lim[str(i)+'counts'] = count_class[i]
+	
 		
-#devi aggiungee colonna classificazione associata a partizione		
 		
 	return lim
 
@@ -607,6 +659,36 @@ def PartitionPlot3D(part):
 	
 	return
 
+	
+	
+	
+	
+def PartitionPlot2D(data,part):
+
+	
+	p = part[part['leaf']==True]	
+	
+	
+	fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
+	
+	for i in range(len(p)):
+		
+		ax.vlines(p['0min'].iloc[i],p['1min'].iloc[i],p['1max'].iloc[i])		
+		ax.vlines(p['0max'].iloc[i],p['1min'].iloc[i],p['1max'].iloc[i])
+		ax.hlines(p['1min'].iloc[i],p['0min'].iloc[i],p['0max'].iloc[i])
+		ax.hlines(p['1max'].iloc[i],p['0min'].iloc[i],p['0max'].iloc[i])
+		
+		
+		
+	ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
+	ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
+	
+	
+	plt.show()
+	
+	return
+	
+	
 
 
 
@@ -618,48 +700,6 @@ def PartitionPlot3D(part):
 
 
 
-
-
-
-
-#%%
-from sklearn import datasets
- 
-dat = datasets.make_moons(n_samples=200,noise=0.2)
-iris = datasets.load_iris()
-
-
-
-#make_moons
-data = pd.DataFrame(dat[0])
-data['class']=dat[1]
-X = dat[0]
-'''
-#iris
-data = pd.DataFrame(iris.data)
-data[[0,1,2]]
-'''
-
-
-t0=0
-spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()] ]     
-#spazio_iniziale = [[4, 8], [2, 5], [1,7]]  
-lifetime=1
-
-#%%
-
-
-
-
-
-#crea partizione a partire dai dati
-part,df = Mondrian_completo(data,t0,spazio_iniziale,lifetime)
-lim,w = Partizione(df)
-#lim=lim[['0min','0max','1min','1max','2min','2max']]
-#per ogni classe, conta i punti all'interno di ogni partizione
-#lim_class = Count(lim,data)
-#classifica ogni dato non precedentemente classificato a seconda della partizione
-# Class(lim_class,X)
 
 
 
@@ -694,11 +734,19 @@ lim,w = Partizione(df)
 
 
 #%%
-	
-	
+
+lim[['0min','0max','1min','1max']].sort_values(by=['0min','0max','1min','1max'])	
+p[['0min','0max','1min','1max']].sort_values(by=['0min','0max','1min','1max'])
+
+
+#%%	
+p = p[['0min','0max','1min','1max']].sort_values(by=['0min','0max','1min','1max'])
+
+
+lim = part[part['leaf']==True].copy()
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
 
-for i in lim.index:
+for i in range(len(lim)):
 	
 	ax.vlines(lim['0min'].iloc[i],lim['1min'].iloc[i],lim['1max'].iloc[i])		
 	ax.vlines(lim['0max'].iloc[i],lim['1min'].iloc[i],lim['1max'].iloc[i])
@@ -707,10 +755,10 @@ for i in lim.index:
 	
 	
 	
-ax.scatter(w[0],w[1],color='r')
+#ax.scatter(w[0],w[1],color='r')
 
-#ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
-#ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
+ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
+ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
 
 
 

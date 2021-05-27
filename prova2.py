@@ -308,7 +308,7 @@ def Count(X,y,part):
 	
 
 	
-	p = part[part['leaf']==True]
+	p = part[part['leaf']==True].copy()
 	
 	count_class=[] 
 	
@@ -361,6 +361,7 @@ def Class(X,part_with_counts):
 	
 	cl0 = []
 	cl1 = []
+	part_number = []
 	
 			#part_with_counts[str(j)+'data'] = i[j]
 			#part_with_counts.eval("find_class = ("+str(j)+"data>"+str(j)+"min) and ("+str(j)+"data<"+str(j)+"max)", inplace=True)
@@ -378,18 +379,21 @@ def Class(X,part_with_counts):
 					break
 			if len(partial_count) == len(X[0]):
 				cl0.append(part_with_counts['0counts'].iloc[j])  
-				cl1.append(part_with_counts['1counts'].iloc[j])  
+				cl1.append(part_with_counts['1counts'].iloc[j]) 
+				part_number.append(part_with_counts['part_number'].iloc[j]) 
 				break
 			else:
 				if count==len(part_with_counts):
 					cl0.append('nan')
 					cl1.append('nan')
+					part_number.append('nan')
 					
 					
 
 	X = pd.DataFrame(X)			
 	X['0counts_data'] = cl0
 	X['1counts_data'] = cl1
+	X['part_number_data'] = part_number
 	
 	
 	

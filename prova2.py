@@ -1,11 +1,16 @@
 import numpy as np
 import random
+from numpy.random import choice
 import pandas as pd
 import matplotlib.pylab as plt
+from matplotlib.pyplot import cm
+
 
 from sklearn import datasets
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+
 
 #%%
 
@@ -25,7 +30,7 @@ data[2] = altra_dim
 
 
 data['class']=dat[1]
-X = dat[0]
+#X = dat[0]
 
 '''
 #iris
@@ -41,7 +46,7 @@ t0=0
 # 3D
 spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()],[data[2].min(),data[2].max()] ]     
 
-lifetime=3
+lifetime=0.5
 
 
 #%%
@@ -67,7 +72,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_
 #crea partizione a partire dai dati
 part = Mondrian_completo(X_train,y_train,t0,spazio_iniziale,lifetime)
 part_with_counts = Count(X_train,y_train,part)
-cl = Class(X_test,part_with_counts)
+accuracy,cl = Class(X_test,y_test,part_with_counts)
 #PartitionPlot3D(X_train,y_train,part)
 PartitionPlot3D(X_train,y_train,part)
 
@@ -120,47 +125,56 @@ def Mondrian(data,t0,l,lifetime,father):
 	
 	
 	# genera dimesione cut
-	d_cut = random.choices(d, weights=ld, k=1)[0] 
-		
 	
-	if data[d_cut].max() == data[d_cut].min():
-		return
-	
-	
-	
-	# cut
-	#x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
-	clf = LogisticRegression(penalty='none').fit(np.array(data[d_cut]).reshape((len(data),1)), np.array(data['class']).reshape((len(data),1)))
-	x = -clf.intercept_[0]/clf.coef_[0][0]
-	
-	
-	
-	if (x<l[d_cut][0]) or (x>l[d_cut][1]):
-		return
-				
-				
-				
-			
-	l_min = l.copy()
-	l_max = l.copy()
-	l_min[d_cut] = [l[d_cut][0],x]
-	l_max[d_cut] = [x,l[d_cut][1]]
-			
+	p = np.array(ld)/np.sum(ld)
+	dim = choice(d,p=p,replace=False,size=len(d))
 
-	risultato1 = [t0, l_min]
-	risultato2 = [t0, l_max]
+
+
+	for d_cut in dim:
 			
 			
 		
+		if data[d_cut].max() == data[d_cut].min():
+			return
+		
+		
+		
+		# cut
+		#x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
+		clf = LogisticRegression(penalty='none').fit(np.array(data[d_cut]).reshape((len(data),1)), np.array(data['class']).reshape((len(data),1)))
+		x = -clf.intercept_[0]/clf.coef_[0][0]
+		
+		
+		
+		if (x<l[d_cut][0]) or (x>l[d_cut][1]):
+			continue
+					
+					
+					
+				
+		l_min = l.copy()
+		l_max = l.copy()
+		l_min[d_cut] = [l[d_cut][0],x]
+		l_max[d_cut] = [x,l[d_cut][1]]
+				
+	
+		risultato1 = [t0, l_min]
+		risultato2 = [t0, l_max]
+				
+				
 			
-			
-	risultato = [risultato1, risultato2, x, t0, d_cut, father]
-
-
+				
+				
+		risultato = [risultato1, risultato2, x, t0, d_cut, father]
+	
+	
 
 
 		
-	return risultato
+		return risultato
+	
+	return
 		
 		
 
@@ -249,7 +263,7 @@ def Mondrian_completo(X,y,t0,spazio_iniziale,lifetime):
 	names = []
 	for i in range(len(spazio_iniziale)):
 		for j in ['min','max']:
-			names.append(str(i)+j)
+			names.append(j+str(i))
 	
 	
 	df_box = pd.DataFrame(box)
@@ -290,15 +304,28 @@ def Mondrian_completo(X,y,t0,spazio_iniziale,lifetime):
 
 
 
+'''
+p = part[part['leaf']==True].copy()
 
 
+for l in data['class'].unique():
+		
+	dat = data[data['class']==l].copy()
+	dat.index=np.arange(len(dat))
+	
+	for i in range(len(p)):
+		for j in range(n_d):
+			dat['min'+str(j)] = p['min'+str(j)].iloc[i]
+			dat['max'+str(j)] = p['max'+str(j)].iloc[i]
+			dat = dat.query("("+str(j)+">min"+str(j)+")")#" and ("+str(j)+"<max"+str(j)+")")
+		print('part: ',i, len(dat))
+		
+		
+		
+		dat = pd.eval("dat['count'"+str(j)+"'] = (dat["+str(j)+"] > dat['min"+str(j)+"']) and (dat["+str(j)+"] < dat['max"+str(j)+"'])", inplace=True)
+		dat = pd.eval("dat['count'"+str(j)+"'] = (dat["+str(j)+"] > dat['min"+str(j)+"']) and (dat["+str(j)+"] < dat['max"+str(j)+"'])", inplace=True)
 
-
-
-
-
-
-
+'''
 def Count(X,y,part): 	
 	
 	
@@ -326,7 +353,7 @@ def Count(X,y,part):
 			for i in range(len(dat)):
 				partial_count=[]
 				for j in range(n_d):
-					if (dat.iloc[i][j]>p[str(j)+'min'].iloc[k]) & (dat.iloc[i][j]<p[str(j)+'max'].iloc[k]):
+					if (dat.iloc[i][j]>p['min'+str(j)].iloc[k]) & (dat.iloc[i][j]<p['max'+str(j)].iloc[k]):
 						partial_count.append(0)
 					else:
 						break
@@ -338,10 +365,16 @@ def Count(X,y,part):
 		
 		
 	for i in range(len(count_class)):
-		p[str(i)+'counts'] = count_class[i]
+		p['counts'+str(i)] = count_class[i]
 		
-		
-		
+	p.index=np.arange(len(p))	
+	
+	p = (p.eval('prob0 = (0.5 + counts0) / (1 + counts0 + counts1)')
+	  .eval('prob1 = (0.5 + counts1) / (1 + counts0 + counts1)')	)
+	
+	p['cl'] = 0
+	p_cl1 = p.query('prob1>0.5')
+	p.loc[p_cl1.index,'cl']=1	
 
 	
 		
@@ -355,12 +388,11 @@ def Count(X,y,part):
 
 
 
-def Class(X,part_with_counts):	
+def Class(X,y,part_with_counts):	
 	
 	
 	
-	cl0 = []
-	cl1 = []
+	cl = []
 	part_number = []
 	
 			#part_with_counts[str(j)+'data'] = i[j]
@@ -373,32 +405,31 @@ def Class(X,part_with_counts):
 			count += 1
 			partial_count=[]
 			for k in range(len(X[0])):
-				if (i[k]>part_with_counts[str(k)+'min'].iloc[j]) & (i[k]<part_with_counts[str(k)+'max'].iloc[j]):
+				if (i[k]>part_with_counts['min'+str(k)].iloc[j]) & (i[k]<part_with_counts['max'+str(k)].iloc[j]):
 					partial_count.append(0)
 				else:
 					break
 			if len(partial_count) == len(X[0]):
-				cl0.append(part_with_counts['0counts'].iloc[j])  
-				cl1.append(part_with_counts['1counts'].iloc[j]) 
+				cl.append(part_with_counts['cl'].iloc[j])  
 				part_number.append(part_with_counts['part_number'].iloc[j]) 
 				break
 			else:
 				if count==len(part_with_counts):
-					cl0.append('nan')
-					cl1.append('nan')
+					cl.append('nan')
 					part_number.append('nan')
 					
 					
 
-	X = pd.DataFrame(X)			
-	X['0counts_data'] = cl0
-	X['1counts_data'] = cl1
+	X = pd.DataFrame(X)
+	X['cl_true'] = y			
+	X['cl_pred'] = cl
 	X['part_number_data'] = part_number
+	X = X.query("cl_pred!='nan'").copy()
 	
-	
+	accuracy = accuracy_score(list(X['cl_true']), list(X['cl_pred']))
 	
 		
-	return X
+	return accuracy,X
 
 
 
@@ -406,8 +437,6 @@ def Class(X,part_with_counts):
 
 
 
-
-from matplotlib.pyplot import cm
 
 
 
@@ -421,49 +450,42 @@ def PartitionPlot3D(X,y,part):
 	
 	p = part[part['leaf']==True]
 	
-	p = p[['0min','0max','1min','1max','2min','2max']]
-	p.columns = ['xmin','xmax','ymin','ymax','zmin','zmax']
-	
+	p = p[['min0','max0','min1','max1','min2','max2']]
+
 	p['indice'] = np.arange(1,len(p)+1,1)
 	
 	
-	p = (p.eval("xmin_r = xmin + (xmax-xmin)*0.05")
-		 .eval("ymin_r = ymin + (ymax-ymin)*0.05")
-		 .eval("zmin_r = zmin + (zmax-zmin)*0.05")
-		 .eval("xmax_r = xmax - (xmax-xmin)*0.05")
-		 .eval("ymax_r = ymax - (ymax-ymin)*0.05")
-		 .eval("zmax_r = zmax - (zmax-zmin)*0.05")
+	p = (p.eval("min_r0 = min0 + (max0-min0)*0.05")
+		 .eval("min_r1 = min1 + (max1-min1)*0.05")
+		 .eval("min_r2 = min2 + (max2-min2)*0.05")
+		 .eval("max_r0 = max0 - (max0-min0)*0.05")
+		 .eval("max_r1 = max1 - (max1-min1)*0.05")
+		 .eval("max_r2 = max2 - (max2-min2)*0.05")
 		 )
 
-
-	
-	p = p[['xmin_r','xmax_r','ymin_r','ymax_r','zmin_r','zmax_r']]
-	p.columns = ['0min','0max','1min','1max','2min','2max']
 	
 	
-	
-	
-	h1 = [['min','max'],
-		  ['min','max'],
-	      ['min','max'],
-	      ['min','max']]
+	h1 = [['min_r','max_r'],
+		  ['min_r','max_r'],
+	      ['min_r','max_r'],
+	      ['min_r','max_r']]
 	h1 = pd.DataFrame(h1)
 	
 	
 	
-	h2 = [['min','min'],
-	      ['min','min'],
-	      ['max','max'],
-	      ['max','max']]
+	h2 = [['min_r','min_r'],
+	      ['min_r','min_r'],
+	      ['max_r','max_r'],
+	      ['max_r','max_r']]
 	h2 = pd.DataFrame(h2)
 	h2.columns = [2,3]
 	
 	
 	
-	h3 = [['min','min'],
-	      ['max','max'],
-	      ['min','min'],
-	      ['max','max']]
+	h3 = [['min_r','min_r'],
+	      ['max_r','max_r'],
+	      ['min_r','min_r'],
+	      ['max_r','max_r']]
 	h3 = pd.DataFrame(h3)
 	h3.columns = [4,5]
 	
@@ -484,12 +506,12 @@ def PartitionPlot3D(X,y,part):
 	for i,c in zip(range(len(p)),color):
 		for j in range(len(h)):
 			for k in order:
-				x_min = p['0'+h[k[0]].iloc[j]].iloc[i]
-				x_max = p['0'+h[k[1]].iloc[j]].iloc[i]
-				y_min = p['1'+h[k[2]].iloc[j]].iloc[i]
-				y_max = p['1'+h[k[3]].iloc[j]].iloc[i]
-				z_min = p['2'+h[k[4]].iloc[j]].iloc[i]
-				z_max = p['2'+h[k[5]].iloc[j]].iloc[i]
+				x_min = p[h[k[0]].iloc[j]+'0'].iloc[i]
+				x_max = p[h[k[1]].iloc[j]+'0'].iloc[i]
+				y_min = p[h[k[2]].iloc[j]+'1'].iloc[i]
+				y_max = p[h[k[3]].iloc[j]+'1'].iloc[i]
+				z_min = p[h[k[4]].iloc[j]+'2'].iloc[i]
+				z_max = p[h[k[5]].iloc[j]+'2'].iloc[i]
 				
 				ax.plot([x_min,x_max],
 			            [y_min,y_max],
@@ -524,10 +546,10 @@ def PartitionPlot2D(X,y,part):
 	
 	for i in range(len(p)):
 		
-		ax.vlines(p['0min'].iloc[i],p['1min'].iloc[i],p['1max'].iloc[i])		
-		ax.vlines(p['0max'].iloc[i],p['1min'].iloc[i],p['1max'].iloc[i])
-		ax.hlines(p['1min'].iloc[i],p['0min'].iloc[i],p['0max'].iloc[i])
-		ax.hlines(p['1max'].iloc[i],p['0min'].iloc[i],p['0max'].iloc[i])
+		ax.vlines(p['min0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])		
+		ax.vlines(p['max0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])
+		ax.hlines(p['min1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
+		ax.hlines(p['max1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
 		
 		
 		
@@ -551,235 +573,4 @@ def PartitionPlot2D(X,y,part):
 
 
 
-
-
-
-
-
-#%%
-
-
-from itertools import product
-
-
-
-
-
-def Partizione(df):
-	
-
-
-	
-	x_per_dim = []
-	for i in df['dim'].unique():
-		nomi_colonne=[]
-		for j in df.columns:
-			if (j.startswith(str(i))==False):
-				nomi_colonne.append(j)
-	
-		x_con_limiti = df[df['dim']==i].sort_values('x')[nomi_colonne]
-		x_con_limiti.index = np.arange(0,len(x_con_limiti),1)
-		x_con_limiti.columns = [str(x_con_limiti['dim'].unique()[0])+'x' if k=='x' else k for k in x_con_limiti.columns]
-		
-		x_per_dim.append(x_con_limiti)
-	
-
-
-
-
-	
-	
-	
-
-
-
-
-	n_d = len(x_per_dim)
-	
-	
-	
-	point_tot = pd.DataFrame()
-	for i in range(n_d):  # scelgo una dimensione per il cut
-		point_df = pd.DataFrame()
-		
-		for j in range(len(x_per_dim[i])):   # per ogni riga del dataframe
-			point=[]
-			
-			dim = list(np.arange(n_d))
-			dim_r = dim.copy()
-			dim_r.remove(i)
-			
-			for lst in product(*([x_per_dim[i][str(n)+'min'].iloc[j],x_per_dim[i][str(n)+'max'].iloc[j]] for n in dim_r)):
-				   point.append(list(lst))
-			
-			point = pd.DataFrame(point)
-			point.columns = dim_r
-			point[i] = x_per_dim[i][str(i)+'x'].iloc[j]
-			point = point[dim]	
-			point_df = pd.concat([point_df,point])#.sort_values(by=dim)
-			
-		point_tot =  pd.concat([point_df,point_tot]).sort_values(by=dim)
-			
-	
-		point_tot = point_tot.drop_duplicates()
-		point_tot.index = np.arange(0,len(point_tot),1)
-
-
-
-
-
-
-
-	w = point_tot.copy()
-
-	lim_tot = pd.DataFrame()
-
-
-	for i in range(len(w)):
-	
-	
-	
-		min_limit=[]
-		#w_with_fixed_min = []
-		#w_without_fixed_min = pd.DataFrame()
-		
-		for j in range(n_d):
-			
-			lim_min = w[j].iloc[i]
-			min_limit.append(lim_min) #tutti i limiti  minimi
-			
-			#w_with_fixed_min.append(w[w[j]==lim_min])
-			#w_without_fixed_min = pd.concat([w[w[j]!=lim_min],w_without_fixed_min])
-			
-			
-		
-				
-		
-		# tutte dimensioni fissate tranne una
-		vary_one_dimension = [] 
-		for l in range(n_d):
-			b=[]
-			for j in range(len(w)):
-				if w[l].iloc[i] != max(w[l]):
-					if w[l].iloc[j]>w[l].iloc[i]:
-	
-						
-						dim = list(np.arange(n_d))
-						dim_r = dim.copy()
-						dim_r.remove(l)
-	
-						prova=[]
-						for k in dim_r:
-							if w[k].iloc[j]==w[k].iloc[i]:
-								prova.append(0)
-						if len(prova) == (n_d-1):
-							b.append(w[l].iloc[j])
-			vary_one_dimension.append(b)
-						
-		
-		possible_max = []
-		for lst in product(*(vary_one_dimension[n] for n in range(n_d))):
-			possible_max.append(list(lst))
-			
-		possible_max_real = []
-		for j in range(len(possible_max)):
-			for k in range(len(w)):
-				if list(w.iloc[k]) == possible_max[j]:
-					possible_max_real.append(possible_max[j])
-			
-		
-		sum_max = []
-		for j in range(len(possible_max_real)):
-			sum_max.append(sum(possible_max_real[j]))
-
-
-
-		try:
-			min_sum_max = min(sum_max)
-			
-		except ValueError:
-			continue
-		
-		index_max = sum_max.index(min_sum_max)
-		
-		
-		
-		max_limit = possible_max_real[index_max]
-		
-		
-
-		
-		name_columns_min = []
-		for j in range(n_d):
-			name_columns_min.append(str(j)+'min')
-
-		name_columns_max = []
-		for j in range(n_d):
-			name_columns_max.append(str(j)+'max')
-			
-		name_columns = np.concatenate([name_columns_min,name_columns_max])
-		
-		
-		
-		
-		
-		lim = np.concatenate([min_limit,max_limit])
-		lim = pd.DataFrame(lim).T
-		lim.columns = name_columns
-		
-		
-		
-		lim_tot = pd.concat([lim_tot,lim])
-		
-				
-
-
-
-
-	lim_tot.index=np.arange(len(lim_tot))
-	
-
-	
-	return lim_tot,w
-	
-			
-					
-
-
-
-
-
-
-#%%   prova logistic ecc ecc
-mean1 = (1, 1)
-cov1 = [[1, 0], [0, 1]]
-x1 = np.random.multivariate_normal(mean1, cov1, 100)
-x1=pd.DataFrame(x1)
-x1['cl']=0
-
-
-mean2 = (4, 4)
-cov2 = [[1, 0], [0, 1]]
-x2 = np.random.multivariate_normal(mean2, cov2, 100)
-x2=pd.DataFrame(x2)
-x2['cl']=1
-
-
-X = pd.concat([x1,x2])
-
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
-#ax.scatter(X[0],X[1])
-ax.scatter(x1[0],x1[1])
-	
-ax.scatter(x2[0],x2[1])
-	
-	
- 
-clf = LogisticRegression(penalty='none').fit(np.array(X[0]).reshape((200,1)), np.array(X['cl']).reshape((200,1)))
-
-clf.coef_
-#array([[3.22627498]])
-
-clf.intercept_
-#array([-7.98655553])
 

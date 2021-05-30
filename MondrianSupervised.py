@@ -12,84 +12,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 
-#%%
-
- 
-dat = datasets.make_moons(n_samples=300,noise=0.1)
-iris = datasets.load_iris()
-
-
-
-#make_moons
-data = pd.DataFrame(dat[0])
-
-
-# 3D
-altra_dim = np.random.normal(0, 1, len(data))
-data[2] = altra_dim
-
-
-data['class']=dat[1]
-#X = dat[0]
-
-'''
-#iris
-data = pd.DataFrame(iris.data)
-data[[0,1,2]]
-
-'''
-
-t0=0
-
-# 2D
-#spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()] ]     
-# 3D
-spazio_iniziale = [ [data[0].min(),data[0].max()],[data[1].min(),data[1].max()],[data[2].min(),data[2].max()] ]     
-
-lifetime=0.5
-
-
-#%%
-
-
-X = np.array(data[[0,1,2]]).reshape((len(data),3))
-y = np.array(data['class'])
-
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
-
-
-
-
-
-
-
-
-#%%
-
-
-
-#crea partizione a partire dai dati
-part = Mondrian_completo(X_train,y_train,t0,spazio_iniziale,lifetime)
-part_with_counts = Count(X_train,y_train,part)
-accuracy,cl = Class(X_test,y_test,part_with_counts)
-#PartitionPlot3D(X_train,y_train,part)
-PartitionPlot3D(X_train,y_train,part)
-
-
-
-
-
-
-#%% 
-
 
 
 
 # l = estremi degli intervalli
 # data = dataframe di dati
 
-def Mondrian(data,t0,l,lifetime,father):
+
+def MondrianSupervised_SingleCut(data,t0,l,lifetime,father):
 
 
 	# array di lunghezze intervalli 
@@ -184,16 +114,17 @@ def Mondrian(data,t0,l,lifetime,father):
 
 
 
-
-
-
-def Mondrian_completo(X,y,t0,spazio_iniziale,lifetime): 
+def MondrianSupervised(X,y,t0,lifetime): 
 	
 	
 	
 	data = pd.DataFrame(X)
 	data['class'] = y
 	
+	spazio_iniziale = []
+	for i in range(len(X[0])):
+		length = data[i].max() - data[i].min()
+		spazio_iniziale.append([data[i].min() - length*0.05,data[i].max() + length*0.05])
 	
 
 	m=[]
@@ -231,7 +162,7 @@ def Mondrian_completo(X,y,t0,spazio_iniziale,lifetime):
 
 			 
 		 
-			mondrian = Mondrian(data,i[0],i[1],lifetime,i[2])
+			mondrian = MondrianSupervised_SingleCut(data,i[0],i[1],lifetime,i[2])
 			
 			m.append([mondrian[0][0],mondrian[0][1],count_part_number+1])
 			count_part_number += 1
@@ -252,7 +183,7 @@ def Mondrian_completo(X,y,t0,spazio_iniziale,lifetime):
 				father.append(mondrian[5])
 				
 
-
+ 
 
 		except  TypeError:
 			continue
@@ -293,8 +224,6 @@ def Mondrian_completo(X,y,t0,spazio_iniziale,lifetime):
 	return part
 
 			
-
-
 
 
 
@@ -353,7 +282,7 @@ def Count(X,y,part):
 			for i in range(len(dat)):
 				partial_count=[]
 				for j in range(n_d):
-					if (dat.iloc[i][j]>p['min'+str(j)].iloc[k]) & (dat.iloc[i][j]<p['max'+str(j)].iloc[k]):
+					if (dat.iloc[i][j]>=p['min'+str(j)].iloc[k]) & (dat.iloc[i][j]<p['max'+str(j)].iloc[k]):
 						partial_count.append(0)
 					else:
 						break
@@ -369,8 +298,10 @@ def Count(X,y,part):
 		
 	p.index=np.arange(len(p))	
 	
+	
 	p = (p.eval('prob0 = (0.5 + counts0) / (1 + counts0 + counts1)')
-	  .eval('prob1 = (0.5 + counts1) / (1 + counts0 + counts1)')	)
+	  .eval('prob1 = 1-prob0')	) #'prob1 = (0.5 + counts1) / (1 + counts0 + counts1)'
+	
 	
 	p['cl'] = 0
 	p_cl1 = p.query('prob1>0.5')
@@ -405,7 +336,7 @@ def Class(X,y,part_with_counts):
 			count += 1
 			partial_count=[]
 			for k in range(len(X[0])):
-				if (i[k]>part_with_counts['min'+str(k)].iloc[j]) & (i[k]<part_with_counts['max'+str(k)].iloc[j]):
+				if (i[k]>=part_with_counts['min'+str(k)].iloc[j]) & (i[k]<part_with_counts['max'+str(k)].iloc[j]):
 					partial_count.append(0)
 				else:
 					break
@@ -424,9 +355,9 @@ def Class(X,y,part_with_counts):
 	X['cl_true'] = y			
 	X['cl_pred'] = cl
 	X['part_number_data'] = part_number
-	X = X.query("cl_pred!='nan'").copy()
+	X_bis = X.query("cl_pred!='nan'").copy()
 	
-	accuracy = accuracy_score(list(X['cl_true']), list(X['cl_pred']))
+	accuracy = accuracy_score(list(X_bis['cl_true']), list(X_bis['cl_pred']))
 	
 		
 	return accuracy,X
@@ -550,6 +481,8 @@ def PartitionPlot2D(X,y,part):
 		ax.vlines(p['max0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])
 		ax.hlines(p['min1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
 		ax.hlines(p['max1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
+		ax.text(p['min0'].iloc[i],p['min1'].iloc[i],p['part_number'].iloc[i])
+
 		
 		
 		
@@ -566,6 +499,18 @@ def PartitionPlot2D(X,y,part):
 
 
 
+def PartitionPlot(X,y,part):
+	
+	if len(X[0]) == 2:
+		PartitionPlot2D(X,y,part)
+		
+	if len(X[0]) == 3:
+		PartitionPlot3D(X,y,part)
+		
+		
+		
+	return
+		
 
 
 

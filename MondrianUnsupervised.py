@@ -13,6 +13,8 @@ from itertools import combinations,combinations_with_replacement
 import networkx as nx
 
 
+import seaborn as sns
+
 
 
 
@@ -357,7 +359,7 @@ def AssignPartition(X,part):
 
 
 def MondrianIterator(number_iterations,X,t0,lifetime):
-	
+#%%
 	
 	# calcolo ogni possibile coppia di punti
 	pair_index = list(combinations(np.arange(len(X)), 2))
@@ -404,9 +406,41 @@ def MondrianIterator(number_iterations,X,t0,lifetime):
 		
 	pair_index.loc[pair_index.index,'avg_dist'] = [*[np.mean(list(pair_index.iloc[s])[2:]) for s in pair_index.index]]
 	
-	pair_index_avg = pair_index[['index1','index2','avg_dist']]
-	classe = True
 	
+	
+	#coppia di punti con media della distanza
+	pair_index_avg = pair_index[['index1','index2','avg_dist']]
+	
+
+
+	pair_index_avg['avg_dist']
+	
+
+
+#%%
+
+
+
+G = nx.Graph()
+for i in range(len(pair_index_avg)):
+	G.add_edge(pair_index_avg['index1'].iloc[i],pair_index_avg['index2'].iloc[i],weight=pair_index_avg['avg_dist'].iloc[i])
+
+nx.info(G)
+
+
+matrix = nx.to_pandas_adjacency(G)
+
+
+
+
+
+
+
+# fine
+#%%% fine	
+
+
+	classe = True
 	df_classi = []
 	
 	for i in range(len(data)-1):
@@ -462,6 +496,8 @@ ax.hist(pair_index['avg_dist'])
 
 
 
+
+clusterplot
 
 
 

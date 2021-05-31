@@ -1,3 +1,5 @@
+'''
+
 # cd "C:\Users\silvi\Desktop\Fisica\TESI\Tesi"
 
 import numpy as np
@@ -13,15 +15,15 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
+'''
 
 
-import prova2
 
 
 #%% data
 
  
-dat = datasets.make_moons(n_samples=100,noise=0.1)
+dat = datasets.make_moons(n_samples=200,noise=0.1)
 iris = datasets.load_iris()
 '''
 #iris
@@ -67,9 +69,18 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_
 #%%  
 
 t0=0
-lifetime=2
+lifetime=1.5
 
-part = Mondrian_completo_unsupervised(X,t0,lifetime)
+part = MondrianUnsupervised(X,t0,lifetime)
+
+
+
+
+
+
+
+
+
 #part_with_counts = Count(X,y,part)
 #accuracy,cl = Class(X,y,part_with_counts)
 

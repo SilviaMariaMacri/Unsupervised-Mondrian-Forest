@@ -9,8 +9,57 @@ from matplotlib.pyplot import cm
 from sklearn import datasets
 #from sklearn.metrics import accuracy_score
 
-from itertools import combinations_with_replacement	
+from itertools import combinations,combinations_with_replacement	
 import networkx as nx
+
+
+
+
+
+def Cut(data,d):
+	
+	
+	intervals = pd.DataFrame()
+
+	for dim in d:
+			
+			
+		
+		if data[dim].max() == data[dim].min():
+			return
+		
+		
+		data_ordered =  data[dim].sort_values()
+		#data_ordered.index = np.arange(len(data_ordered))
+		data_ordered_min = data_ordered[:-1]
+		data_ordered_max = data_ordered[1:]
+		data_ordered_min.index = np.arange(len(data_ordered_min))
+		data_ordered_max.index = np.arange(len(data_ordered_max))
+		data_interval = pd.merge(data_ordered_min,data_ordered_max, left_index=True, right_index=True)
+		data_interval.columns = ['min','max']
+		
+		data_interval['interval'] = data_interval['max'] - data_interval['min']
+		intervallo_prescelto = data_interval[data_interval['interval']==data_interval['interval'].max()]
+		intervallo_prescelto['dim'] =  dim
+		intervals = pd.concat([intervals,intervallo_prescelto])
+		
+		
+	intervals.index = np.arange(len(d))
+	
+	
+	p = intervals['interval']/intervals['interval'].sum()
+	d_cut = choice(intervals['dim'],p=p,replace=False)
+
+	distance = intervals['interval'].iloc[d_cut]
+	x = intervals['max'].iloc[d_cut] - distance/2	
+	
+	
+	return d_cut,x,distance
+	
+	
+
+
+
 
 
 
@@ -47,49 +96,7 @@ def MondrianUnsupervised_SingleCut(data,t0,l,lifetime,father):
 		return
 	
 
-	
-	
-	intervals = pd.DataFrame()
-
-	for dim in d:
-			
-			
-		
-		if data[dim].max() == data[dim].min():
-			return
-		
-		
-		data_ordered =  data[dim].sort_values()
-		#data_ordered.index = np.arange(len(data_ordered))
-		data_ordered_min = data_ordered[:-1]
-		data_ordered_max = data_ordered[1:]
-		data_ordered_min.index = np.arange(len(data_ordered_min))
-		data_ordered_max.index = np.arange(len(data_ordered_max))
-		data_interval = pd.merge(data_ordered_min,data_ordered_max, left_index=True, right_index=True)
-		data_interval.columns = ['min','max']
-		
-		data_interval['interval'] = data_interval['max'] - data_interval['min']
-		intervallo_prescelto = data_interval[data_interval['interval']==data_interval['interval'].max()]
-		intervallo_prescelto['dim'] =  dim
-		intervals = pd.concat([intervals,intervallo_prescelto])
-		
-		
-	intervals.index = np.arange(len(d))
-	#max_interval = intervals[intervals['interval']==intervals['interval'].max()]
-	
-	#x = max_interval['max'].iloc[0] - max_interval['interval'].iloc[0]/2	
-	#d_cut = max_interval['dim'].iloc[0]
-	
-	
-	
-	p = intervals['interval']/intervals['interval'].sum()
-	d_cut = choice(intervals['dim'],p=p,replace=False)
-
-	distance = intervals['interval'].iloc[d_cut]
-	x = intervals['max'].iloc[d_cut] - distance/2	
-	
-	
-
+	d_cut,x,distance = Cut(data,d)
 					
 				
 	l_min = l.copy()
@@ -247,7 +254,7 @@ def MondrianUnsupervised(X,t0,lifetime):
 
 
 
-#%%  
+  
 
 
 
@@ -303,6 +310,7 @@ def ShortestDistance(part):
 
 
 
+# associa ad ogni punto la partizione a cui appartiene
 
 def AssignPartition(X,part):	
 	
@@ -343,7 +351,7 @@ def AssignPartition(X,part):
 
 
 
-#%%
+
 
 
 
@@ -397,14 +405,52 @@ def MondrianIterator(number_iterations,X,t0,lifetime):
 	pair_index.loc[pair_index.index,'avg_dist'] = [*[np.mean(list(pair_index.iloc[s])[2:]) for s in pair_index.index]]
 	
 	pair_index_avg = pair_index[['index1','index2','avg_dist']]
+	classe = True
+	
+	df_classi = []
 	
 	for i in range(len(data)-1):
 		avg = pair_index_avg.query('(index1=='+str(i)+') or (index2=='+str(i)+')')
+		avg.index = np.arange(len(avg))
 		
-		avg['class'] = 0
-		avg.loc[avg['avg_dist>1'].index,'class'] = 1
+		avg.loc[avg.index,'point2_column'] = [*[int(avg[['index1','index2']].iloc[s][avg[['index1','index2']].iloc[s]!=i]) for s in avg.index]]
+		avg['class'] = classe
+		avg.loc[avg[avg['avg_dist']>1].index,'class'] = not(classe)
+		
+		classe = avg[avg['point2_column']==i+1]['class'].iloc[0]
 			
+		df_classi.append(avg[['point2_column','class']])
 	
+	
+	df_classi_tot = pd.merge(df_classi[0],df_classi[1],how='outer', left_on='point2_column', right_on='point2_column')
+		
+	for i in df_classi[2:]:
+		df_classi_tot = pd.merge(df_classi_tot,i,how='outer', left_on='point2_column', right_on='point2_column')
+		
+		
+		
+	df_classi_tot.index = df_classi_tot['point2_column']
+	df_classi_tot.drop(['point2_column'], axis='columns', inplace=True)	
+	df_classi_tot = df_classi_tot.sort_index()
+	final_class = df_classi_tot.T	
+		
+	
+	False_counts = []
+	True_counts = []
+	for i in final_class:
+		False_counts.append(final_class[i].value_counts()[False])
+		True_counts.append(final_class[i].value_counts()[True])
+		
+	data_with_class = data.copy()
+	data_with_class['False_counts'] = False_counts
+	data_with_class['True_counts'] = True_counts
+	data_with_class['class'] = False
+	True_index = data_with_class.query('True_counts>False_counts').index
+	data_with_class.loc[True_index,'class'] = True
+	
+	y = data_with_class['class']
+	
+	return y
 	
 	
 	

@@ -1,19 +1,13 @@
 import numpy as np
-import random
 from numpy.random import choice
 import pandas as pd
-import matplotlib.pylab as plt
-from matplotlib.pyplot import cm
 
 
-from sklearn import datasets
 #from sklearn.metrics import accuracy_score
-
 from itertools import combinations,combinations_with_replacement	
 import networkx as nx
 
 
-import seaborn as sns
 
 
 
@@ -280,6 +274,10 @@ def Graph(part):
 # calcola shortest_path_length
 # link con peso maggiore allontanano due nodi
 
+
+
+
+
 def ShortestDistance(part):
 	
 	G = Graph(part)
@@ -322,9 +320,7 @@ def AssignPartition(X,part):
 	
 	
 	part_number = []
-	
-	
-	
+
 	for i in X:
 		p = part.query('leaf==True').copy()
 		
@@ -334,15 +330,10 @@ def AssignPartition(X,part):
 		
 		part_number.append(p['part_number'].iloc[0])
 
-	
 
-	
 
 	X = pd.DataFrame(X)
 	X['part_number'] = part_number
-	
-	
-	
 	
 		
 	return X
@@ -359,7 +350,7 @@ def AssignPartition(X,part):
 
 
 def MondrianIterator(number_iterations,X,t0,lifetime):
-#%%
+
 	
 	# calcolo ogni possibile coppia di punti
 	pair_index = list(combinations(np.arange(len(X)), 2))
@@ -409,98 +400,24 @@ def MondrianIterator(number_iterations,X,t0,lifetime):
 	
 	
 	#coppia di punti con media della distanza
-	pair_index_avg = pair_index[['index1','index2','avg_dist']]
-	
-
-
-	pair_index_avg['avg_dist']
-	
-
-
-#%%
-
-
-
-G = nx.Graph()
-for i in range(len(pair_index_avg)):
-	G.add_edge(pair_index_avg['index1'].iloc[i],pair_index_avg['index2'].iloc[i],weight=pair_index_avg['avg_dist'].iloc[i])
-
-nx.info(G)
-
-
-matrix = nx.to_pandas_adjacency(G)
-
-
-
-
-
-
-
-# fine
-#%%% fine	
-
-
-	classe = True
-	df_classi = []
-	
-	for i in range(len(data)-1):
-		avg = pair_index_avg.query('(index1=='+str(i)+') or (index2=='+str(i)+')')
-		avg.index = np.arange(len(avg))
-		
-		avg.loc[avg.index,'point2_column'] = [*[int(avg[['index1','index2']].iloc[s][avg[['index1','index2']].iloc[s]!=i]) for s in avg.index]]
-		avg['class'] = classe
-		avg.loc[avg[avg['avg_dist']>1].index,'class'] = not(classe)
-		
-		classe = avg[avg['point2_column']==i+1]['class'].iloc[0]
-			
-		df_classi.append(avg[['point2_column','class']])
-	
-	
-	df_classi_tot = pd.merge(df_classi[0],df_classi[1],how='outer', left_on='point2_column', right_on='point2_column')
-		
-	for i in df_classi[2:]:
-		df_classi_tot = pd.merge(df_classi_tot,i,how='outer', left_on='point2_column', right_on='point2_column')
-		
-		
-		
-	df_classi_tot.index = df_classi_tot['point2_column']
-	df_classi_tot.drop(['point2_column'], axis='columns', inplace=True)	
-	df_classi_tot = df_classi_tot.sort_index()
-	final_class = df_classi_tot.T	
-		
-	
-	False_counts = []
-	True_counts = []
-	for i in final_class:
-		False_counts.append(final_class[i].value_counts()[False])
-		True_counts.append(final_class[i].value_counts()[True])
-		
-	data_with_class = data.copy()
-	data_with_class['False_counts'] = False_counts
-	data_with_class['True_counts'] = True_counts
-	data_with_class['class'] = False
-	True_index = data_with_class.query('True_counts>False_counts').index
-	data_with_class.loc[True_index,'class'] = True
-	
-	y = data_with_class['class']
-	
-	return y
+	pair_with_avg = pair_index[['index1','index2','avg_dist']]
 	
 	
 	
+	G = nx.Graph()
+	for i in range(len(pair_with_avg)):
+		G.add_edge(pair_with_avg['index1'].iloc[i],pair_with_avg['index2'].iloc[i],weight=pair_with_avg['avg_dist'].iloc[i])
+
 	
-#%%
 	
-fig,ax = plt.subplots()
-ax.hist(pair_index['avg_dist'])
+	matrix = nx.to_pandas_adjacency(G)
+	
+	data.drop('part_number',axis=1)
+	
+	
 
 
-
-
-clusterplot
-
-
-
-
+	
+	return matrix,data
 
 

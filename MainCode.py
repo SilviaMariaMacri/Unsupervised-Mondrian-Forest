@@ -1,23 +1,10 @@
-'''
-
 # cd "C:\Users\silvi\Desktop\Fisica\TESI\Tesi"
 
 import numpy as np
-import random
-from numpy.random import choice
 import pandas as pd
-import matplotlib.pylab as plt
-from matplotlib.pyplot import cm
-
-
 from sklearn import datasets
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
 
-'''
-
-
+import seaborn as sns
 
 
 #%% data
@@ -66,28 +53,50 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_
 
 
 
-#%%  
+#%%  Unsupervised
+
+t0=0
+lifetime=1.5
+number_iterations = 20
+
+
+#part = MondrianUnsupervised(X,t0,lifetime)
+#PartitionPlot(X,y,part)
+matrix,points_with_index = MondrianIterator(number_iterations,X,t0,lifetime)
+
+
+# part[['time', 'father', 'part_number', 'dim', 'distance', 'x', 'leaf']]
+
+
+
+#%% Supervised
 
 t0=0
 lifetime=1.5
 
-part = MondrianUnsupervised(X,t0,lifetime)
-
-
-
-
-
-
-
-
-
-#part_with_counts = Count(X,y,part)
-#accuracy,cl = Class(X,y,part_with_counts)
-
+MondrianSupervised(X,y,t0,lifetime)
+part_with_counts = Count(X,y,part)
+accuracy,cl = AssignClass(X,y,part_with_counts)
 PartitionPlot(X,y,part)
 
 
-# part[['time', 'father', 'part_number', 'dim', 'distance', 'x', 'leaf']]
+
+
+
+#%%  clustermap
+
+
+
+row_colors = []
+for i in range(len(y)):
+	if y[i]==0:
+		row_colors.append('b')
+	else:
+		row_colors.append('orange')
+
+sns.clustermap(matrix, row_colors=row_colors)
+
+
 
 #%%
 

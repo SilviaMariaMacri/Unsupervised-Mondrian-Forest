@@ -303,7 +303,7 @@ def AssignClass(X,y,part_with_counts):
 	X = pd.DataFrame(X)
 	X['part_number'] = part_number
 	
-	X = pd.merge(X,pp[['part_number','cl']],how='left',left_on='part_number',right_on='part_number')
+	X = pd.merge(X,part_with_counts[['part_number','cl']],left_on='part_number',right_on='part_number')
 	X['cl_true'] = y
 
 	X_bis = X.query("cl!='nan'").copy()

@@ -363,6 +363,8 @@ def MondrianIterator(number_iterations,X,t0,lifetime):
 	
 	for i in range(number_iterations):
 		
+		print(i+1)
+		
 		part = MondrianUnsupervised(X,t0,lifetime)
 		# calcolo distanze fra partizioni
 		dist = ShortestDistance(part)

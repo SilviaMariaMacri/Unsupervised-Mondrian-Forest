@@ -77,19 +77,35 @@ def calcolo_varianza(data,d_cut,x):
 	data1 = data[data[d_cut]>x]
 	data2 = data[data[d_cut]<x]
 	
-	pd1 = pdist(data1)
-	pd2 = pdist(data2)
+	if (len(data1)!=1) & (len(data2)!=1):
+		
 	
-	pd = pdist(data)
-	pd12 = np.hstack([pd1, pd2])
+		pd1 = pdist(data1)
+		pd2 = pdist(data2)
+		
+		pd = pdist(data)
+		pd12 = np.hstack([pd1, pd2])
+		
+		##############var(pd)/var(pd12)
+		
+		
+		score_1 = np.abs(np.log(np.var(pd12)/np.var(pd)))
+		
+		score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
+		
+		s = [score_1,score_2]
+		
+		return s 
+		
 	
-	
-	score_1 = np.abs(np.log(np.var(pd12)/np.var(pd)))
-	score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
-	
+		
+	else:
+		s='nan'
+		return s
 
-	
-	return score_1,score_2
+
+
+
 
 
 
@@ -123,10 +139,10 @@ def Cut_confronto_split_intervalli(data,d):
 	intervals = intervals.sort_values(by='interval',ascending=False)
 	intervals.index = np.arange(len(intervals))
 
-	count=0	
+	c=0
 	for i in range(len(intervals)):
-		count += 1
-		print(count)
+		c += 1
+		print(c)
 		
 		#p = intervals['interval']/intervals['interval'].sum()
 		#d_cut = choice(intervals['dim'],p=p,replace=False)
@@ -135,116 +151,23 @@ def Cut_confronto_split_intervalli(data,d):
 		x = intervals['max'].iloc[i] - distance/2 
 		d_cut = intervals['dim'].iloc[i]
 		
-		s1,s2 = calcolo_varianza(data,d_cut,x)
-		#print(s1,s2)
+		s = calcolo_varianza(data,d_cut,x)
+
 		
 		
 		
-		if s1>s2:
+		if (len(s)==2) & (s[0]>s[1]):
 			return d_cut,x,distance
 	
 		
 	
-	distance = intervals['interval'].iloc[i]
-	x = intervals['max'].iloc[i] - distance/2 
-	d_cut = intervals['dim'].iloc[i]
+
 	
 
-	return #d_cut,x,distance
+	return 
 
-
-	#	print(s1>s2)
-		#	if count == len(intervals):
-		#		distance = intervals['interval'].iloc[0]
-		#		x = intervals['max'].iloc[0] - distance/2 
-		#		d_cut = intervals['dim'].iloc[0]
-		#		return d_cut,x,distance
-			#else:
-			#	continue 
 
 		
-		
-		
-
-
-
-
-
-
-
-
-
-
-
-
-def Cut_confronto_dimensioni(data,d):
-	
-	
-	intervals = pd.DataFrame()
-
-
-	d_cut = []
-	x = []
-	scores_ratio = []
-	dist = []
-	
-	for dim in d:
-			
-			
-		
-		if data[dim].max() == data[dim].min():
-			return
-		
-		
-		data_ordered =  data[dim].sort_values()
-		#data_ordered.index = np.arange(len(data_ordered))
-		data_ordered_min = data_ordered[:-1]
-		data_ordered_max = data_ordered[1:]
-		data_ordered_min.index = np.arange(len(data_ordered_min))
-		data_ordered_max.index = np.arange(len(data_ordered_max))
-		data_interval = pd.merge(data_ordered_min,data_ordered_max, left_index=True, right_index=True)
-		data_interval.columns = ['min','max']
-		
-		data_interval['interval'] = data_interval['max'] - data_interval['min']
-		intervallo_prescelto = data_interval[data_interval['interval']==data_interval['interval'].max()].copy()
-		intervallo_prescelto['dim'] =  dim
-		intervals = pd.concat([intervals,intervallo_prescelto])
-		
-		
-		distance = intervals['interval'].iloc[dim]
-		xi = intervals['max'].iloc[dim] - distance/2	
-		
-		
-		s1,s2 = calcolo_varianza(data,dim,xi)
-		
-		dist.append(distance)
-		d_cut.append(dim)
-		x.append(xi)
-		s = s1/s2
-		scores_ratio.append(s)
-		
-		
-		
-	df = {'d_cut':d_cut,'x':x,'scores_ratio':scores_ratio,'distance':dist}
-	df = pd.DataFrame(df)
-	
-	d_cut = int(df[df['scores_ratio']==df['scores_ratio'].max()]['d_cut'])
-	x = float(df[df['scores_ratio']==df['scores_ratio'].max()]['x'])
-	distance =  float(df[df['scores_ratio']==df['scores_ratio'].max()]['distance'])
-	
-	
-	#if df['scores_ratio'].max()<1:
-	#	return
-	
-	
-	return d_cut,x,distance
-
-
-
-
-
-
-
 
 
 

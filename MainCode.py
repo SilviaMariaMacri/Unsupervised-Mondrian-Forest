@@ -11,7 +11,7 @@ import seaborn as sns
 #%% data
 
  
-dat = datasets.make_moons(n_samples=200,noise=0.01)
+dat = datasets.make_moons(n_samples=200,noise=0.1)
 iris = datasets.load_iris()
 '''
 #iris
@@ -58,18 +58,16 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_
 
 t0=0
 lifetime=2
-number_iterations = 30
+number_iterations = 20
 
 
 part = MondrianUnsupervised(X,t0,lifetime)
-#PartitionPlot(X,y,part)
 #matrix,points_with_index = MondrianIterator(number_iterations,X,t0,lifetime)
 
 PartitionPlot(X,y,part)
 
-
-
 # part[['time', 'father', 'part_number', 'dim', 'distance', 'x', 'leaf']]
+
 
 #%% Supervised
 
@@ -78,19 +76,8 @@ lifetime=2
 
 part = MondrianSupervised(X_train,y_train,t0,lifetime)
 part_with_counts = Count(X_train,y_train,part)
-#accuracy,cl = AssignClass(X_test,y_test,part_with_counts)
-PartitionPlot(X,y,part)
-
-
-
-
-
-
-
-
-
-
-
+accuracy,cl = AssignClass(X_test,y_test,part_with_counts)
+PartitionPlot(X_train,y_train,part)
 
 
 
@@ -164,8 +151,8 @@ data2['class_cluster'] = classificazione_cluster
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
 	
 		
-ax.scatter(data2[data2['class']==0][0],data2[data2['class']==0][1], facecolors='none', edgecolors='b')
-ax.scatter(data2[data2['class']==1][0],data2[data2['class']==1][1], facecolors='none', edgecolors='orange')
+#ax.scatter(data2[data2['class']==0][0],data2[data2['class']==0][1], facecolors='none', edgecolors='b')
+#ax.scatter(data2[data2['class']==1][0],data2[data2['class']==1][1], facecolors='none', edgecolors='orange')
 
 ax.scatter(data2[data2['class_cluster']==0][0],data2[data2['class_cluster']==0][1], color='b',alpha=0.3)
 ax.scatter(data2[data2['class_cluster']==1][0],data2[data2['class_cluster']==1][1], color='orange',alpha=0.3)

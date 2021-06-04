@@ -4,6 +4,19 @@
 
 
 
+#una volta selezionati i cut con calcolo varianza, confrontare partizioni 
+#	vicine ottenute con nuovo calcolo di varianza
+
+
+
+
+
+
+
+
+
+
+
 import numpy as np
 from numpy.random import choice
 import pandas as pd	
@@ -18,10 +31,10 @@ from matplotlib.patches import Polygon
 
 #%%
 
-# coppie di vertici
+# coppie di vertici 
 vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
 t0=0
-lifetime=1
+lifetime=2
 
 m,box,df=MondrianPolygon(t0,vertici_iniziali,lifetime)
 
@@ -40,6 +53,24 @@ for i in box:
 #ax.set_ylim(-0.5,1.5)
 
 plt.show()
+
+
+#%%  area poligono
+
+
+box = box[0]
+
+
+def PolyArea(box):
+	
+	df_box = pd.DataFrame(box)
+	x = df_box[0]
+	y = df_box[1]
+    
+	return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
+
+print(PolyArea(box))
+
 
 
 #%%
@@ -237,57 +268,237 @@ def MondrianPolygon(t0,vertici_iniziali,lifetime):
 #%%       trovare partizioni vicine tagli perpendicolari
 
 
-neighbors = []
 
-for i in range(len(part.query('leaf==True'))):
+
+
+
+def trova_part_vicine(part):
+
+
+	neighbors = []
 	
-	p = part.query('leaf==True').copy()
-	p.index = np.arange(len(part.query('leaf==True')))
+	for i in range(len(part.query('leaf==True'))):
+		
+		p = part.query('leaf==True').copy()
+		p.index = np.arange(len(part.query('leaf==True')))
+		
+		for j in range(2):
+			p['min'+str(j)+'_'+str(i)] = p['min'+str(j)].iloc[i]
+			p['max'+str(j)+'_'+str(i)] = p['max'+str(j)].iloc[i]
+			
+		for j in range(2):	
+			p=(p.eval('vicinoA'+str(j)+'_'+str(i)+' = ((min'+str(j)+'>=min'+str(j)+'_'+str(i)+') and (min'+str(j)+'<=max'+str(j)+'_'+str(i)+')) or ( (max'+str(j)+'>=min'+str(j)+'_'+str(i)+') and (max'+str(j)+'<=max'+str(j)+'_'+str(i)+'))')
+		 .eval('vicinoB'+str(j)+'_'+str(i)+' = ((min'+str(j)+'_'+str(i)+'>=min'+str(j)+') and (min'+str(j)+'_'+str(i)+'<=max'+str(j)+')) or ( (max'+str(j)+'_'+str(i)+'>=min'+str(j)+') and (max'+str(j)+'_'+str(i)+'<=max'+str(j)+'))'))
+			
+			#p=p.query('vicino'+str(j)+'_'+str(i)+'==True')
+			p=p.query('(vicinoA'+str(j)+'_'+str(i)+'==True) or (vicinoB'+str(j)+'_'+str(i)+'==True)')
+			
+			
+		p = p.drop(i)
+		
+		neighbors.append(list(p['part_number']))
 	
-	for j in range(2):
-		p['min'+str(j)+'_'+str(i)] = p['min'+str(j)].iloc[i]
-		p['max'+str(j)+'_'+str(i)] = p['max'+str(j)].iloc[i]
-		
-	for j in range(2):	
-		p=(p.eval('vicinoA'+str(j)+'_'+str(i)+' = ((min'+str(j)+'>=min'+str(j)+'_'+str(i)+') and (min'+str(j)+'<=max'+str(j)+'_'+str(i)+')) or ( (max'+str(j)+'>=min'+str(j)+'_'+str(i)+') and (max'+str(j)+'<=max'+str(j)+'_'+str(i)+'))')
-	 .eval('vicinoB'+str(j)+'_'+str(i)+' = ((min'+str(j)+'_'+str(i)+'>=min'+str(j)+') and (min'+str(j)+'_'+str(i)+'<=max'+str(j)+')) or ( (max'+str(j)+'_'+str(i)+'>=min'+str(j)+') and (max'+str(j)+'_'+str(i)+'<=max'+str(j)+'))'))
-		
-		#p=p.query('vicino'+str(j)+'_'+str(i)+'==True')
-		p=p.query('(vicinoA'+str(j)+'_'+str(i)+'==True) or (vicinoB'+str(j)+'_'+str(i)+'==True)')
-		
-		
-	p = p.drop(i)
 	
-	neighbors.append(list(p['part_number']))
+	
+	df={'part_number':part.query('leaf==True')['part_number'],'neighbors':neighbors}
+	df=pd.DataFrame(df)
+	df.index = np.arange(len(df))
+	
 
 
 
-df={'part_number':part.query('leaf==True')['part_number'],'neighbors':neighbors}
-df=pd.DataFrame(df)
-
-
-
+	return df
 # per più di due dimensioni?
-# come generalizzarla a partizione con tagli nonr egolari?
+# come generalizzarla a partizione con tagli non regolari?
 
 
+
+
+
+#%%  calcolo varianza per partizioni vicine 
+
+
+def calcolo_varianza_part_vicine(data,i,j):
+	
+	
+	
+	data1 = data.query('part_number=='+str(i))
+	data2 = data.query('part_number=='+str(j))
+	
+	pd1 = pdist(data1)
+	pd2 = pdist(data2)
+	
+	pd = pdist(data)
+	pd12 = np.hstack([pd1, pd2])
+	
+	var_part_unica = np.var(pd)
+	var_part_separate = np.var(pd12)
+	score_1 = np.abs(np.log(np.var(pd12)/np.var(pd)))
+	score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
+	print(score_1>score_2)
+
+	
+	return score_1,score_2, var_part_unica,var_part_separate
+
+
+
+
+
+part_vicine = trova_part_vicine(part)
+punti = AssignPartition(X,part)
+
+#separazione_corretta = [] 
+
+
+part1 = []
+part2 = []
+score_1 = []
+score_2 = []
+#v_unica = []
+#v_sep = []
+
+
+for i in part_vicine['part_number']:
+	
+	for j in list(part_vicine[part_vicine['part_number']==i]['neighbors'])[0]:
+		part2.append(j)
+		part1.append(i)
+		
+		p = punti.query('(part_number=='+str(i)+') or (part_number=='+str(j)+')').copy()
+		
+		s1,s2,v1,v2 = calcolo_varianza_part_vicine(punti,i,j)
+		score_1.append(s1)
+		score_2.append(s2)
+		#v_unica.append(v1)
+		#v_sep.append(v2)
+		
+		
+df = {'part1':part1,'part2':part2,'score_1':score_1,'score_2':score_2}		
+df = pd.DataFrame(df)		#'v_unica':v_unica,'v_sep':v_sep}#
+		#if s1 > s2:
+		#	separazione_corretta.append(True)
+		#else:
+		#	separazione_corretta.append(False)
+		
+
+		
+		
+	
+#conto_punti = punti.query('part_number=='+str(i)).count()[0]
 
 
 #%%
-# quella cosa del confronto distanze fra partizioni vicine e all'interno 
-#della stessa partizione funziona solo con griglia regolare
 
 
 
-punti = AssignPartition(X,part)
+import numpy as np
+import pylab as plt
+import scipy.stats as st
+from scipy.spatial.distance import cdist, pdist
+# %%
+N = 50
+for diff in np.linspace(-1, 1, 21):
+    results_pdc = []
+    results_pdt = []
+    results_ratio = []
+    results_ratio_internal = []
+    results = []
+    for i in range(256):
+        p1 = plt.randn(N, 2) - diff
+        p2 = plt.randn(N, 2) + diff
+        pt = np.vstack([p1, p2])
+        pd1 = pdist(p1)
+        pd2 = pdist(p2)
+        pdc = np.hstack([pd1, pd2])
+        pdt = pdist(pt)
+        results_pdt.append(np.var(pdt))
+        results_pdc.append(np.var(pdc))
+        score_1 = np.abs(np.log(np.var(pdc)/np.var(pdt)))
+        #score_1 = np.abs(np.var(pdc)/np.var(pdt))
+		#print(score_1)
+        results_ratio.append(score_1) 
+        score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
+        #score_2 = np.abs(np.var(pd1)/np.var(pd2))
+        results_ratio_internal.append(score_2)
+        results.append(score_1>score_2)
+	
+	#print('score1: ',np.mean(results_ratio))
+	#print('score2: ',np.mean(results_ratio_internal))		
+    print(diff.round(1), np.mean(results))
 
-punti.query('part_number==41')[0].max()
+# %%
+
+
+N = 50
+for diff in np.linspace(-1, 1, 21):
+    results_pdc = []
+    results_pdt = []
+    results_ratio = []
+    results_ratio_internal = []
+    results = []
+    for i in range(256):
+        p1 = plt.randn(N, 2) - diff
+        p2 = plt.randn(N, 2) + diff
+        pt = np.vstack([p1, p2]) # unico gruppo
+        pd1 = pdist(p1)
+        pd2 = pdist(p2)
+        pdc = np.hstack([pd1, pd2])
+        pdt = pdist(pt)
+        results_pdt.append(np.var(pdt))
+        results_pdc.append(np.var(pdc))
+        score_1 = np.abs(np.log(np.var(pdc)/np.var(pdt)))
+        results_ratio.append(score_1)
+        score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
+        results_ratio_internal.append(score_2)
+        results.append(score_1>score_2)
+    print(diff.round(0), np.mean(results))	
+	
+
+	
+
+# %%
+fig, axes = plt.subplot_mosaic([["confronto"], ["log ratio"]])
+axes["confronto"].boxplot([results_pdt, results_pdc], notch=True)
+axes["log ratio"].boxplot([results_ratio, results_ratio_internal], notch=True)
+
+#%%
 
 
 
+part = MondrianUnsupervised(X,t0,lifetime)
+X_with_part =AssignPartition(X,part)
+
+#p = part.query('leaf==True').copy()
+# df : calcolo partizioni vicine 
 
 
+#p = part.iloc[20]
 
+father = part['father'].unique()[1:]
+for i in father:
+	
+	p = part.query('father=='+str(i))
 
+    results_pdc = []
+    results_pdt = []
+    results_ratio = []
+    results_ratio_internal = []
+    results = []
+    for i in range(256):
+        p1 = X_with_part[X_with_part['part_number']==p['part_number'].iloc[0]]
+        p2 = plt.randn(N, 2) + diff
+        pt = np.vstack([p1, p2])
+        pd1 = pdist(p1)
+        pd2 = pdist(p2)
+        pdc = np.hstack([pd1, pd2])
+        pdt = pdist(pt)
+        results_pdt.append(np.var(pdt))
+        results_pdc.append(np.var(pdc))
+        score_1 = np.abs(np.log(np.var(pdc)/np.var(pdt)))
+        results_ratio.append(score_1)
+        score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
+        results_ratio_internal.append(score_2)
+        results.append(score_1>score_2)
+    print(diff, np.mean(results))
 
 

@@ -67,7 +67,7 @@ def MondrianSupervised_SingleCut(data,t0,l,lifetime,father):
 		
 		# cut
 		#x = np.random.uniform(data[d_cut].max(),data[d_cut].min())
-		clf = LogisticRegression(penalty='none').fit(np.array(data[d_cut]).reshape((len(data),1)), np.array(data['class']).reshape((len(data),1)))
+		clf = LogisticRegression(penalty='none').fit(np.array(data[d_cut]).reshape((len(data),1)), np.array(data['class']))
 		x = -clf.intercept_[0]/clf.coef_[0][0]
 		
 		
@@ -255,7 +255,7 @@ def Count(X,y,part):
 				dat['max'+str(j)] = p['max'+str(j)].iloc[i]
 				dat.eval('higher_min'+str(j)+' = coord_'+str(j)+'> min'+str(j), inplace=True)
 				dat.eval('lower_max'+str(j)+' = coord_'+str(j)+'< max'+str(j), inplace=True)
-				dat = dat.query('(higher_min'+str(j)+'==True) and (lower_max'+str(j)+'==True)')
+				dat = dat.query('(higher_min'+str(j)+'==True) and (lower_max'+str(j)+'==True)').copy()
 				
 			count.append(len(dat))	
 		
@@ -290,20 +290,26 @@ def AssignClass(X,y,part_with_counts):
 	
 	part_number = []
 
+	
 	for i in X:
+
 		p = part_with_counts.copy()
 		
 		for j in d:
 			p['data'+str(j)] = i[j]
-			p = p.query("(data"+str(j)+">min"+str(j)+") & (data"+str(j)+"<max"+str(j)+")")
+			p = p.query("(data"+str(j)+">=min"+str(j)+") & (data"+str(j)+"<max"+str(j)+")").copy()
 		
-		part_number.append(p['part_number'].iloc[0])
+		try:
+			part_number.append(p['part_number'].iloc[0])
+		except IndexError:
+			part_number.append('nan')
 
 
 	X = pd.DataFrame(X)
 	X['part_number'] = part_number
 	
 	X = pd.merge(X,part_with_counts[['part_number','cl']],left_on='part_number',right_on='part_number')
+	
 	X['cl_true'] = y
 
 	X_bis = X.query("cl!='nan'").copy()

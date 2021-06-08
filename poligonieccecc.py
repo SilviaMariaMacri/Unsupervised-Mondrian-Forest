@@ -315,7 +315,7 @@ def trova_part_vicine(part):
 
 
 
-#%%  calcolo varianza per partizioni vicine 
+#  calcolo varianza per partizioni vicine 
 
 
 def calcolo_varianza_part_vicine(data,i,j):
@@ -332,13 +332,16 @@ def calcolo_varianza_part_vicine(data,i,j):
 	pd12 = np.hstack([pd1, pd2])
 	
 	var_part_unica = np.var(pd)
-	var_part_separate = np.var(pd12)
-	score_1 = np.abs(np.log(np.var(pd12)/np.var(pd)))
-	score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
-	print(score_1>score_2)
+	var1 = np.var(pd1)
+	var2 = np.var(pd2)
+	
+	#var_part_separate = np.var(pd12)
+	#score_1 = np.abs(np.log(np.var(pd12)/np.var(pd)))
+	#score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
+	#print(score_1>score_2)
 
 	
-	return score_1,score_2, var_part_unica,var_part_separate
+	return var_part_unica,var1,var2 #score_1,score_2, var_part_unica,var_part_separate
 
 
 
@@ -366,14 +369,16 @@ for i in part_vicine['part_number']:
 		
 		p = punti.query('(part_number=='+str(i)+') or (part_number=='+str(j)+')').copy()
 		
-		s1,s2,v1,v2 = calcolo_varianza_part_vicine(punti,i,j)
-		score_1.append(s1)
-		score_2.append(s2)
+		
+		var_part_unica,var1,var2 = calcolo_varianza_part_vicine(punti,i,j)
+		#s1,s2,v1,v2 = calcolo_varianza_part_vicine(punti,i,j)
+		#score_1.append(s1)
+		#score_2.append(s2)
 		#v_unica.append(v1)
 		#v_sep.append(v2)
 		
 		
-df = {'part1':part1,'part2':part2,'score_1':score_1,'score_2':score_2}		
+df = {'part1':part1,'part2':part2,'var_part_unica':var_part_unica,'var1':var1,'var2':var2}#'score_1':score_1,'score_2':score_2}		
 df = pd.DataFrame(df)		#'v_unica':v_unica,'v_sep':v_sep}#
 		#if s1 > s2:
 		#	separazione_corretta.append(True)

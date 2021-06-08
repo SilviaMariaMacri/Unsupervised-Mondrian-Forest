@@ -13,17 +13,6 @@ from scipy.spatial.distance import pdist
 
 
 
-def Cut_distanza(data):
-	
-	
-	dist_matrix = pd.DataFrame(squareform(pdist(data)))
-	dist_matrix.max()
-	
-
-
-	return
-
-
 
 
 def Cut(data,d):
@@ -86,16 +75,13 @@ def calcolo_varianza(data,d_cut,x):
 		pd = pdist(data)
 		pd12 = np.hstack([pd1, pd2])
 		
-		##############var(pd)/var(pd12)
+		var_ratio = np.var(pd)/np.var(pd12) 
 		
+		#score_1 = np.abs(np.log(np.var(pd12)/np.var(pd)))
+		#score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
+		#s = [score_1,score_2]
 		
-		score_1 = np.abs(np.log(np.var(pd12)/np.var(pd)))
-		
-		score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
-		
-		s = [score_1,score_2]
-		
-		return s 
+		return var_ratio 
 		
 	
 		
@@ -115,13 +101,13 @@ def Cut_confronto_split_intervalli(data,d):
 	intervals = pd.DataFrame()
 
 	for dim in d:
-			
-			
-		
-		if data[dim].max() == data[dim].min():
+
+
+
+		if len(data) <= 3:
 			return
-		
-		
+
+
 		data_ordered =  data[dim].sort_values()
 		#data_ordered.index = np.arange(len(data_ordered))
 		data_ordered_min = data_ordered[:-1]
@@ -136,35 +122,46 @@ def Cut_confronto_split_intervalli(data,d):
 		
 		intervals = pd.concat([intervals,data_interval])
 		
-	intervals = intervals.sort_values(by='interval',ascending=False)
+		
+	#intervals = intervals.sort_values(by='min')
 	intervals.index = np.arange(len(intervals))
-
-	c=0
+	
+	intervals['x'] = intervals['max'] - intervals['interval']/2
+	
+	
+	var_ratio = []
 	for i in range(len(intervals)):
-		c += 1
-		print(c)
-		
-		#p = intervals['interval']/intervals['interval'].sum()
-		#d_cut = choice(intervals['dim'],p=p,replace=False)
-		
-		distance = intervals['interval'].iloc[i]
-		x = intervals['max'].iloc[i] - distance/2 
 		d_cut = intervals['dim'].iloc[i]
+		x = intervals['x'].iloc[i]
+		var = calcolo_varianza(data,d_cut,x)
+		var_ratio.append(var)
 		
-		s = calcolo_varianza(data,d_cut,x)
-
 		
-		
-		
-		if (len(s)==2) & (s[0]>s[1]):
-			return d_cut,x,distance
+	intervals['var_ratio'] = var_ratio
 	
-		
-	
-
+	# cancella righe con var_ratio=nan
+	intervals = intervals.drop(intervals[intervals['var_ratio']=='nan'].index)
+	intervals.index = np.arange(len(intervals))
 	
 
-	return 
+
+	q=intervals['var_ratio']**50
+	p = q/q.sum()
+	index_cut = choice(intervals.index,p=p)
+
+
+	d_cut = int(intervals['dim'].iloc[index_cut])
+	distance = intervals['interval'].iloc[index_cut]
+	x = intervals['max'].iloc[index_cut] - distance/2
+
+
+	fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
+	ax.hist(intervals['var_ratio'])
+	plt.show()
+
+
+	
+	return d_cut,x,distance
 
 
 		
@@ -475,17 +472,18 @@ def MondrianIterator(number_iterations,X,t0,lifetime):
 	
 	
 	
-	
+	part_tot = []
 	
 	for i in range(number_iterations):
 		
 		print(i+1)
 		
 		part = MondrianUnsupervised(X,t0,lifetime)
+		part_tot.append(part)
 		# calcolo distanze fra partizioni
 		dist = ShortestDistance(part)
 		
-		
+ 		
 		#associo ogni punto a una partizione e gli assegno un indice
 		data = AssignPartition(X,part)
 		data['index'] = data.index
@@ -535,7 +533,7 @@ def MondrianIterator(number_iterations,X,t0,lifetime):
 	
 
 
-	
-	return matrix,data
+
+	return matrix,data,part_tot
 
 

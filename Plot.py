@@ -85,8 +85,8 @@ def PartitionPlot3D(X,y,part):
 						color=c)
 				
 				
-	ax.scatter(data[data['class']==0][0],data[data['class']==0][1],data[data['class']==0][2])
-	ax.scatter(data[data['class']==1][0],data[data['class']==1][1],data[data['class']==1][2])
+	ax.scatter(data[data['class']==0][0],data[data['class']==0][1],data[data['class']==0][2],alpha=0.7)
+	ax.scatter(data[data['class']==1][0],data[data['class']==1][1],data[data['class']==1][2],alpha=0.7)
 	
 				
 	plt.show()
@@ -104,33 +104,57 @@ def PartitionPlot2D(X,y,part):
 	data['class'] = y
 
 
-	
-	p = part[part['leaf']==True]	
-	
-	
-	fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
-	
-	for i in range(len(p)):
+	if isinstance(part, pd.DataFrame):
 		
-		ax.vlines(p['min0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])		
-		ax.vlines(p['max0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])
-		ax.hlines(p['min1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
-		ax.hlines(p['max1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
-		ax.text(p['min0'].iloc[i],p['min1'].iloc[i],p['part_number'].iloc[i])
-
+		p = part[part['leaf']==True]	
 		
 		
+		fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
 		
-	ax.scatter(data[data['class']==0][0],data[data['class']==0][1])
-	ax.scatter(data[data['class']==1][0],data[data['class']==1][1])
+		for i in range(len(p)):
+			
+			ax.vlines(p['min0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])		
+			ax.vlines(p['max0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])
+			ax.hlines(p['min1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
+			ax.hlines(p['max1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
+			ax.text(p['min0'].iloc[i],p['min1'].iloc[i],p['part_number'].iloc[i])
 	
+		ax.scatter(data[data['class']==0][0],data[data['class']==0][1],alpha=0.7)
+		ax.scatter(data[data['class']==1][0],data[data['class']==1][1],alpha=0.7)
+		
+		plt.show()
+		
 	
+	if isinstance(part, list):
+		
+		
+		color=cm.rainbow(np.linspace(0,1,len(part)))
+		
+		fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
+		
+		for j,c in zip(part,color):
+			
+			p = j[j['leaf']==True]	
+		
+			for i in range(len(p)):
+				
+				ax.vlines(p['min0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i],alpha=0.3,color=c)		
+				ax.vlines(p['max0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i],alpha=0.3,color=c)
+				ax.hlines(p['min1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i],alpha=0.3,color=c)
+				ax.hlines(p['max1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i],alpha=0.3,color=c)
+				#ax.text(p['min0'].iloc[i],p['min1'].iloc[i],p['part_number'].iloc[i])
+		
+		ax.scatter(data[data['class']==0][0],data[data['class']==0][1],alpha=0.7)
+		ax.scatter(data[data['class']==1][0],data[data['class']==1][1],alpha=0.7)
+			
+		plt.show()		
+			
 	
-	plt.show()
 	
 	return
 	
 	
+
 
 
 

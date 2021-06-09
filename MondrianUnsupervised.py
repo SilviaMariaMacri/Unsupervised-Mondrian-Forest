@@ -155,9 +155,9 @@ def Cut_confronto_split_intervalli(data,d):
 	x = intervals['max'].iloc[index_cut] - distance/2
 
 
-	fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
-	ax.hist(intervals['var_ratio'])
-	plt.show()
+	#fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
+	#ax.hist(intervals['var_ratio'])
+	#plt.show()
 
 
 	

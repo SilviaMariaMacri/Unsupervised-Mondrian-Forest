@@ -1,5 +1,7 @@
 from scipy.spatial.distance import pdist,squareform,cdist
 
+
+
 #%%
 def distance_matrix(X):
 
@@ -41,30 +43,30 @@ def distance_matrix(X):
 	pair_points = pair_points.drop('index',axis=1)
 	
 
-
+	names = []
 	#punto medio congiungente i due punti (cut)
 	for i in range(n_d):
 		pair_points['cut_point'+str(i)] = (pair_points['dim'+str(i)+'_point_x'] + pair_points['dim'+str(i)+'_point_y'])/2
-
-
-
-
-
-
-
+		#vettore normale al taglio (parallelo a congiungente i due punti)
+		pair_points['vettore_'+str(i)] = pair_points['dim'+str(i)+'_point_y'] - pair_points['dim'+str(i)+'_point_x']
+		names.append('vettore_'+str(i))
 	
-				#coeff angolare
-	pair_points = (pair_points.eval('m = (dim1_point_x - dim1_point_y) / (dim0_point_x - dim0_point_y)')
-				#intercetta
-				.eval('q = (dim0_point_x*dim1_point_y - dim0_point_y*dim1_point_x) / (dim0_point_x - dim0_point_y)'))
-
+	#normalizzo vettore normale
+	for i in range(n_d):
+		pair_points.loc[pair_points.index,'norm_vect_'+str(i)] = [*[(pair_points['versore_'+str(i)].iloc[j]/np.linalg.norm(pair_points[names].iloc[j])) for j in range(len(pair_points)) ]]
 	
+	names_norm_vect = []
+	names_cut = []
+	for i in range(n_d):
+		pair_points = pair_points.drop('versore_'+str(i),axis=1)
+		names_norm_vect.append('norm_vect_'+str(i))
+		names_cut.append('cut_point'+str(i))
 		
-
-	#m_cut
-	pair_points = (pair_points.eval('m_cut = -m')
-				.eval('q_cut = cut_point1 - m_cut*cut_point0'))
+	#modulo vettore normale
+	pair_points.loc[pair_points.index,'magnitude_norm_vect'] = [*[np.dot(pair_points[names_norm_vect].iloc[j],pair_points[names_cut].iloc[j]) for j in range(len(pair_points))]]
 	
+
+
 	dist_matrix = pd.DataFrame()
 	
 	for i in range(len(data)):
@@ -78,22 +80,19 @@ def distance_matrix(X):
 		
 		dist_matrix = pd.concat([dist_matrix,matrix])
 		
-	
-	dist_matrix = dist_matrix.eval('q_new_point = dim1_point - m*dim0_point')
+	names_point = []	
+	for i in range(n_d):
+		names_point.append('dim'+str(i)+'_point')
+		
 	dist_matrix.index = np.arange(len(dist_matrix))
 	
 	
-	#punto intersezione
-	dist_matrix['punto_intersez0'] = (dist_matrix['q_new_point'] - dist_matrix['q_cut'])/(2*dist_matrix['m_cut'])
-	dist_matrix['punto_intersez1'] = (dist_matrix['q_new_point'] + dist_matrix['q_cut'])/2
+	#calcolo distanza punti da retta cut
+	dist_matrix.loc[dist_matrix.index,'distance_point_cut'] = [*[(np.dot(dist_matrix[names_norm_vect].iloc[j],dist_matrix[names_point].iloc[j]) + dist_matrix['magnitude_norm_vect'].iloc[j]) for j in range(len(dist_matrix))]]
 	
-	#dist_matrix.loc[dist_matrix.index,'dist_new_point'] = [*[np.abs(((dist_matrix['dim1_point'].iloc[i] - dist_matrix['m'].iloc[i]*dist_matrix['dim0_point'].iloc[i] - dist_matrix['q_new_point'].iloc[i])) / np.sqrt(1 + dist_matrix['m'].iloc[i]**2)) for i in range(len(dist_matrix))]]	
-	dist_matrix.loc[dist_matrix.index,'pdist_new_point'] = [[*pdist([[dist_matrix['punto_intersez0'].iloc[i],dist_matrix['punto_intersez1'].iloc[i]],[dist_matrix['dim0_point'].iloc[i],dist_matrix['dim1_point'].iloc[i]]])) for i in range(len(dist_matrix))]]
 
 
-	 
-	#dist_matrix = pd.DataFrame(squareform(pdist(data)))
-	
+
 
 
 
@@ -143,6 +142,36 @@ X = np.array(X[[0,1]])
 
 
 
+def calcolo_varianza(data,d_cut,x,n):
+	
+	data1 = data[data[d_cut]>x]
+	data2 = data[data[d_cut]<x]
+	
+	if (len(data1)>=3) & (len(data2)>=3):
+		
+	
+		pd1 = pdist(data1)
+		pd2 = pdist(data2)
+		
+		pd = pdist(data)
+		pd12 = np.hstack([pd1, pd2])
+		
+		var_ratio = np.var(pd)/np.var(pd12) 
+		var_ratio = var_ratio**n
+		
+		return var_ratio 
+		
+	else:
+		s='nan'
+		return s
+
+
+
+
+
+
+
+
 N = [50,100,150,200] # numerosità
 n = np.geomspace(0.01, 1, 21) # rumore
 pot = [1,5,10,20,30,40,50] #esponente rapporto varianze
@@ -161,14 +190,14 @@ for a in N:
 	
 	
 	for b in n:
-		print('rumore: ',a)
+		print('rumore: ',b)
 	 		
 		for p in  pot:
 			print('esponente: ',p)
 			
 			
 			for rip in range(10):
-				print('ripetizione: ',rip)
+				print('ripetizione: ',rip+1)
 				
 				
 				mean1 = (0, 0)
@@ -285,6 +314,13 @@ for a in N:
 				#aa = np.array(sovrapposizione_classe_diversa)
 				#bb = np.array(sovrapposizione_stessa_classe)
 				#perc = aa/(aa+bb)
+				
+				
+#%%
+
+df_confronto_varianza = {'N':numerosità,'sigma':rumore,'esponente':esponente,'perc':perc} 
+df_confronto_varianza = pd.DataFrame(df_confronto_varianza)
+
 			
 
 #%%
@@ -297,154 +333,5 @@ ax.loglog()
 
 
 
-
-
-#%%
-
-
-
-
-def calcolo_varianza(data,d_cut,x,n):
-	
-	data1 = data[data[d_cut]>x]
-	data2 = data[data[d_cut]<x]
-	
-	if (len(data1)>=3) & (len(data2)>=3):
-		
-	
-		pd1 = pdist(data1)
-		pd2 = pdist(data2)
-		
-		pd = pdist(data)
-		pd12 = np.hstack([pd1, pd2])
-		
-		var_ratio = np.var(pd)/np.var(pd12) 
-		var_ratio = var_ratio**n
-		
-		return var_ratio 
-		
-	else:
-		s='nan'
-		return s
-
-
-
-
-#%% confronto per varianza   SBAGLIATO
-'''	
-
-	#dim = 0
-	data_ordered =  data.sort_values(by=0)
-	data_ordered = data_ordered.drop(1,axis=1)
-		
-	data_ordered_min = data_ordered[:-1]
-	data_ordered_min.columns = ['min', 'cl_min', 'index_min']
-	
-	data_ordered_max = data_ordered[1:]
-	data_ordered_max.columns = ['max', 'cl_max', 'index_max']
-	
-	data_ordered_min.index = np.arange(len(data_ordered_min))
-	data_ordered_max.index = np.arange(len(data_ordered_max))
-	
-	data_interval0 = pd.merge(data_ordered_min,data_ordered_max, left_index=True, right_index=True)
-
-	data_interval0.loc[data_interval0.index,'dim'] = 0
-		
-
-	#dim = 1
-	data_ordered =  data.sort_values(by=1)
-	data_ordered = data_ordered.drop(0,axis=1)
-		
-	data_ordered_min = data_ordered[:-1]
-	data_ordered_min.columns = ['min', 'cl_min', 'index_min']
-	
-	data_ordered_max = data_ordered[1:]
-	data_ordered_max.columns = ['max', 'cl_max', 'index_max']
-	
-	data_ordered_min.index = np.arange(len(data_ordered_min))
-	data_ordered_max.index = np.arange(len(data_ordered_max))
-	
-	data_interval1 = pd.merge(data_ordered_min,data_ordered_max, left_index=True, right_index=True)
-	data_interval1.loc[data_interval1.index,'dim'] = 1
-		
-	
-	
-	intervals = pd.concat([data_interval0,data_interval1])
-	intervals['interval'] = intervals['max'] - intervals['min']
-	
-	
-	intervals['gruppi_separati'] = True
-	intervals.loc[intervals.query('cl_min==cl_max').index,'gruppi_separati'] = False
-
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-		
-		
-		
-	#intervals = intervals.sort_values(by='min')
-	intervals.index = np.arange(len(intervals))
-	
-	intervals['x'] = intervals['max'] - intervals['interval']/2
-	
-	
-	var_ratio = []
-	for i in range(len(intervals)):
-		d_cut = intervals['dim'].iloc[i]
-		x = intervals['x'].iloc[i]
-		var = calcolo_varianza(data,d_cut,x)
-		var_ratio.append(var)
-		
-		
-	intervals['var_ratio'] = var_ratio
-	
-	# cancella righe con var_ratio=nan
-	intervals = intervals.drop(intervals[intervals['var_ratio']=='nan'].index)
-	intervals.index = np.arange(len(intervals))
-	
-
-
-	q=intervals['var_ratio']**50
-	p = q/q.sum()
-	index_cut = choice(intervals.index,p=p)
-
-
-	d_cut = int(intervals['dim'].iloc[index_cut])
-	distance = intervals['interval'].iloc[index_cut]
-	x = intervals['max'].iloc[index_cut] - distance/2
-
-
-	fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
-	ax.hist(intervals['var_ratio'])
-	plt.show()
-
-
-	
-	return d_cut,x,distance
-
-
-	
 
 

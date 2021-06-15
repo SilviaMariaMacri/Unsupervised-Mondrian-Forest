@@ -1,59 +1,70 @@
-#partizionamento non perpendicolare a direzioni
-#associare partizioni vicine
-#confrontare partizioni vicine in base a distanza
-
-
-
-#una volta selezionati i cut con calcolo varianza, confrontare partizioni 
-#	vicine ottenute con nuovo calcolo di varianza
-
-
-
-
-
-
-
-
-
-
-
 import numpy as np
 from numpy.random import choice
 import pandas as pd	
-import random
 from scipy.spatial import distance
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
-
+from matplotlib.pyplot import cm
 
 
 
 #%%
 
 # coppie di vertici 
-vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
+#vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
 t0=0
-lifetime=2
+lifetime=3
 
-m,box,df=MondrianPolygon(t0,vertici_iniziali,lifetime)
+m,box,df=MondrianPolygon(X,t0,lifetime)
+
 
 
 #%%
 
-
+sns.set_style('whitegrid')
 fig,ax = plt.subplots()
 
-for i in box:
-	p = Polygon(i, facecolor = 'none', edgecolor='b')
+color=cm.rainbow(np.linspace(0,1,len(box)))
+for i,c in zip(range(len(box)),color):
+	p = Polygon(box[i], facecolor = 'none', edgecolor=c)
 	ax.add_patch(p)
+	
+	ax.scatter(m[i][2][0],m[i][2][1],color=c)
+	
+xmin = box[0][0][0]-0.05
+ymin = box[0][0][1]-0.05
+xmax = box[0][2][0]+0.05
+ymax = box[0][2][1]+0.05
+	
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin,ymax)
 
-
-#ax.set_xlim(-0.5,1.5)
-#ax.set_ylim(-0.5,1.5)
+#dati = pd.DataFrame(X)
+#ax.scatter(dati[0],dati[1])
 
 plt.show()
 
+
+
+
+#%% singola partizione con dati corrispondenti
+
+
+
+
+for i in range(len(box)):
+	
+	sns.set_style('whitegrid')
+	fig,ax = plt.subplots()
+	
+	p = Polygon(box[i], facecolor = 'none')
+	ax.add_patch(p)
+	ax.scatter(m[i][2][0],m[i][2][1])
+	
+	plt.show()
+
+	
 
 #%%  area poligono
 
@@ -115,7 +126,10 @@ def MondrianPolygon_SingleCut(t0,l,lifetime,father):
 	point2 = np.array(l[lati[1]][0]) + (np.array(l[lati[1]][1]) - np.array(l[lati[1]][0]))*np.random.uniform(0,1)
 
 			
+	
+	
 		
+	
 		
 	l1 = []
 	l1.append([point1,point2])

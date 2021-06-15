@@ -24,7 +24,7 @@ def MondrianSupervised_SingleCut(data,t0,l,lifetime,father):
 		
 		
 	# linear dimension
-	LD = sum(ld)
+	LD = sum(ld) 
 	
 	
 	# dimensioni

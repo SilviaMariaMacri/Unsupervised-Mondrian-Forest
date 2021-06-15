@@ -17,7 +17,6 @@ iris = datasets.load_iris()
 #iris
 data = pd.DataFrame(iris.data)
 data[[0,1,2]]
-
 '''
 
 
@@ -76,8 +75,8 @@ t0=0
 lifetime=2
 
 part = MondrianSupervised(X_train,y_train,t0,lifetime)
-part_with_counts = Count(X_train,y_train,part)
-accuracy,cl = AssignClass(X_test,y_test,part_with_counts)
+#part_with_counts = Count(X_train,y_train,part)
+#accuracy,cl = AssignClass(X_test,y_test,part_with_counts)
 PartitionPlot(X_train,y_train,part)
 
 

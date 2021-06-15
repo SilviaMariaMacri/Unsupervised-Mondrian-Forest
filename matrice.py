@@ -17,13 +17,14 @@ def DistanceMatrix(X):
 	n_d = len(X[0]) # numero dimensioni
 	data = pd.DataFrame(X)
 	data.columns = [*[f'dim{s}_point' for s in data.columns]]
-	data['index'] = data.index
+	data['index_point'] = data.index
 
 
 	#dataframe di coppie di punti
 	pair_points = list(combinations(np.arange(len(X)), 2))
 	pair_points = pd.DataFrame(pair_points)
 	pair_points.columns = ['index_point_x','index_point_y']
+
 	
 	
 	
@@ -43,10 +44,10 @@ def DistanceMatrix(X):
 
 	
 	#associo punti alle coppie di indici 
-	pair_points = pd.merge(pair_points,data, how='left', left_on='index_point_x', right_on='index')
-	pair_points = pair_points.drop('index',axis=1)
-	pair_points = pd.merge(pair_points,data, how='left', left_on='index_point_y', right_on='index')
-	pair_points = pair_points.drop('index',axis=1)
+	pair_points = pd.merge(pair_points,data, how='left', left_on='index_point_x', right_on='index_point')
+	pair_points = pair_points.drop('index_point',axis=1)
+	pair_points = pd.merge(pair_points,data, how='left', left_on='index_point_y', right_on='index_point')
+	pair_points = pair_points.drop('index_point',axis=1)
 	
 	pair_points = pair_points[['index_point_x', 'index_point_y', 'dim0_point_x', 'dim1_point_x', 'dim0_point_y', 'dim1_point_y', 'dist']]
 
@@ -85,7 +86,7 @@ def DistanceMatrix(X):
 		for j in data:
 			matrix[str(j)] = data[str(j)].iloc[i]
 		#matrix = matrix.drop(matrix.query('index_point_x==index or index_point_y==index').index)
-		matrix = matrix.drop('index',axis=1)
+		#matrix = matrix.drop('index_point',axis=1)
 		
 		dist_matrix = pd.concat([dist_matrix,matrix])
 		

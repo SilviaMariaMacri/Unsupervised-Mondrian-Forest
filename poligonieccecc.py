@@ -12,11 +12,11 @@ from matplotlib.pyplot import cm
 #%%
 
 # coppie di vertici 
-#vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
+#vertici_iniziali=[ [[0,0]#,[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
 t0=0
-lifetime=3
-
-m,box,df=MondrianPolygon(X,t0,lifetime)
+lifetime=1
+#dist_matrix = DistanceMatrix(X)
+m,box,df=MondrianPolygon(X,t0,lifetime,dist_matrix)
 
 
 
@@ -25,12 +25,13 @@ m,box,df=MondrianPolygon(X,t0,lifetime)
 sns.set_style('whitegrid')
 fig,ax = plt.subplots()
 
-color=cm.rainbow(np.linspace(0,1,len(box)))
-for i,c in zip(range(len(box)),color):
-	p = Polygon(box[i], facecolor = 'none', edgecolor=c)
+#color=cm.rainbow(np.linspace(0,1,len(box)))
+#for i,c in zip(range(len(box)),color):
+for i in range(len(box)):
+	p = Polygon(box[i], facecolor = 'none', edgecolor='b')
 	ax.add_patch(p)
 	
-	ax.scatter(m[i][2][0],m[i][2][1],color=c)
+	ax.scatter(m[i][2][0],m[i][2][1],color='b')
 	
 xmin = box[0][0][0]-0.05
 ymin = box[0][0][1]-0.05
@@ -58,7 +59,7 @@ for i in range(len(box)):
 	sns.set_style('whitegrid')
 	fig,ax = plt.subplots()
 	
-	p = Polygon(box[i], facecolor = 'none')
+	p = Polygon(box[i], facecolor = 'none',edgecolor='b')
 	ax.add_patch(p)
 	ax.scatter(m[i][2][0],m[i][2][1])
 	

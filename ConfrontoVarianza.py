@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from scipy.spatial.distance import cdist
+from scipy.spatial.distance import pdist,cdist
 #import pylab as plt
 import seaborn as sns
 
@@ -20,15 +20,26 @@ g=sns.relplot(x="sigma",
 			y="perc", 
 			data=df, 
 			kind="line",
-			#col='N',
+			col='N',
 			hue='esponente',
 			)
 #g.set(xscale="log",yscale="log")
 
 
 
+#%%
+
+
+fig,ax = plt.subplots()
+
+ax.scatter(x1[0],x1[1])
+ax.scatter(x2[0],x2[1])
+
+
 
 #%%
+
+
 
 def calcolo_varianza(data,d_cut,x,n):
 	

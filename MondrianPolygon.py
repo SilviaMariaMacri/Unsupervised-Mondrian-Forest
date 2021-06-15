@@ -2,10 +2,10 @@ import numpy as np
 from numpy.random import choice
 import pandas as pd	
 from scipy.spatial import distance
-
+from itertools import combinations
 #import matplotlib.pyplot as plt
 #from matplotlib.patches import Polygon
-
+from scipy.spatial.distance import pdist
 
 
 
@@ -29,25 +29,197 @@ def	Cut_without_data(l,ld):
 	return point1,point2,lati
 
 
- 
+
+
+#assegna i dati alla partizione corrispondente a partire dalle coordinate dei punti
+#di intersezione e dalla matrice
+def FindDataPartition2D(points,matrix):
+
+
+	cut = [matrix['norm_vect_0'].iloc[0], matrix['norm_vect_1'].iloc[0], matrix['magnitude_norm_vect'].iloc[0]] 
+
+	
+	
+	# quadrante 1 
+	if (cut[0]>0 and cut[1]>0):
+		if points['x'].iloc[0] > points['x'].iloc[1]:
+			data1 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
+			data2 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+		else:
+			data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
+			data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+	# quadrante 2
+	if (cut[0]<0 and cut[1]>0):
+		if points['x'].iloc[0] > points['x'].iloc[1]:
+			data1 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
+			data2 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+		else:
+			data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
+			data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+
+
+		
+		#xmax,xmin in ordine:
+		#	l1 = dist - 
+		#	l2 = dist +
+		#xmin,xmax:
+		#	l1 = dist +
+		#	l2 = dist -
+		
+	# quadrante 3
+	if (cut[0]<0 and cut[1]<0):
+		if points['x'].iloc[0] > points['x'].iloc[1]:
+			data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
+			data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+		else:
+			data1 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
+			data2 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+
+	# quadrante 4
+	if (cut[0]>0 and cut[1]<0):
+		if points['x'].iloc[0] > points['x'].iloc[1]:
+			data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
+			data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+		else:
+			data1 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
+			data2 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
 
 
 
-# vale solo in 2D
-def Cut_with_data(data,l):
+
+		#xmax,xmin in ordine:
+		#	l1 = dist + 
+		#	l2 = dist -
+		#xmin,xmax:
+		#	l1 = dist -
+		#	l2 = dist +
+		
+		
+	data1.index = np.arange(len(data1))
+	data1.columns = [0,1,'index']
+	data2.index = np.arange(len(data2))
+	data2.columns = [0,1,'index']
 	
 	
-	n_vert = np.arange(len(l))
 	
-	dist_matrix = DistanceMatrix(data)
-	
+	return data1,data2
+
+
+
+
+
+
+def CutCoeff_DistMax(dist_matrix):
+
 	# a*x + b*y = c      retta cut
 	matrix = dist_matrix[dist_matrix['dist']==dist_matrix['dist'].max()].copy()
 	matrix.index = np.arange(len(matrix))
 	a = matrix['norm_vect_0'].iloc[0] #versore0
 	b = matrix['norm_vect_1'].iloc[0] #versore1
-	c = matrix['magnitude_norm_vect'].iloc[0] # -modulo   
+	c = matrix['magnitude_norm_vect'].iloc[0] #modulo   
 	
+
+	return a,b,c
+
+
+
+	
+	
+
+
+def Variance(data1,data2,data):
+	
+	
+	
+	if (len(data1)>2) & (len(data2)>2):
+		
+	
+		pd1 = pdist(data1)
+		pd2 = pdist(data2)
+		
+		#data = pd.concat([data1,data2])
+		pd = pdist(data)
+		pd12 = np.hstack([pd1, pd2])
+		
+		var_ratio = np.var(pd)/np.var(pd12) 
+				
+		return var_ratio 
+		
+	else:
+		s='nan'
+		return s
+
+
+
+
+
+def CutCoeff_WeightedDist(dist_matrix,data):
+	
+	data = data.drop([0,1],axis=1)
+	data_pair = list(combinations(np.arange(len(data)), 2))
+	data_pair = pd.DataFrame(data_pair)
+	data_pair.columns = ['index_point_x','index_point_y']
+
+	
+	var_ratio = []
+	for i in range(len(data_pair)):
+		matrix = dist_matrix[(dist_matrix['index_point_x']==data_pair['index_point_x'].iloc[i]) & (dist_matrix['index_point_y']==data_pair['index_point_y'].iloc[i])].copy()
+		
+		data12 = matrix[['dim0_point','dim1_point']].copy()
+		data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point']].copy()
+		data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point']].copy()
+		
+		var = Variance(data1,data2,data12)
+		var_ratio.append(var)
+		
+		
+	data_pair['var_ratio'] = var_ratio
+
+	#if data_pair['var_ratio'].unique()[0]=='nan':
+	#	return 
+
+	# cancella righe con var_ratio=nan
+	data_pair = data_pair.drop(data_pair[data_pair['var_ratio']=='nan'].index)
+	data_pair.index = np.arange(len(data_pair))
+
+	q=data_pair['var_ratio']**50
+	p = q/q.sum()
+	index_cut = choice(data_pair.index,p=p)
+	
+	# a*x + b*y = c  retta cut
+	matrix = dist_matrix[(dist_matrix['index_point_x']==data_pair['index_point_x'].iloc[index_cut]) & (dist_matrix['index_point_y']==data_pair['index_point_y'].iloc[index_cut])].copy()
+	matrix.index = np.arange(len(matrix))
+	a = matrix['norm_vect_0'].iloc[0] #versore0
+	b = matrix['norm_vect_1'].iloc[0] #versore1
+	c = matrix['magnitude_norm_vect'].iloc[0] #modulo 
+	
+	
+	return a,b,c,matrix  
+
+
+
+
+
+
+
+
+
+
+
+# vale solo in 2D
+def Cut_with_data(data,l,dist_matrix):
+	
+	
+	n_vert = np.arange(len(l))
+	
+	if len(data) < 5:
+		return
+	#scegline uno
+	#a,b,c = CutCoeff_DistMax(dist_matrix)
+	#try:
+	a,b,c,matrix = CutCoeff_WeightedDist(dist_matrix,data)
+	#except TypeError:
+	#	return
 	
 	coordx = [] #coordinata x
 	coordy = [] #coord y
@@ -83,12 +255,17 @@ def Cut_with_data(data,l):
 	points = {'lati':lati,'x':coordx,'y':coordy}
 	points = pd.DataFrame(points)	
 	
-	cut = [matrix['norm_vect_0'].iloc[0], matrix['norm_vect_1'].iloc[0], matrix['magnitude_norm_vect'].iloc[0]] 
 	
-	matrix = matrix[['dim0_point','dim1_point', 'distance_point_cut']]
+	point1 = list(points[['x','y']].iloc[0])
+	point2 = list(points[['x','y']].iloc[1])
+	lati = list(points['lati'])
+
 	
-		
-	return points,matrix,cut
+	data1,data2 = FindDataPartition2D(points,matrix)
+	
+	
+	
+	return point1,point2,lati,data1,data2
 
 
 
@@ -103,7 +280,7 @@ def Cut_with_data(data,l):
 
 
 
-def MondrianPolygon_SingleCut(data,t0,l,lifetime,father):
+def MondrianPolygon_SingleCut(data,t0,l,lifetime,father,dist_matrix):
 	
 
 	# array di lunghezze intervalli
@@ -134,78 +311,22 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father):
 
 	#senza dati		
 	#point1,point2,lati = Cut_without_data(l,ld)
+	
+	
+	
 	#con dati
-	points,matrix,cut = Cut_with_data(data,l)
-	print('cut: ',cut)
-	print('intersezioni: ',points)
-	print(matrix)
-
-
-
-#if (cut[0]>0 and cut[1]>0 and cut[2]>0) or (cut[0]<0 and cut[1]<0 and cut[2]<0):
-#	print('1') 
-#if (cut[0]>0 and cut[1]<0 and cut[2]<0) or (cut[0]<0 and cut[1]>0 and cut[2]>0):
-#	print('2')
-#if (cut[0]>0 and cut[1]>0 and cut[2]<0) or (cut[0]<0 and cut[1]<0 and cut[2]>0):
-#	print('3') 
-#if (cut[0]>0 and cut[1]<0 and cut[2]>0) or (cut[0]<0 and cut[1]>0 and cut[2]<0):
-#	print('4')
-			
+	dist_matrix= pd.merge(dist_matrix,data, how='right', left_on='index_point_x', right_on='index')
+	dist_matrix = dist_matrix.drop([0,1],axis=1)
+	dist_matrix= pd.merge(dist_matrix,data, how='right', left_on='index_point_y', right_on='index')
+	dist_matrix = dist_matrix.drop([0,1],axis=1)
+	dist_matrix= pd.merge(dist_matrix,data, how='right', left_on='index_point', right_on='index')
+	dist_matrix = dist_matrix.drop([0,1],axis=1)
 	
-	
-	
-	# quadrante 1 e 2
-	if (cut[0]>0 and cut[1]>0 and cut[2]>0) or (cut[0]<0 and cut[1]<0 and cut[2]<0) or (cut[0]>0 and cut[1]<0 and cut[2]<0) or (cut[0]<0 and cut[1]>0 and cut[2]>0):
-		if points['x'].iloc[0] > points['x'].iloc[1]:
-			print('1')
-			data1 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point']].copy()
-			data2 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point']].copy()
-		else:
-			print('2')
-			data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point']].copy()
-			data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point']].copy()
-		
-		
-		#xmax,xmin in ordine:
-		#	l1 = dist - 
-		#	l2 = dist +
-		#xmin,xmax:
-		#	l1 = dist +
-		#	l2 = dist -
-		
-		
-		
-	# quadrante 3 e 4
-	#if (cut[0]>0 and cut[1]>0 and cut[2]<0) or (cut[0]<0 and cut[1]<0 and cut[2]>0) or (cut[0]>0 and cut[1]<0 and cut[2]>0) or (cut[0]<0 and cut[1]>0 and cut[2]<0):
-	else:
-		if points['x'].iloc[0] > points['x'].iloc[1]:
-			print('3')
-			data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point']].copy()
-			data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point']].copy()
-		else:
-			print('4')
-			data1 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point']].copy()
-			data2 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point']].copy()
+	try:
+		point1,point2,lati,data1,data2 = Cut_with_data(data,l,dist_matrix)
+	except TypeError:
+		return
 
-
-
-		#xmax,xmin in        ordine:
-		#	l1 = dist + 
-		#	l2 = dist -
-		#xmin,xmax:
-		#	l1 = dist -
-		#	l2 = dist +
-		
-	data1.index = np.arange(len(data1))
-	data1.columns = [0,1]
-	data2.index = np.arange(len(data2))
-	data2.columns = [0,1]
-	
-	point1 = list(points[['x','y']].iloc[0])
-	point2 = list(points[['x','y']].iloc[1])
-	lati = list(points['lati'])
-	
-###################### fine parte con dati	
 
 
 	
@@ -241,8 +362,8 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father):
 	
 	
 	
-	risultato1 = [t0, l1, data2]
-	risultato2 = [t0, l2, data1]
+	risultato1 = [t0, l1, data1]
+	risultato2 = [t0, l2, data2]
 	risultato = [risultato1, risultato2, t0, father]
 	
 	
@@ -258,11 +379,14 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father):
 
 
 
-def MondrianPolygon(X,t0,lifetime): 
+def MondrianPolygon(X,t0,lifetime,dist_matrix): 
 	
-	
+
+
+	#dist_matrix = DistanceMatrix(X)
 	
 	data = pd.DataFrame(X)
+	data['index'] = data.index
 	
 	# 2D
 	vertici_iniziali = []
@@ -286,8 +410,8 @@ def MondrianPolygon(X,t0,lifetime):
 	father = []
 	part_number = []
 	
-	#vertici = []
-	#vertici.append(vertici_iniziali)
+	vertici = []
+	vertici.append(vertici_iniziali)
 	
 	
 	
@@ -302,7 +426,7 @@ def MondrianPolygon(X,t0,lifetime):
 	
 			
 			
-		
+
 	
 	
 	for i in m:
@@ -311,9 +435,9 @@ def MondrianPolygon(X,t0,lifetime):
 		try:
 			
 
-
+		
 		 
-			mondrian = MondrianPolygon_SingleCut(i[2],i[0],i[1],lifetime,i[3])
+			mondrian = MondrianPolygon_SingleCut(i[2],i[0],i[1],lifetime,i[3],dist_matrix)
 			
 			m.append([mondrian[0][0],mondrian[0][1],mondrian[0][2],count_part_number+1])
 			count_part_number += 1
@@ -330,18 +454,18 @@ def MondrianPolygon(X,t0,lifetime):
 				vertici_per_plot=[]
 				for i in range(len(mondrian[j][1])):
 					vertici_per_plot.append(mondrian[j][1][i][0])
-				#vertici.append(mondrian[j][1])
+				vertici.append(mondrian[j][1])
 				box.append(vertici_per_plot)
 				time.append(mondrian[2])
 				father.append(mondrian[3])
-				
+			
 
 
 
 		except  TypeError:
 			continue
 		
-	df = {'time':time,'father':father,'part_number':part_number}#,'vertici':vertici}
+	df = {'time':time,'father':father,'part_number':part_number,'box':box,'vertici':vertici}
 	df = pd.DataFrame(df)
 	
 	
@@ -357,7 +481,7 @@ def MondrianPolygon(X,t0,lifetime):
 		
 	df['leaf'] = leaf
 
-		
+	df = df[['time', 'father', 'part_number', 'leaf', 'vertici', 'box']]	
 	
 	
 	return m,box,df

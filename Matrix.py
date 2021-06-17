@@ -5,6 +5,8 @@ from itertools import combinations
 
 
 
+
+
 def DistanceMatrix(X):
 	
 	 
@@ -87,7 +89,7 @@ def DistanceMatrix(X):
 			matrix[str(j)] = data[str(j)].iloc[i]
 		#matrix = matrix.drop(matrix.query('index_point_x==index or index_point_y==index').index)
 		#matrix = matrix.drop('index_point',axis=1)
-		
+
 		dist_matrix = pd.concat([dist_matrix,matrix])
 		
 	names_point = []	

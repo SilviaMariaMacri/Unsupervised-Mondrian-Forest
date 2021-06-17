@@ -56,7 +56,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_
 #%%  Unsupervised
 
 t0=0
-lifetime=1.3
+lifetime=2
 
 number_iterations = 10
 

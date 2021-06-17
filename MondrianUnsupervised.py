@@ -283,8 +283,11 @@ def MondrianUnsupervised(X,t0,lifetime):
 			
 		
 	
-	
+	count=0
 	for i in m:
+		
+		count += 1
+		print('iterazione: ',count)
 
 	
 		try:
@@ -534,6 +537,6 @@ def MondrianIterator(number_iterations,X,t0,lifetime):
 
 
 
-	return matrix,data,part_tot
+	return matrix,data,part_tot 
 
 

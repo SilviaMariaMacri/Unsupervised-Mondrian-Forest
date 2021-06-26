@@ -1,3 +1,14 @@
+import time
+
+start = time.time()
+end = time.time()
+print(end - start)
+
+
+
+
+#%%
+
 import numpy as np
 from numpy.random import choice
 import pandas as pd	
@@ -33,7 +44,7 @@ def	Cut_without_data(l,ld):
 
 #assegna i dati alla partizione corrispondente a partire dalle coordinate dei punti
 #di intersezione e dalla matrice
-def FindDataPartition2D(points,matrix):
+def FindDataPartition2D_vecchia(points,matrix):
 
 
 	cut = [matrix['norm_vect_0'].iloc[0], matrix['norm_vect_1'].iloc[0], matrix['magnitude_norm_vect'].iloc[0]] 
@@ -43,11 +54,11 @@ def FindDataPartition2D(points,matrix):
 	# quadrante 1 
 	if (cut[0]>0 and cut[1]>0) or (cut[0]<0 and cut[1]>0):
 		if points['x'].iloc[0] > points['x'].iloc[1]:
-			data1 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
-			data2 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+			data1 = matrix.query('dist_point_cut<0')[['point_0','point_0','point_index']].copy()
+			data2 = matrix.query('dist_point_cut>0')[['point_0','point_1','point_index']].copy()
 		else:
-			data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
-			data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+			data2 = matrix.query('dist_point_cut<0')[['point_0','point_1','point_index']].copy()
+			data1 = matrix.query('dist_point_cut>0')[['point_0','point_1','point_index']].copy()
 	
 
 		#xmax,xmin in ordine:
@@ -60,11 +71,11 @@ def FindDataPartition2D(points,matrix):
 	# quadrante 3
 	if (cut[0]<0 and cut[1]<0) or (cut[0]>0 and cut[1]<0):
 		if points['x'].iloc[0] > points['x'].iloc[1]:
-			data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
-			data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+			data2 = matrix.query('dist_point_cut<0')[['point_0','point_1','point_index']].copy()
+			data1 = matrix.query('dist_point_cut>0')[['point_0','point_1','point_index']].copy()
 		else:
-			data1 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point','index_point']].copy()
-			data2 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point','index_point']].copy()
+			data1 = matrix.query('dist_point_cut<0')[['point_0','point_1','point_index']].copy()
+			data2 = matrix.query('dist_point_cut>0')[['point_0','point_1','point_index']].copy()
 
 
 		#xmax,xmin in ordine:
@@ -73,9 +84,9 @@ def FindDataPartition2D(points,matrix):
 		#xmin,xmax:
 		#	l1 = dist -
 		#	l2 = dist +
-		
-		
-		
+
+
+
 	data1.index = np.arange(len(data1))
 	data1.columns = [0,1,'index']
 	data2.index = np.arange(len(data2))
@@ -84,6 +95,10 @@ def FindDataPartition2D(points,matrix):
 	
 	
 	return data1,data2
+
+
+
+
 
 
 
@@ -118,7 +133,7 @@ def Variance(data1,data2,data):
 		pd1 = pdist(data1)
 		pd2 = pdist(data2)
 		
-		#data = pd.concat([data1,data2])
+		#data = np.vstack([data1,data2])
 		pd = pdist(data)
 		pd12 = np.hstack([pd1, pd2])
 		
@@ -139,17 +154,17 @@ def CutCoeff_WeightedDist(dist_matrix,data):
 	data = data.drop([0,1],axis=1)
 	data_pair = list(combinations(data['index'], 2))
 	data_pair = pd.DataFrame(data_pair)
-	data_pair.columns = ['index_point_x','index_point_y']
+	data_pair.columns = ['index2','index1']
 
 	
 	var_ratio = []
 	for i in range(len(data_pair)):
 		
-		matrix = dist_matrix[(dist_matrix['index_point_x']==data_pair['index_point_x'].iloc[i]) & (dist_matrix['index_point_y']==data_pair['index_point_y'].iloc[i])].copy()
+		matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[i]) & (dist_matrix['index2']==data_pair['index2'].iloc[i])].copy()
 		
-		data12 = matrix[['dim0_point','dim1_point']].copy()
-		data1 = matrix.query('distance_point_cut>0')[['dim0_point','dim1_point']].copy()
-		data2 = matrix.query('distance_point_cut<0')[['dim0_point','dim1_point']].copy()
+		data12 = matrix[['point_0','point_1']].copy()
+		data1 = matrix.query('dist_point_cut>0')[['point_0','point_1']].copy()
+		data2 = matrix.query('dist_point_cut<0')[['point_0','point_1']].copy()
 		
 		var = Variance(data1,data2,data12)
 		var_ratio.append(var)
@@ -169,7 +184,7 @@ def CutCoeff_WeightedDist(dist_matrix,data):
 	index_cut = choice(data_pair.index,p=p)
 	
 	# a*x + b*y = c  retta cut
-	matrix = dist_matrix[(dist_matrix['index_point_x']==data_pair['index_point_x'].iloc[index_cut]) & (dist_matrix['index_point_y']==data_pair['index_point_y'].iloc[index_cut])].copy()
+	matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[index_cut]) & (dist_matrix['index2']==data_pair['index2'].iloc[index_cut])].copy()
 	matrix.index = np.arange(len(matrix))
 	a = matrix['norm_vect_0'].iloc[0] #versore0
 	b = matrix['norm_vect_1'].iloc[0] #versore1
@@ -188,7 +203,7 @@ def CutCoeff_WeightedDist(dist_matrix,data):
 
 
 
-# vale solo in 2D
+# vale solo in 2D 
 def Cut_with_data(data,l,dist_matrix):
 	
 	
@@ -243,14 +258,44 @@ def Cut_with_data(data,l,dist_matrix):
 	lati = list(points['lati'])
 
 
-	data1,data2 = FindDataPartition2D(points,matrix)
+	#data1,data2 = FindDataPartition2D_vecchia(points,matrix)
 
 	
 	
-	return point1,point2,lati,data1,data2
+	return point1,point2,lati,matrix#,data1,data2
 
 
 
+
+
+
+
+def FindDataPartition2D(matrix,l1,l2):
+	
+	
+	
+	names = []
+	for i in range(len(l1[0][0])):
+		names.append('norm_vect_'+str(i))
+
+	#distanza vertice da taglio
+	d = np.dot(matrix[names].iloc[0],l1[1][1]) - matrix['magnitude_norm_vect'].iloc[0] 
+	if d>0:
+		data1 = matrix.query('dist_point_cut>0')[['point_0','point_1','point_index']].copy()
+		data2 = matrix.query('dist_point_cut<0')[['point_0','point_1','point_index']].copy()
+	else:
+		data1 = matrix.query('dist_point_cut<0')[['point_0','point_1','point_index']].copy()
+		data2 = matrix.query('dist_point_cut>0')[['point_0','point_1','point_index']].copy()
+		
+
+	data1.index = np.arange(len(data1))
+	data1.columns = [0,1,'index']
+	data2.index = np.arange(len(data2))
+	data2.columns = [0,1,'index']
+	
+	
+	
+	return data1,data2
 
 
 
@@ -276,7 +321,7 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father,dist_matrix):
 	
 	
 
-	# genera tempo per cut
+	# genera tempo per cut 
 	time_cut = np.random.exponential(1/LD)
 
 
@@ -297,15 +342,15 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father,dist_matrix):
 	
 	
 	#con dati
-	dist_matrix= pd.merge(dist_matrix,data[data['index']!=dist_matrix['index_point_y'].unique()[len(dist_matrix['index_point_y'].unique())-1]], how='right', left_on='index_point_x', right_on='index')
+	dist_matrix= pd.merge(dist_matrix,data[data['index']!=dist_matrix['index1'].unique()[len(dist_matrix['index1'].unique())-1]], how='right', left_on='index2', right_on='index')
 	dist_matrix = dist_matrix.drop([0,1,'index'],axis=1)
-	dist_matrix= pd.merge(dist_matrix,data[data['index']!=0], how='right', left_on='index_point_y', right_on='index')
+	dist_matrix= pd.merge(dist_matrix,data[data['index']!=0], how='right', left_on='index1', right_on='index')
 	dist_matrix = dist_matrix.drop([0,1,'index'],axis=1)
-	dist_matrix= pd.merge(dist_matrix,data, how='right', left_on='index_point', right_on='index')
+	dist_matrix= pd.merge(dist_matrix,data, how='right', left_on='point_index', right_on='index')
 	dist_matrix = dist_matrix.drop([0,1,'index'],axis=1)
 	
 	try:
-		point1,point2,lati,data1,data2 = Cut_with_data(data,l,dist_matrix)
+		point1,point2,lati,matrix = Cut_with_data(data,l,dist_matrix) #,data1,data2
 	except TypeError:
 		return
 
@@ -343,6 +388,8 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father,dist_matrix):
 			l2.append(l[i])
 	
 	
+	data1,data2 = FindDataPartition2D(matrix,l1,l2)
+	
 	
 	risultato1 = [t0, l1, data1]
 	risultato2 = [t0, l2, data2]
@@ -351,7 +398,6 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father,dist_matrix):
 	
 	
 	return risultato
-
 
 
 
@@ -441,15 +487,8 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 				box.append(vertici_per_plot)
 				time.append(mondrian[2])
 				father.append(mondrian[3])
+				
 			
-
-
-
-
-
-
-
-
 		except  TypeError:
 			continue
 		
@@ -475,7 +514,3 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 	
 	return m,box,part
 		
-
-
-
-

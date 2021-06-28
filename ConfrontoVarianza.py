@@ -1,3 +1,5 @@
+# cd "C:\Users\silvi\Desktop\Fisica\TESI\Tesi"
+
 import pandas as pd
 import numpy as np
 from scipy.spatial.distance import pdist,cdist

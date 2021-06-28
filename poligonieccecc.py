@@ -1,30 +1,31 @@
 import numpy as np
-from numpy.random import choice
+#from numpy.random import choice
 import pandas as pd	
-from scipy.spatial import distance
+#from scipy.spatial import distance
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
-from matplotlib.pyplot import cm
+#from matplotlib.pyplot import cm
 
 
 
 #%%
 
+#part.query('leaf==True')[['time', 'father', 'part_number', 'neighbors', 'leaf']]
 # coppie di vertici 
 #vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
 t0=0
-lifetime=2
+lifetime=0.3
 #dist_matrix = DistanceMatrix(X)
-m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
-#m,box,df=MondrianPolygon(t0,vertici_iniziali,lifetime)
+#m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
 
-#dist_matrix_vero = dist_matrix.copy()
+part = []
+for i in range(15):
+	m,box,part_i=MondrianPolygon(X,t0,lifetime,dist_matrix)
+	part.append(part_i)
+	
+PlotPolygon(X,part)
 
-
-
-part_polygon = part.copy()
-part_polygon[['time', 'father', 'part_number', 'leaf']]
 #%%
 
 sns.set_style('whitegrid')
@@ -35,6 +36,7 @@ fig,ax = plt.subplots()
 for i in range(len(box)):
 	p = Polygon(box[i], facecolor = 'none', edgecolor='b')
 	ax.add_patch(p)
+	
 	
 	ax.scatter(m[i][2][0],m[i][2][1],color='b')
 	
@@ -50,6 +52,41 @@ ax.set_ylim(ymin,ymax)
 #ax.scatter(dati[0],dati[1])
 
 plt.show()
+
+
+#%% uso solo foglie    metto numeri partizioni
+
+sns.set_style('whitegrid')
+fig,ax = plt.subplots()
+
+#color=cm.rainbow(np.linspace(0,1,len(box)))
+#for i,c in zip(range(len(box)),color):
+for i in range(len(part.query('leaf==True'))):
+	box_new = part.query('leaf==True')['box'].iloc[i]
+	p = Polygon(box_new, facecolor = 'none', edgecolor='b')
+	ax.add_patch(p)
+	
+	b = pd.DataFrame(box_new)
+	x_avg = np.mean(b[0])
+	y_avg = np.mean(b[1])
+	ax.text(x_avg,y_avg,part.query('leaf==True')['part_number'].iloc[i])
+	
+	
+	#ax.scatter(m[i][2][0],m[i][2][1],color='b')
+	
+xmin = box[0][0][0]-0.05
+ymin = box[0][0][1]-0.05
+xmax = box[0][2][0]+0.05
+ymax = box[0][2][1]+0.05
+	
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin,ymax)
+
+#dati = pd.DataFrame(X)
+#ax.scatter(dati[0],dati[1])
+
+plt.show()
+
 
 
 

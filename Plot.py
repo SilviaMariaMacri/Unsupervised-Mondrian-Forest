@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
 from matplotlib.pyplot import cm
+from matplotlib.patches import Polygon
+import seaborn as sns
 
 
 
@@ -171,4 +173,77 @@ def PartitionPlot(X,y,part):
 	return
 		
 
+
+
+
+
+
+def PlotPolygon(X,part):
+	
+
+
+	if isinstance(part, pd.DataFrame):
+			
+
+		sns.set_style('whitegrid')
+		fig,ax = plt.subplots()
+		
+	
+		for i in range(len(part.query('leaf==True'))):
+			box_new = part.query('leaf==True')['box'].iloc[i]
+			p = Polygon(box_new, facecolor = 'none', edgecolor='b')
+			ax.add_patch(p)
+			
+			b = pd.DataFrame(box_new)
+			x_avg = np.mean(b[0])
+			y_avg = np.mean(b[1])
+			ax.text(x_avg,y_avg,part.query('leaf==True')['part_number'].iloc[i])
+			
+			
+		ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
+			
+		xmin = box_new[0][0][0]-0.05
+		ymin = box_new[0][0][1]-0.05
+		xmax = box_new[0][2][0]+0.05
+		ymax = box_new[0][2][1]+0.05
+			
+		ax.set_xlim(xmin,xmax)
+		ax.set_ylim(ymin,ymax)
+		
+		
+		plt.show()
+		
+		
+		
+	if isinstance(part, list):
+		
+		
+		color=cm.rainbow(np.linspace(0,1,len(part)))
+		
+		fig, ax = plt.subplots()
+		
+		for j,c in zip(part,color):
+			
+			for i in range(len(j.query('leaf==True'))):
+				box_new = j.query('leaf==True')['box'].iloc[i]
+				p = Polygon(box_new, facecolor = 'none', edgecolor=c,alpha=0.3)
+				ax.add_patch(p)
+				
+			
+		ax.scatter(X[:,0],X[:,1],s=10,alpha=0.5)
+			
+		xmin = box_new[0][0][0]-0.05
+		ymin = box_new[0][0][1]-0.05
+		xmax = box_new[0][2][0]+0.05
+		ymax = box_new[0][2][1]+0.05
+			
+		ax.set_xlim(xmin,xmax)
+		ax.set_ylim(ymin,ymax)
+		
+		
+		plt.show()
+		
+	
+	return
+		
 

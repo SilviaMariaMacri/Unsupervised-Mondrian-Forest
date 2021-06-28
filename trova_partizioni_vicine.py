@@ -1,19 +1,186 @@
-    \item hanno lo stesso padre
-    \item se una delle due partizioni che hanno lo stesso padre ha 
-	un lato uguale al primo lato del padre e l'altra partizione non ce l'ha, 
-	allora la prima è vicina al fratello del padre, mentre la seconda no
-    \item se nessuna delle due partizioni che hanno lo stesso padre ha un 
-	lato uguale al primo lato del padre, allora sono entrambe vicine al 
-	fratello del padre
+
+
+#part_polygon  ha tutto
+#part[['time', 'father', 'part_number', 'leaf','brother']]  
+
+brother = []
+brother.append('nan')
+for i in range(1,len(part)):
+	for j in range(len(part)):
+		if (part['father'].iloc[i]==part['father'].iloc[j]) and (part['part_number'].iloc[i]!=part['part_number'].iloc[j]):
+			brother.append(part['part_number'].iloc[j])
+
+part['brother'] = brother
+
 
 #%%
 
-for j in range(i-1,i+2):
-		if part['father'].iloc[i] == part['father'].iloc[j]:
-			neighbors_i.append(part['part_number'].iloc[j])
+
+neighbors = []
+# fratelli
+for i in range(len(part)):
+	neighbors.append([part['brother'].iloc[i]])
+	
+part['neighbors'] = neighbors
+
+#%%
+	
+for i in part['part_number']:
+	if i%2 == 0:
+		continue
+	
+	if (part.query('part_number=='+str(i))['leaf'].iloc[0] !=True) or (part.query('brother=='+str(i))['leaf'].iloc[0] !=True):
+		
+		
+		part_ridotto = part.query('(part_number=='+str(i)+') or (part_number=='+str(part['brother'].iloc[i])+') or (father=='+str(i)+') or (father=='+str(part['brother'].iloc[i])+')').copy()
+		part_ridotto.index = np.arange(len(part_ridotto))
+ 		
+		for h in list(part_ridotto['part_number'].iloc[0:2]):
+			part_ridotto2 = part_ridotto.query('(father=='+str(h)+') or (part_number=='+str(h)+')').copy()
+			part_ridotto2.index = np.arange(len(part_ridotto2))
+			controllo = []
+			if len(part_ridotto2) == 1:
+				continue
+			for j in part_ridotto2['vertici'].iloc[1]:
+				if j == part_ridotto2['vertici'].iloc[0][0]:
+					#print(j)
+					#print(part_ridotto2['vertici'].iloc[0][0])
+					index = part.query('part_number=='+str(part_ridotto2['part_number'].iloc[1])).index
+					part['neighbors'].iloc[index[0]].append(part_ridotto2['brother'].iloc[0])
+					controllo.append(0)
+					break
+			if len(controllo)==0:
+				for j in part_ridotto2['vertici'].iloc[2]:
+					if j == part_ridotto2['vertici'].iloc[0][0]:
+						index = part.query('part_number=='+str(part_ridotto2['part_number'].iloc[2])).index
+						part['neighbors'].iloc[index[0]].append(part_ridotto2['brother'].iloc[0])	
+						controllo.append(0)
+						break
+			if len(controllo)==0:
+				index1 = part.query('part_number=='+str(part_ridotto2['part_number'].iloc[1])).index
+				part['neighbors'].iloc[index1[0]].append(part_ridotto2['brother'].iloc[0])
+				index2 = part.query('part_number=='+str(part_ridotto2['part_number'].iloc[2])).index
+				part['neighbors'].iloc[index2[0]].append(part_ridotto2['brother'].iloc[0])
+
+		if len(part_ridotto)==6:
+			padre1 = part_ridotto['part_number'].iloc[0]
+			padre2 = part_ridotto['part_number'].iloc[1]
+			
+			for i,j in zip([2,3],[4,5]): #figli di 0 e figli di 1
+				if (padre2 in part_ridotto['neighbors'].iloc[i]) and (padre1 in part_ridotto['neighbors'].iloc[j]):
+					index1 = part.query('part_number=='+str(part_ridotto['part_number'].iloc[i])).index
+					part['neighbors'].iloc[index1[0]].append(part_ridotto['part_number'].iloc[j])
+					index2 = part.query('part_number=='+str(part_ridotto['part_number'].iloc[j])).index
+					part['neighbors'].iloc[index2[0]].append(part_ridotto['part_number'].iloc[i])
+	
+		
+			
+
+
+
+
+#%%
+
+se il fratello del padre ha figli vicini al padre, allora dobbiamo metterli 
+come vicini dei figli del padre che sono vicini al fratello del padre
+
+
+
+#%%
+part['neighbors'] = 0
+
+
+
+neighbors = []
+part_number = []
+
+part_number.append(0)
+part_number.append(1)
+part_number.append(2)
+neighbors.append('nan')
+neighbors.append([2])
+neighbors.append([1])
+
+for i in part.query("father!='nan' and father!=0")['father'].unique():
+	neigh1 = []
+	neigh2 = []
+	
+	part_ridotto = part.query('father=='+str(i)+"or part_number=="+str(i))
+	for j in part_ridotto['vertici'].iloc[1]:
+		if j == part_ridotto['vertici'].iloc[0][0]:
+			neigh1.append(part_ridotto['brother'].iloc[0])
+			break
+	for j in part_ridotto['vertici'].iloc[2]:
+		if j == part_ridotto['vertici'].iloc[0][0]:
+			neigh2.append(part_ridotto['brother'].iloc[0])	
+			break
+	if (len(neigh1)==0) and (len(neigh2)==0):
+		neigh1.append(part_ridotto['brother'].iloc[0])
+		neigh2.append(part_ridotto['brother'].iloc[0])
+		
+	neigh1.append(part_ridotto['brother'].iloc[1])
+	neigh2.append(part_ridotto['brother'].iloc[2])
+	
+	part_number.append(part_ridotto['part_number'].iloc[1])
+	part_number.append(part_ridotto['part_number'].iloc[2])
+	neighbors.append(neigh1)
+	neighbors.append(neigh2)
+	
+			
+	
+df = {'part_number':part_number,'neighbors':neighbors}
+df = pd.DataFrame(df)	
+#%%
+
+for i in range(1,len(df)):
+	for j in range(1,len(df)):
+		if df['part_number'].iloc[i] in df['neighbors'].iloc[j]:
+			df['neighbors'].iloc[i].append(df['part_number'].iloc[j])
+df.loc[df.index,'neighbors'] = [*[list(np.unique(df['neighbors'].iloc[i])) for i in range(len(df))]]
+
+
+df['leaf'] = part['leaf']
+
+
+
+
+#%%			
+for i in range(1,len(df)):
+	for h in df['neighbors'].iloc[i]:
+		for j in range(1,len(df)):
+			if h in df['neighbors'].iloc[j]:
+				if df['part_number'].iloc[j] not in df['neighbors'].iloc[i]:
+					df['neighbors'].iloc[i].append(df['part_number'].iloc[j])
+df.loc[df.index,'neighbors'] = [*[list(np.unique(df['neighbors'].iloc[i])) for i in range(len(df))]]
+		
+#part = pd.merge(part,df,how='left',left_on='part_number',right_on='part_number')
 	
 
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

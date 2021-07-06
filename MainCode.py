@@ -11,7 +11,7 @@ import seaborn as sns
 #%% data
 
  
-dat = datasets.make_moons(n_samples=200,noise=0.05)
+dat = datasets.make_moons(n_samples=150,noise=0.05)
 iris = datasets.load_iris()
 '''
 #iris
@@ -160,6 +160,8 @@ ax.scatter(data2[data2['class_cluster']==1][0],data2[data2['class_cluster']==1][
 	
 	
 plt.show()
+
+
 
 
 

@@ -87,6 +87,8 @@ sovrapposizione_stessa_classe = []
 
 
 
+
+
 for a in N:
 		
 	

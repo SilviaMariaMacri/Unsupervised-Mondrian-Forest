@@ -404,9 +404,9 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father,dist_matrix,neighbors):
 	
 	
 	
-	risultato1 = [t0, l1, data1, neigh1]
-	risultato2 = [t0, l2, data2, neigh2]
-	risultato = [risultato1, risultato2, t0, father]
+	part1 = [t0, l1, data1, neigh1]
+	part2 = [t0, l2, data2, neigh2]
+	risultato = [part1, part2, t0, father]
 	
 	
 	
@@ -419,8 +419,8 @@ def MondrianPolygon_SingleCut(data,t0,l,lifetime,father,dist_matrix,neighbors):
 
 
 
-def MondrianPolygon(X,t0,lifetime,dist_matrix): 
-	
+def MondrianPolygon(X,t0,lifetime,dist_matrix):
+
 
 
 	#dist_matrix = DistanceMatrix(X)
@@ -437,7 +437,7 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 	vertici_iniziali.append([[data[0].max() + length0*0.05,data[1].max() + length1*0.05],[data[0].min() - length0*0.05,data[1].max() + length1*0.05]])
 	vertici_iniziali.append([[data[0].min() - length0*0.05,data[1].max() + length1*0.05],[data[0].min() - length0*0.05,data[1].min() - length1*0.05]])
 
-	
+
 
 	
 	#neighbors = []
@@ -473,7 +473,7 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 		vertici_per_plot.append(vertici_iniziali[i][0])
 	box.append(vertici_per_plot)
 	time.append(t0)
-	father.append(np.nan)
+	father.append('nan')
 	part_number.append(count_part_number)
 	
 			
@@ -508,10 +508,21 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 			
 			
 			
+			for j in range(2):
+				vertici_per_plot=[]
+				for h in range(len(mondrian[j][1])):
+					vertici_per_plot.append(mondrian[j][1][h][0])
+				vertici.append(mondrian[j][1])
+				box.append(vertici_per_plot)
+				time.append(mondrian[2])
+				father.append(mondrian[3])
+				
+
 			
+#part2 = [t0, l2, data2, neigh2]
+#mondrian = [part1, part2, t0, father]			
 			
-			#m,neighbors = NeighboringPartitions(m,neighbors,point1,point2,lati)
-			
+			### calcolo partizioni vicine
 			vicini_non_tagliati1 = mondrian[0][3][2:-1]
 			for j in vicini_non_tagliati1:
 				if type(j)!=int:
@@ -519,6 +530,7 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 				for k in range(len(m[j][4])):
 					if m[j][4][k] == i[3]:
 						m[j][4][k] = count1
+				
 			
 			vicini_non_tagliati2 = mondrian[1][3][2:-1]
 			for j in vicini_non_tagliati2:
@@ -526,8 +538,8 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 					continue
 				for k in range(len(m[j][4])):
 					if m[j][4][k] == i[3]:
-						m[j][4][k] = count2	
-			
+						m[j][4][k] = count2		
+				
 			
 			l1 = mondrian[0][1]
 			l2 = mondrian[1][1]
@@ -543,7 +555,8 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 						m[mondrian[0][3][1]][1].insert(j+1,segmento2)
 						m[mondrian[0][3][1]][4][j] = neigh1
 						m[mondrian[0][3][1]][4].insert(j+1,neigh2)
-			
+
+				
 			#secondo lato tagliato l1
 			if type(mondrian[0][3][-1])==int:
 				segmento1 = [ l2[1][1],l2[1][0] ]
@@ -555,24 +568,11 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 						m[mondrian[0][3][-1]][1][j] = segmento1
 						m[mondrian[0][3][-1]][1].insert(j+1,segmento2)
 						m[mondrian[0][3][-1]][4][j] = neigh1
-						m[mondrian[0][3][-1]][4].insert(j+1,neigh2)					
+						m[mondrian[0][3][-1]][4].insert(j+1,neigh2)						
+				### fine calcolo partizioni vicine						
+
 						
 
-		
-			for j in range(2):
-				vertici_per_plot=[]
-				for h in range(len(mondrian[j][1])):
-					vertici_per_plot.append(mondrian[j][1][h][0])
-				vertici.append(mondrian[j][1])
-				box.append(vertici_per_plot)
-				time.append(mondrian[2])
-				father.append(mondrian[3])
-				
-				
-				
-			
-				
-			
 		except  TypeError:
 			continue
 		
@@ -582,12 +582,14 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 		#x = np.array(i[4])
 		#neigh_part.append(x[~np.isnan(x)].astype(int))
 		neigh_part.append(i[4])
-		
+
 	part = {'time':time,'father':father,'part_number':part_number,'neighbors':neigh_part,'box':box,'vertici':vertici}
 	part = pd.DataFrame(part)
+	
 
 	
 
+	
 	leaf = []
 	for i in range(len(part)):
 		if part['part_number'].iloc[i] not in part['father'].unique():

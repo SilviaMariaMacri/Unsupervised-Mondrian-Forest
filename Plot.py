@@ -202,13 +202,13 @@ def PlotPolygon(X,part):
 			
 		ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
 			
-		xmin = box_new[0][0][0]-0.05
-		ymin = box_new[0][0][1]-0.05
-		xmax = box_new[0][2][0]+0.05
-		ymax = box_new[0][2][1]+0.05
+		#xmin = box_new[0][0][0]-0.05
+		#ymin = box_new[0][0][1]-0.05
+		#xmax = box_new[0][2][0]+0.05
+		#ymax = box_new[0][2][1]+0.05
 			
-		ax.set_xlim(xmin,xmax)
-		ax.set_ylim(ymin,ymax)
+		#ax.set_xlim(xmin,xmax)
+		#ax.set_ylim(ymin,ymax)
 		
 		
 		plt.show()
@@ -226,19 +226,19 @@ def PlotPolygon(X,part):
 			
 			for i in range(len(j.query('leaf==True'))):
 				box_new = j.query('leaf==True')['box'].iloc[i]
-				p = Polygon(box_new, facecolor = 'none', edgecolor=c,alpha=0.3)
+				p = Polygon(box_new, facecolor = 'none', edgecolor='b',alpha=0.05)
 				ax.add_patch(p)
 				
 			
 		ax.scatter(X[:,0],X[:,1],s=10,alpha=0.5)
 			
-		xmin = box_new[0][0][0]-0.05
-		ymin = box_new[0][0][1]-0.05
-		xmax = box_new[0][2][0]+0.05
-		ymax = box_new[0][2][1]+0.05
+		#xmin = box_new[0][0][0]-0.05
+		#ymin = box_new[0][0][1]-0.05
+		#xmax = box_new[0][2][0]+0.05
+		#ymax = box_new[0][2][1]+0.05
 			
-		ax.set_xlim(xmin,xmax)
-		ax.set_ylim(ymin,ymax)
+		#ax.set_xlim(xmin,xmax)
+		#ax.set_ylim(ymin,ymax)
 		
 		
 		plt.show()

@@ -15,16 +15,26 @@ from matplotlib.patches import Polygon
 # coppie di vertici 
 #vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
 t0=0
-lifetime=0.3
-#dist_matrix = DistanceMatrix(X)
-#m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
+lifetime=0.6
+dist_matrix = DistanceMatrix(X)
+m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
+
+
+#%%
+
 
 part = []
-for i in range(15):
+for i in range(100):
+	print('AAAAAAAAAAAAAAAAAAA',i)
 	m,box,part_i=MondrianPolygon(X,t0,lifetime,dist_matrix)
 	part.append(part_i)
 	
 PlotPolygon(X,part)
+
+#%% per salvare su file
+
+for i in range(len(part)):
+	part[i].to_csv('98iterazioniNoheader.txt',mode='a',index=False,sep='\t',header=False)
 
 #%%
 

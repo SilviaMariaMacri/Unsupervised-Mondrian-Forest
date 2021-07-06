@@ -1,0 +1,5 @@
+
+IN DistanceMatrix(X):    ERANO 500 PUNTI (TROPPI)
+    magnitude_norm_vect = versori_iperpiani@(np.array(coord_cut).T)
+
+MemoryError: Unable to allocate 116. GiB for an array with shape (124750, 124750) and data type float64

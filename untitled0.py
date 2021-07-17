@@ -1,42 +1,97 @@
+#gaussiane in diagonale
+		
+		
+a = 25
+
+# diagonale
+b1 = 0.07
+b2 = 0.06
+#verticali
+#b1 = 0.01
+#b2 = 0
+		
+mean1 = (0, 0)
+cov1 = [[b1,b2], [b2,b1]]
+x1 = np.random.multivariate_normal(mean1, cov1, a)
+
+#mean2 = (1,0)
+mean2 = (0.3, -1)
+cov2 = [[b1,b2], [b2,b1]]
+x2 = np.random.multivariate_normal(mean2, cov2, a)
+
+			
+			
+fig,ax = plt.subplots()
+ax.scatter(x1[:,0],x1[:,1],color='b')
+ax.scatter(x2[:,0],x2[:,1],color='b')
+
+X = np.vstack([x1,x2])
+			
 
 
-N = [50,100,150,200] # numerosità
-n = np.geomspace(0.01, 1, 11) # rumore
-#array([0.01      , 0.01584893, 0.02511886, 0.03981072, 0.06309573,
-#       0.1       , 0.15848932, 0.25118864, 0.39810717, 0.63095734,
-#       1.        ])
+#%% valutare tagli più probabili  varianzaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+# plotta dati separati
+'''
+dist_matrix_ridotta = dist_matrix[['index1', 'index2', 'dist', 'magnitude_norm_vect', 'index_norm_vect',
+       'x1_0', 'x1_1', 'x2_0', 'x2_1', 'x_cut_0', 'x_cut_1', 'norm_vect_0',
+       'norm_vect_1']].copy()
+
+dist_matrix_ridotta = dist_matrix_ridotta.drop_duplicates()
+
+
+matrice = pd.merge(data_pair,dist_matrix_ridotta,left_on=['index1','index2'],right_on=['index1','index2'])
+
+'''
+
+data_pair['var_ratio*50'] =data_pair['var_ratio']**50
+data_pair['prob'] = data_pair['var_ratio*50']/data_pair['var_ratio*50'].sum()
+
+
+
+matrice = pd.merge(data_pair,dist_matrix,left_on=['index1','index2'],right_on=['index1','index2'])
+
+#matrice = matrice.sort_values(by='var_ratio',ascending=False)
+
+data_pair = data_pair.sort_values(by='var_ratio',ascending=False)
+data_pair.index = np.arange(len(data_pair))
+
+
 #%%
-for a in N:
-		
+
+for i in range(400,600):
+	scelgo_cut = matrice.query('index1=='+str(data_pair['index1'].iloc[i])+' and index2=='+str(data_pair['index2'].iloc[i])).copy()
+	data1 = scelgo_cut.query('dist_point_cut>0').copy()
+	data2 = scelgo_cut.query('dist_point_cut<0').copy()
 	
-	for b in n:
-		
-		
-		#%%   gaussiane in diagonale
-		
-		
-			a = 100
-			#b = n[0]
-		
-			mean1 = (0, 0)
-			cov1 = [[0.07,0.06], [0.06,0.07]]
-			x1 = np.random.multivariate_normal(mean1, cov1, a)
-			#x1=pd.DataFrame(x1)
-			#x1['cl']=0
-				
-			mean2 = (0.3, -0.7)
-			cov2 = [[0.07,0.06], [0.06,0.07]]
-			x2 = np.random.multivariate_normal(mean2, cov2, a)
-			#x2=pd.DataFrame(x2)
-			#x2['cl']=1
-			
-			
-			fig,ax = plt.subplots()
-			ax.scatter(x1[:,0],x1[:,1],color='b')
-			ax.scatter(x2[:,0],x2[:,1],color='b')
-			
-			X = np.vstack([x1,x2])
-			
+	fig,ax = plt.subplots()
+	ax.scatter(data1['point_0'],data1['point_1'],color='b')
+	ax.scatter(data2['point_0'],data2['point_1'],color='orange')
+
+
+
+
+#%%
+
+
+
+#righe con var_Ratio uguale a valore massimo
+#data_pair_primi_20 = data_pair.sort_values(by='var_ratio',ascending=False).query('var_ratio=='+str(data_pair['var_ratio'].max()))
+#primi 20
+data_pair_primi_20 = data_pair.sort_values(by='var_ratio',ascending=False).iloc[0:20]
+data_pair_primi_20.index=np.arange(len(data_pair_primi_20))
+
+df=[]
+for i in range(len(data_pair_primi_20)):
+    df.append(dist_matrix.query('index1=='+str(data_pair_primi_20['index1'].iloc[i])+' and index2 =='+str(data_pair_primi_20['index2'].iloc[i])).iloc[0])
+
+fig,ax = plt.subplots()
+for i in range(len(data_pair_primi_20)):
+    ax.plot(df[i][['x1_0','x2_0']],df[i][['x1_1','x2_1']])
+ax.scatter(x1[:,0],x1[:,1],color='b')
+ax.scatter(x2[:,0],x2[:,1],color='b')
+
+
+
 
 
 #%%
@@ -47,15 +102,11 @@ for i in part:
 
 
 
-
-
-
-
-
-
-
-
 #%%
+
+#part = pd.read_csv('98iterazioniNOheader.txt',sep='\t')
+
+
 
 color=cm.rainbow(np.linspace(0,1,len(part)))
 		
@@ -63,7 +114,7 @@ fig, ax = plt.subplots()
 		
 for j,c in zip(part[61:62],color):
 
-	part_provvisoria = j.iloc[0:20].copy()#
+	part_provvisoria = j.iloc[0:2].copy()#
 	leaf = []
 	for i in range(20):#len(j)
 		if part_provvisoria['part_number'].iloc[i] not in part_provvisoria['father'].unique():

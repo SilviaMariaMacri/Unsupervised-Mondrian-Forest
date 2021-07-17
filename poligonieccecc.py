@@ -9,15 +9,30 @@ from matplotlib.patches import Polygon
 
 
 
+
+
+#%%
+
+
+rotazione dati uguali
+sigarilli paralleli
+percolation
+
+
+
+
 #%%
 
 #part.query('leaf==True')[['time', 'father', 'part_number', 'neighbors', 'leaf']]
 # coppie di vertici 
 #vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
 t0=0
-lifetime=0.6
-dist_matrix = DistanceMatrix(X)
+lifetime=1
+#dist_matrix = DistanceMatrix_prova(X)
 m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
+
+PlotPolygon(X,part)
+
 
 
 #%%
@@ -31,10 +46,13 @@ for i in range(100):
 	
 PlotPolygon(X,part)
 
+
+
 #%% per salvare su file
 
 for i in range(len(part)):
 	part[i].to_csv('98iterazioniNoheader.txt',mode='a',index=False,sep='\t',header=False)
+
 
 #%%
 

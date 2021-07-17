@@ -119,8 +119,8 @@ def CutCoeff_DistMax(dist_matrix):
 
 
 
-	
-	
+
+
 
 
 def Variance(data1,data2,data):
@@ -149,14 +149,16 @@ def Variance(data1,data2,data):
 
 
 
-def CutCoeff_WeightedDist(dist_matrix,data):
+
+
+def CutVariance(dist_matrix,data):
 	
 	data = data.drop([0,1],axis=1)
 	data_pair = list(combinations(data['index'], 2))
 	data_pair = pd.DataFrame(data_pair)
 	data_pair.columns = ['index2','index1']
 
-	
+
 	var_ratio = []
 	for i in range(len(data_pair)):
 		
@@ -175,7 +177,7 @@ def CutCoeff_WeightedDist(dist_matrix,data):
 	if data_pair['var_ratio'].unique()[0]=='nan':
 		return 
 
-	# cancella righe con var_ratio=nan
+	# cancella righe con var_ratio=nan 
 	data_pair = data_pair.drop(data_pair[data_pair['var_ratio']=='nan'].index)
 	data_pair.index = np.arange(len(data_pair))
 
@@ -196,8 +198,165 @@ def CutCoeff_WeightedDist(dist_matrix,data):
 
 
 
+def Centroid(data1,data2,data12):
+
+	
+	data_tot = [data1,data2,data12]
+	centr=[[],[],[]]
+	for j in range(3):
+		for i in range(len(data12[0])):
+			centr[j].append(np.mean(data_tot[j][:,i]))
+	'''	
+	mean_dist=[]
+	for i in range(3):
+		mean_dist.append(np.mean(cdist(data_tot[i],[centr[i]])))
+	
+	#ratio = mean_dist[2]/np.mean(mean_dist[0:2])	
+	ratio = mean_dist[2]/(mean_dist[0] + mean_dist[1])	
+	'''
+	
+	dist=[]
+	for i in range(3):
+		dist.append(cdist(data_tot[i],[centr[i]]))
+		
+	ratio = np.mean(dist[2])/np.mean(np.vstack([dist[0],dist[1]]))	
+
+	
+	return ratio	  	  
+	  
 
 
+
+def CutCentroid(dist_matrix,data):
+	
+	data = data.drop([0,1],axis=1)
+	data_pair = list(combinations(data['index'], 2))
+	data_pair = pd.DataFrame(data_pair)
+	data_pair.columns = ['index2','index1']
+
+
+	ratio_mean_dist = []
+	for i in range(len(data_pair)):
+		
+		matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[i]) & (dist_matrix['index2']==data_pair['index2'].iloc[i])].copy()
+		
+		data12 = np.array(matrix[['point_0','point_1']].copy())
+		data1 = np.array(matrix.query('dist_point_cut>0')[['point_0','point_1']].copy())
+		data2 = np.array(matrix.query('dist_point_cut<0')[['point_0','point_1']].copy())
+		
+		if (len(data1)==1) or (len(data2)==1):
+			ratio_mean_dist.append('nan')
+		else:
+			ratio = Centroid(data1,data2,data12)
+			ratio_mean_dist.append(ratio)
+		
+		
+	data_pair['ratio_centroid'] = ratio_mean_dist
+
+	if data_pair['ratio_centroid'].unique()[0]=='nan':
+		return 
+
+	# cancella righe con var_ratio=nan
+	data_pair = data_pair.drop(data_pair[data_pair['ratio_centroid']=='nan'].index)
+	data_pair.index = np.arange(len(data_pair))
+
+	q=data_pair['ratio_centroid']**100
+	p = q/q.sum()
+	index_cut = choice(data_pair.index,p=p)
+	
+	# a*x + b*y = c  retta cut
+	matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[index_cut]) & (dist_matrix['index2']==data_pair['index2'].iloc[index_cut])].copy()
+	matrix.index = np.arange(len(matrix))
+	a = matrix['norm_vect_0'].iloc[0] #versore0
+	b = matrix['norm_vect_1'].iloc[0] #versore1
+	c = matrix['magnitude_norm_vect'].iloc[0] #modulo 
+
+
+	return a,b,c,matrix 
+
+
+
+def Cut(dist_matrix,data):
+	
+	
+	data_index = data.drop([0,1],axis=1)
+	data_pair = list(combinations(data_index['index'], 2))
+	data_pair = pd.DataFrame(data_pair)
+	data_pair.columns = ['index2','index1']
+
+
+	df = pd.DataFrame() 
+	for i in range(len(data_pair)):
+		#print(i)
+		# considero interesezioni di tutti i punti con una distanza fra due punti in particolare
+		matrix = dist_matrix.query('(index1=='+str(data_pair['index1'].iloc[i])+' and index2=='+str(data_pair['index2'].iloc[i])+') or (index1=='+str(data_pair['index2'].iloc[i])+' and index2=='+str(data_pair['index1'].iloc[i])+')').copy()
+		# considero solo proiezioni che cadono all'interno del segmento
+		matrix = matrix.query('(intersez_0>='+str(min(matrix['x1_0'].iloc[0],matrix['x2_0'].iloc[0]))+') and (intersez_0<='+str(max(matrix['x1_0'].iloc[0],matrix['x2_0'].iloc[0]))+')')
+		# ordino i punti di intersezione
+		matrix = matrix.sort_values(by='intersez_0')
+		matrix.index = np.arange(len(matrix))
+		
+		point_min = np.array(matrix[['intersez_0','intersez_1']][:-1])
+		point_max = np.array(matrix[['intersez_0','intersez_1']][1:])
+		dist_punti_consecutivi = list(np.diag(cdist(point_min,point_max)))
+		
+		#point_max = list(point_max)
+		#point_max.append(['nan','nan'])
+		#matrix[['punto_adiac_0','punto_adiac_1']] = point_max
+		dist_punti_consecutivi.append('nan')
+		#indice_punto_adiacente = list(matrix['point_index'].iloc[1:])
+		#indice_punto_adiacente.append('nan')
+		#matrix['point_index_successivo'] = indice_punto_adiacente
+		
+		intersez_adiacente_0 = list(matrix['intersez_0'].iloc[1:])
+		intersez_adiacente_0.append('nan')
+		intersez_adiacente_1 = list(matrix['intersez_1'].iloc[1:])
+		intersez_adiacente_1.append('nan')
+		matrix['intersez_0_successivo'] = intersez_adiacente_0
+		matrix['intersez_1_successivo'] = intersez_adiacente_1
+		
+		matrix['dist_punti_consecutivi'] = dist_punti_consecutivi
+		# media senza valore assoluto?
+		matrix['media_distanze'] = np.mean(matrix['dist_point_dist'])
+		
+	
+		df = df.append(matrix[matrix['dist_punti_consecutivi']==matrix['dist_punti_consecutivi'].iloc[:-1].max()])
+		
+		#if len(matrix)<=1:
+		#	df = df.append(dist_matrix.query('(index1=='+str(data_pair['index1'].iloc[i])+' and index2=='+str(data_pair['index2'].iloc[i])+') or (index1=='+str(data_pair['index2'].iloc[i])+' and index2=='+str(data_pair['index1'].iloc[i])+')').iloc[0])
+	
+	df.index = np.arange(len(df))
+	
+	
+	
+	q=df['dist_punti_consecutivi']#**50
+	p = q/q.sum()
+	index_cut = choice(df.index,p=p)
+	
+	# a*x + b*y = c  retta cut
+	point_cut_0 = (df['intersez_0'].iloc[index_cut]+df['intersez_0_successivo'].iloc[index_cut])/2
+	point_cut_1 = (df['intersez_1'].iloc[index_cut]+df['intersez_1_successivo'].iloc[index_cut])/2
+	 
+	a = df['norm_vect_cut_0'].iloc[index_cut] #versore0
+	b = df['norm_vect_cut_1'].iloc[index_cut] #versore1
+	c = np.dot([point_cut_0,point_cut_1],list(df.iloc[index_cut][['norm_vect_cut_0', 'norm_vect_cut_1']]))
+	
+	#['norm_vect_cut_0', 'norm_vect_cut_1','magnitude_norm_point', 'intersez_0',
+    #+'intersez_1', 'intersez_0_successivo','intersez_1_successivo', 'dist_punti_consecutivi']
+
+	matrix = dist_matrix[(dist_matrix['index1']==df['index1'].iloc[index_cut]) & (dist_matrix['index2']==df['index2'].iloc[index_cut])].copy()
+	matrix.index = np.arange(len(matrix))
+	
+	############
+	versori_iperpiani = np.array(df[['norm_vect_cut_0', 'norm_vect_cut_1']].iloc[index_cut])
+	magnitude_norm_vect = versori_iperpiani@(np.array([point_cut_0,point_cut_1]).T)
+	matrix['magnitude_norm_vect'] = magnitude_norm_vect
+	
+	X = np.array(matrix[['point_0','point_1']])
+	dist_point_cut = versori_iperpiani@X.T - matrix['magnitude_norm_vect']
+	matrix['dist_point_cut'] = dist_point_cut
+
+	return a,b,c,matrix #(credo)
 
 
 
@@ -213,7 +372,9 @@ def Cut_with_data(data,l,dist_matrix):
 	#scegline uno
 	#a,b,c,matrix = CutCoeff_DistMax(dist_matrix)
 	try:
-		a,b,c,matrix = CutCoeff_WeightedDist(dist_matrix,data)
+		#a,b,c,matrix = CutVariance(dist_matrix,data)
+		#a,b,c,matrix = CutCentroid(dist_matrix,data)
+		a,b,c,matrix = Cut(dist_matrix,data)
 	except TypeError:
 		return
 	
@@ -276,7 +437,9 @@ def FindDataPartition2D(matrix,l1,l2):
 	
 	names = []
 	for i in range(len(l1[0][0])):
-		names.append('norm_vect_'+str(i))
+		#names.append('norm_vect_'+str(i))
+		names.append('norm_vect_cut_'+str(i)) # solo per taglio con proiezioni ecc ecc
+
 
 	#distanza vertice da taglio
 	d = np.dot(matrix[names].iloc[0],l1[1][1]) - matrix['magnitude_norm_vect'].iloc[0] 
@@ -307,7 +470,7 @@ def FindDataPartition2D(matrix,l1,l2):
 
 
 
-
+#i[2],i[0],i[1],lifetime,i[3],dist_matrix,i[4]
 def MondrianPolygon_SingleCut(data,t0,l,lifetime,father,dist_matrix,neighbors):
 
 	
@@ -571,7 +734,11 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 						m[mondrian[0][3][-1]][4].insert(j+1,neigh2)						
 				### fine calcolo partizioni vicine						
 
-						
+			
+			# se voglio fermarmi al primo taglio
+			#if len(m)==3:
+			#	break
+			
 
 		except  TypeError:
 			continue
@@ -596,8 +763,8 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 			leaf.append(True)
 		else:
 			leaf.append(False)
-		
-			
+
+
 		
 	part['leaf'] = leaf
 

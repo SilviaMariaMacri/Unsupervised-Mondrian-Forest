@@ -11,7 +11,7 @@ import seaborn as sns
 #%% data
 
  
-dat = datasets.make_moons(n_samples=150,noise=0.05)
+dat = datasets.make_moons(n_samples=50,noise=0.01)
 iris = datasets.load_iris()
 '''
 #iris

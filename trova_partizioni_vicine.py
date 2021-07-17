@@ -1,3 +1,18 @@
+import networkx as nx
+
+G = nx.Graph()
+for i in range(len(df_var)):
+	if df_var['ratio'].iloc[i]<3:
+		G.add_edge(df_var['part1'].iloc[i],df_var['part2'].iloc[i],weight=df_var['ratio'].iloc[i])
+
+A=pd.DataFrame(nx.adjacency_matrix(G).todense())
+
+
+
+
+
+#%%
+
 #part[['time', 'father', 'part_number', 'neighbors', 'leaf']]
 #part.query('leaf==True')
 import numpy as np
@@ -38,15 +53,15 @@ def calcolo_dist_part_vicine(data1,data2):
 	i1_data1,i2_data1 = np.tril_indices(len(data1), k=-1)
 	pd2 = cdist(data2,data2)
 	i1_data2, i2_data2 = np.tril_indices(len(data2), k=-1)
-	
-	
+
+
 	df1 = {'i1':i1_data1,'i2':i2_data1,'dist':pd1[i1_data1,i2_data1]}
 	df1 = pd.DataFrame(df1)
 	min1 = []
 	for i in range(df1['i1'].max()+1):
 		x = df1.query('i1=='+str(i)+' or i2=='+str(i))['dist'].min()
 		min1.append(x)
-		
+
 
 	df2 = {'i1':i1_data2,'i2':i2_data2,'dist':pd2[i1_data2,i2_data2]}
 	df2 = pd.DataFrame(df2)
@@ -67,7 +82,7 @@ def calcolo_dist_part_vicine(data1,data2):
 	
 	dist = cdist(data1,data2)
 	min_dist_fra_partizioni = dist.min()
-		
+
 	
 	return media,var,min_dist_fra_partizioni
 
@@ -80,9 +95,9 @@ def calcolo_dist_part_vicine(data1,data2):
 
 
 #varianza
-soglia= 4
+soglia= 3.5
 #minimi
-#coeff=3
+coeff=3
 
 
 
@@ -102,16 +117,22 @@ p = part.query('leaf==True').copy()
 p.index = np.arange(len(p))
 
 for i in range(len(p)):
+	print(i)
 	
 	for j in p.iloc[i]['neighbors']:
 		if type(j)!=int:
 			continue
 		
-		part1.append(p.iloc[i]['part_number'])
-		part2.append(j)
 		
 		data1 = m[p.iloc[i]['part_number']][2]
 		data2 = m[j][2]
+		
+		if (len(data1)==1) or (len(data2)==1):
+			continue
+		
+		 
+		part1.append(p.iloc[i]['part_number'])
+		part2.append(j)
 		
 		var_part_unica,var1,var2,var_entrambe_separate = calcolo_varianza_part_vicine(data1,data2)
 		v_unica.append(var_part_unica)
@@ -176,17 +197,14 @@ for k in range(1):
 	
 	
 
+
+	# assegna classe
 	
 	classe = []
 	classe.append([0])
 	for i in range(len(dataframe)-1):
 		classe.append([])
 		
-		
-	
-		
-		
-	
 		
 	dataframe['classe'] = classe
 	#dataframe['classe2'] = classe2
@@ -247,20 +265,20 @@ for k in range(1):
 	for i in range(len(p)):
 		box_new = p['box'].iloc[i]
 		if len(dataframe[dataframe['partizione']==p['part_number'].iloc[i]]['classe'].iloc[0]) !=0:
-			poligono = Polygon(box_new, facecolor = 'none', edgecolor='b')
+			poligono = Polygon(box_new, facecolor = 'blue', alpha=0.5, edgecolor='black')
 			ax.add_patch(poligono)
 			b = pd.DataFrame(box_new)
 			x_avg = np.mean(b[0])
 			y_avg = np.mean(b[1])
-			ax.text(x_avg,y_avg,p['part_number'].iloc[i],color='b')
+			ax.text(x_avg,y_avg,p['part_number'].iloc[i])#,color='b')
 	
 		else:
-			poligono = Polygon(box_new, facecolor = 'none', edgecolor='orange')
+			poligono = Polygon(box_new, facecolor = 'orange',alpha=0.5, edgecolor='black')
 			ax.add_patch(poligono)
 			b = pd.DataFrame(box_new)
 			x_avg = np.mean(b[0])
 			y_avg = np.mean(b[1])
-			ax.text(x_avg,y_avg,p['part_number'].iloc[i],color='orange')
+			ax.text(x_avg,y_avg,p['part_number'].iloc[i])#,color='orange')
 			
 	ax.set_title(titolo[k])
 				

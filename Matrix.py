@@ -262,3 +262,60 @@ def DistanceMatrix_prova(X):
 
 	return matrix
 
+
+
+
+
+
+
+
+# sbagliato - non usare
+def DistanceMatrix_griglia_regolare(X):
+	
+	 
+	
+	if isinstance(X,pd.DataFrame):
+		X = np.array(X)
+	
+	
+	
+	#coord_cut = np.array([[1,1],[1.5,1],[2,1],[1,0.8],[1,1],[1,1.2]])
+	norm_vect_x = [1,1,1,0,0,0]
+	norm_vect_y = [0,0,0,1,1,1]
+	#versori_iperpiani =np.vstack([norm_vect_x,norm_vect_y]).T	
+	#magnitude_norm_vect = versori_iperpiani@(np.array(coord_cut).T)
+	#magnitude_norm_vect = np.diag(magnitude_norm_vect)
+	magnitude_norm_vect = [1,1.5,2,0.8,1,1.2]
+
+	matrix = {'norm_vect_0':norm_vect_x,'norm_vect_1':norm_vect_y,'magnitude_norm_vect':magnitude_norm_vect}
+	matrix = pd.DataFrame(matrix)
+
+	
+	matrix['index_norm_vect'] = matrix.index
+
+
+	matrix_copy = pd.DataFrame()
+	for i in range(len(X)):
+		print(i)
+		
+		for j in range(len(X[i])):
+			matrix['point_'+str(j)] = X[i,j]
+		matrix['point_index'] = i
+		
+		matrix_copy = pd.concat([matrix,matrix_copy])
+	matrix = matrix_copy.copy()
+	matrix.index = np.arange(len(matrix))
+
+	i1_bis = np.array(matrix['index_norm_vect'])
+	i2_bis = np.array(matrix['point_index'])
+	
+	
+	dist_point_cut = versori_iperpiani@X.T
+	dist_point_cut = dist_point_cut[i1_bis,i2_bis] - np.array(matrix['magnitude_norm_vect'])
+	matrix['dist_point_cut'] = dist_point_cut
+	
+	
+	
+	return matrix
+
+

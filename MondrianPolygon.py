@@ -181,7 +181,7 @@ def CutVariance(dist_matrix,data):
 	data_pair = data_pair.drop(data_pair[data_pair['var_ratio']=='nan'].index)
 	data_pair.index = np.arange(len(data_pair))
 
-	q=data_pair['var_ratio']**50
+	q=data_pair['var_ratio']**150
 	p = q/q.sum()
 	index_cut = choice(data_pair.index,p=p)
 	
@@ -220,9 +220,11 @@ def Centroid(data1,data2,data12):
 		dist.append(cdist(data_tot[i],[centr[i]]))
 		
 	ratio = np.mean(dist[2])/np.mean(np.vstack([dist[0],dist[1]]))	
-
+	difference = np.mean(dist[2]) - np.mean(np.vstack([dist[0],dist[1]]))
 	
-	return ratio	  	  
+	
+	return ratio,difference	  	  
+
 	  
 
 
@@ -236,7 +238,9 @@ def CutCentroid(dist_matrix,data):
 
 
 	ratio_mean_dist = []
+	difference_mean_dist = []
 	for i in range(len(data_pair)):
+		
 		
 		matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[i]) & (dist_matrix['index2']==data_pair['index2'].iloc[i])].copy()
 		
@@ -246,21 +250,30 @@ def CutCentroid(dist_matrix,data):
 		
 		if (len(data1)==1) or (len(data2)==1):
 			ratio_mean_dist.append('nan')
+			difference_mean_dist.append('nan')
 		else:
-			ratio = Centroid(data1,data2,data12)
+			ratio,difference = Centroid(data1,data2,data12)
 			ratio_mean_dist.append(ratio)
-		
+			difference_mean_dist.append(difference)
 		
 	data_pair['ratio_centroid'] = ratio_mean_dist
+	data_pair['difference_centroid'] = difference_mean_dist
+
 
 	if data_pair['ratio_centroid'].unique()[0]=='nan':
 		return 
+	if data_pair['difference_centroid'].unique()[0]=='nan':
+		return 
 
-	# cancella righe con var_ratio=nan
-	data_pair = data_pair.drop(data_pair[data_pair['ratio_centroid']=='nan'].index)
+
+	# cancella righe con ratio e difference=nan FORSE QUESTO LO DEVI CAMBIARE A SECONDA CHE SI USI UNOO O L'ALTRO
+	#data_pair = data_pair.drop(data_pair[data_pair['ratio_centroid']=='nan'].index)
+	data_pair = data_pair.drop(data_pair[data_pair['difference_centroid']=='nan'].index)
+	
 	data_pair.index = np.arange(len(data_pair))
 
-	q=data_pair['ratio_centroid']**100
+	q=data_pair['difference_centroid']**100
+	#q=data_pair['ratio_centroid']**100
 	p = q/q.sum()
 	index_cut = choice(data_pair.index,p=p)
 	
@@ -276,9 +289,12 @@ def CutCentroid(dist_matrix,data):
 
 
 
+
+
+
 def Cut(dist_matrix,data):
 	
-	
+
 	data_index = data.drop([0,1],axis=1)
 	data_pair = list(combinations(data_index['index'], 2))
 	data_pair = pd.DataFrame(data_pair)
@@ -329,7 +345,7 @@ def Cut(dist_matrix,data):
 	
 	
 	
-	q=df['dist_punti_consecutivi']#**50
+	q=df['dist_punti_consecutivi']**50
 	p = q/q.sum()
 	index_cut = choice(df.index,p=p)
 	
@@ -372,9 +388,9 @@ def Cut_with_data(data,l,dist_matrix):
 	#scegline uno
 	#a,b,c,matrix = CutCoeff_DistMax(dist_matrix)
 	try:
-		#a,b,c,matrix = CutVariance(dist_matrix,data)
+		a,b,c,matrix = CutVariance(dist_matrix,data)
 		#a,b,c,matrix = CutCentroid(dist_matrix,data)
-		a,b,c,matrix = Cut(dist_matrix,data)
+		#a,b,c,matrix = Cut(dist_matrix,data)
 	except TypeError:
 		return
 	
@@ -431,14 +447,112 @@ def Cut_with_data(data,l,dist_matrix):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+def Cut_with_data_griglia_regolare(data,l,dist_matrix):
+	
+	
+	n_vert = np.arange(len(l))
+
+
+	for j in range(len(dist_matrix['index_norm_vect'].unique())):
+		
+		print(j)
+
+		matrix = dist_matrix[dist_matrix['index_norm_vect']==dist_matrix['index_norm_vect'].unique()[j]].copy()
+		matrix.index = np.arange(len(matrix))
+		
+		a = matrix['norm_vect_0'].iloc[0] #versore0 
+		b = matrix['norm_vect_1'].iloc[0] #versore1
+		c = matrix['magnitude_norm_vect'].iloc[0] #modulo 
+
+
+
+
+		coordx = [] #coordinata x
+		coordy = [] #coord y
+		lati = []
+		#ax + by = c
+		for i in n_vert:
+			# (y1-y2)*(x-x2) = (x1-x2)*(y-y2)  retta passante per i due vertici
+			al = l[i][0][1] - l[i][1][1] # y1-y2
+			bl = l[i][1][0] - l[i][0][0] # x2-x1
+			cl = l[i][0][1]*l[i][1][0] - l[i][0][0]*l[i][1][1] # y1*x2-x1*y2
+			
+			A = [[al,bl],[a,b]]
+			Ax = [[cl,bl],[c,b]]
+			Ay = [[al,cl],[a,c]]
+			
+			detA = np.linalg.det(A)
+			detAx = np.linalg.det(Ax)
+			detAy = np.linalg.det(Ay)
+			
+			# coordinate intersezione
+			x = detAx/detA
+			y = detAy/detA
+			
+		#	if type(x)!=int:
+		#		continue
+			
+			if (round(x,6)<min(round(l[i][0][0],6),round(l[i][1][0],6))) or  (round(x,6)>max(round(l[i][0][0],6),round(l[i][1][0],6))) or (round(y,6)<min(round(l[i][0][1],6),round(l[i][1][1],6))) or  (round(y,6)>max(round(l[i][0][1],6),round(l[i][1][1],6))):
+			#if (x<min(l[i][0][0],l[i][1][0])) or  (x>max(l[i][0][0],l[i][1][0])) or (y<min(l[i][0][1],l[i][1][1])) or  (y>max(l[i][0][1],l[i][1][1])):
+				continue
+			
+			coordx.append(x)
+			coordy.append(y)
+			lati.append(i)
+
+
+		#if len(coordx)==2:
+		#	break
+		
+		
+
+	points = {'lati':lati,'x':coordx,'y':coordy}
+	points = pd.DataFrame(points)	
+	
+	
+	point1 = list(points[['x','y']].iloc[0])
+	point2 = list(points[['x','y']].iloc[1])
+	lati = list(points['lati'])
+
+
+	#data1,data2 = FindDataPartition2D_vecchia(points,matrix)
+
+	
+	
+	return point1,point2,lati,matrix#,data1,data2
+
+
+
+
+
+
+
+
+
+
+
+
 def FindDataPartition2D(matrix,l1,l2):
 	
 	
 	
 	names = []
 	for i in range(len(l1[0][0])):
-		#names.append('norm_vect_'+str(i))
-		names.append('norm_vect_cut_'+str(i)) # solo per taglio con proiezioni ecc ecc
+		names.append('norm_vect_'+str(i))
+		#names.append('norm_vect_cut_'+str(i)) # solo per taglio con proiezioni ecc ecc
 
 
 	#distanza vertice da taglio
@@ -638,13 +752,14 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 	time.append(t0)
 	father.append('nan')
 	part_number.append(count_part_number)
-	
-			
-			
+
+
+
 
 	
 	count=0
 	for i in m:
+		
 		
 		count += 1
 		print('iterazione: ',count)

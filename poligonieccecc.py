@@ -14,25 +14,15 @@ from matplotlib.patches import Polygon
 #%%
 
 
-rotazione dati uguali
-sigarilli paralleli
-percolation
-
-
-
-
-#%%
-
 #part.query('leaf==True')[['time', 'father', 'part_number', 'neighbors', 'leaf']]
 # coppie di vertici 
 #vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
 t0=0
-lifetime=1
-#dist_matrix = DistanceMatrix_prova(X)
+lifetime=1.5
+#dist_matrix = DistanceMatrix(X)
 m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
 
 PlotPolygon(X,part)
-
 
 
 #%%

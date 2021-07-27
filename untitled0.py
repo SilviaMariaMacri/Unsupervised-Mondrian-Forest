@@ -1,7 +1,31 @@
+a,b = -0.5,-1.25 
+theta = np.radians(-45)
+c, s = np.cos(theta), np.sin(theta)
+R = np.array(((c, -s, (a-a*c+b*s)), (s, c, (b-b*c-a*s))))
+
+
+f=pd.DataFrame(X)
+f[2] = 1
+X = np.array(f)
+
+x=X.copy()
+X=[]
+for i in range(len(x)):
+	X.append(list(R@x[i]))
+X = np.array(X)
+
+fig,ax = plt.subplots()
+ax.scatter(X[:,0],X[:,1])
+
+X_ruotato = X.copy()
+
+
+#%%
+
 #gaussiane in diagonale
+
 		
-		
-a = 25
+a = 50
 
 # diagonale
 b1 = 0.07
@@ -9,24 +33,78 @@ b2 = 0.06
 #verticali
 #b1 = 0.01
 #b2 = 0
-		
+
 mean1 = (0, 0)
-cov1 = [[b1,b2], [b2,b1]]
+cov1 = [[b1,b2+0.1], [b2,b1]]
+np.random.seed(30)
 x1 = np.random.multivariate_normal(mean1, cov1, a)
 
 #mean2 = (1,0)
-mean2 = (0.3, -1)
+#mean2 = (0.6, -0.7) #paralleli
+mean2 = (0.8,-0.6)
 cov2 = [[b1,b2], [b2,b1]]
+np.random.seed(30)
 x2 = np.random.multivariate_normal(mean2, cov2, a)
 
+
+mean3 = (-0.8,-1.6)
+cov3 = [[0.02,0], [0,0.02]]
+np.random.seed(7)
+x3 = np.random.multivariate_normal(mean3, cov3, a)
+
+
+
+mean4 = (0,-2.5)
+cov4 = [[0.04,0], [0,0.1]]
+np.random.seed(8)
+x4 = np.random.multivariate_normal(mean4, cov4, a)
+
+
+mean5 = (2.5,-2.5)
+cov5 = [[0.01,b1+0.1], [b1+0.1,0.01]]
+np.random.seed(50)
+x5 = np.random.multivariate_normal(mean5, cov5, a)
+
+
+
+
 			
+X = np.vstack([x1,x2,x3,x4,x5])
+
 			
 fig,ax = plt.subplots()
-ax.scatter(x1[:,0],x1[:,1],color='b')
-ax.scatter(x2[:,0],x2[:,1],color='b')
+#ax.scatter(x1[:,0],x1[:,1],color='b')
+#ax.scatter(x2[:,0],x2[:,1],color='b')
+ax.scatter(X[:,0],X[:,1])
+
+
+
+
+X_originale = X.copy()
+
+
+
+
+
+#%%
+
+
+mean1 = (0, 0)
+cov1 = [[b,0], [0,b]]
+np.random.seed(0)
+x1 = np.random.multivariate_normal(mean1, cov1, a)
+
+mean2 = (1,0)
+cov2 = [[b,0], [0,b]]
+np.random.seed(1)
+x2 = np.random.multivariate_normal(mean2, cov2, a)
+
 
 X = np.vstack([x1,x2])
-			
+fig,ax = plt.subplots()
+ax.scatter(X[:,0],X[:,1])
+
+
 
 
 #%% valutare tagli più probabili  varianzaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa

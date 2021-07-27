@@ -1,0 +1,132 @@
+dati1:
+
+a = 50
+b1 = 0.07
+b2 = 0.06
+		
+mean1 = (0, 0)
+cov1 = [[b1,b2], [b2,b1]]
+np.random.seed(10)
+x1 = np.random.multivariate_normal(mean1, cov1, a)
+
+mean2 = (0.6, -0.7) #paralleli
+cov2 = [[b1,b2], [b2,b1]]
+np.random.seed(10)
+x2 = np.random.multivariate_normal(mean2, cov2, a)
+
+
+dati2:
+
+a = 25
+
+# diagonale
+b1 = 0.07
+b2 = 0.06
+#verticali
+#b1 = 0.01
+#b2 = 0
+		
+mean1 = (0, 0)
+cov1 = [[b1,b2], [b2,b1]]
+np.random.seed(0)
+x1 = np.random.multivariate_normal(mean1, cov1, a)
+
+#mean2 = (1,0)
+#mean2 = (0.6, -0.7) #paralleli
+mean2 = (0.8,-0.6)
+cov2 = [[b1,b2], [b2,b1]]
+np.random.seed(1)
+x2 = np.random.multivariate_normal(mean2, cov2, a)
+
+
+mean3 = (-0.8,-1.2)
+cov3 = [[0.02,0], [0,0.02]]
+np.random.seed(1)
+x3 = np.random.multivariate_normal(mean3, cov3, a)
+
+
+
+mean4 = (1,-1.7)
+cov4 = [[0.02,0], [0,0.02]]
+np.random.seed(2)
+x4 = np.random.multivariate_normal(mean4, cov4, a)
+
+
+
+
+
+
+
+
+
+dati3:
+
+a=50
+
+mean1 = (0, 0)
+cov1 = [[b1,b2], [b2,b1]]
+np.random.seed(20)
+x1 = np.random.multivariate_normal(mean1, cov1, a)
+
+#mean2 = (1,0)
+#mean2 = (0.6, -0.7) #paralleli
+mean2 = (0.8,-0.6)
+cov2 = [[b1,b2], [b2,b1]]
+np.random.seed(40)
+x2 = np.random.multivariate_normal(mean2, cov2, a)
+
+
+mean3 = (-0.8,-1.2)
+cov3 = [[0.02,0], [0,0.02]]
+np.random.seed(0)
+x3 = np.random.multivariate_normal(mean3, cov3, a)
+
+mean4 = (1,-1.7)
+cov4 = [[0.02,0], [0,0.02]]
+np.random.seed(10)
+x4 = np.random.multivariate_normal(mean4, cov4, a)
+
+
+
+
+
+
+
+data???: non utilizzato
+
+a = 50
+
+# diagonale
+b1 = 0.07
+b2 = 0.06
+#verticali
+#b1 = 0.01
+#b2 = 0
+
+mean1 = (0, 0)
+cov1 = [[b1,b2], [b2,b1]]
+np.random.seed(0)
+x1 = np.random.multivariate_normal(mean1, cov1, a)
+
+mean2 = (0.6,-0.4)
+cov2 = [[0.02,0], [0,0.02]]
+np.random.seed(1)
+x2 = np.random.multivariate_normal(mean2, cov2, a)
+
+
+
+
+data4:
+
+a = 50
+
+mean1 = (0,0)
+cov1 = [[0.02,0], [0,0.02]]
+np.random.seed(0)
+x1 = np.random.multivariate_normal(mean1, cov1, a)
+
+mean2 = (1,1)
+cov2 = [[0.1,0], [0,0.1]]
+np.random.seed(1)
+x2 = np.random.multivariate_normal(mean2, cov2, a)
+

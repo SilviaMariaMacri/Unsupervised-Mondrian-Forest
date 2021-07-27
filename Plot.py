@@ -245,5 +245,56 @@ def PlotPolygon(X,part):
 		
 	
 	return
+
+
+
+
+
+def PlotClass(X,part,connected_components):
+	
+	p = part.query('leaf==True').copy()
+	p.index = np.arange(len(p))
+	
+	
+	for i in range(len(connected_components)):#np.arange(len(connected_components))[::-1]:
+		fig,ax = plt.subplots()
+				
+		color=cm.rainbow(np.linspace(0,1,len(connected_components[i])))
+		for j in range(len(connected_components[i])):
+			#print(connected_components[i][j])
+			for k in range(len(connected_components[i][j])):
+				#print(list(connected_components[i][j])[k])
+				p2 = p[p['part_number']==list(connected_components[i][j])[k]].copy()
+				box = p2['box'].iloc[0].copy()
+				poligono = Polygon(box, facecolor=color[j], alpha=0.5, edgecolor='black')
+				ax.add_patch(poligono)
+				
+				
+				b = pd.DataFrame(box)
+				x_avg = np.mean(b[0])
+				y_avg = np.mean(b[1])
+				ax.text(x_avg,y_avg,p2['part_number'].iloc[0])
+			
+			
+		ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
+
+				
+				
+		xmin = part['box'].iloc[0][0][0]-0.05
+		ymin = part['box'].iloc[0][0][1]-0.05
+		xmax = part['box'].iloc[0][2][0]+0.05
+		ymax = part['box'].iloc[0][2][1]+0.05
+
+		ax.set_xlim(xmin,xmax)
+		ax.set_ylim(ymin,ymax)		
+				
+		#plt.show()
+		plt.savefig(str(i))
 		
+		return
+	
+
+
+
+
 

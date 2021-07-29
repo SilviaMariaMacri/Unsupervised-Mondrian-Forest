@@ -1,3 +1,13 @@
+from sklearn.metrics.cluster import fowlkes_mallows_score
+
+
+
+
+
+
+
+#%%
+
 
 
 import numpy as np
@@ -103,7 +113,7 @@ def calcolo_dist_part_vicine(data1,data2):
 	var = np.sqrt(np.var(min_tot))
 
 
-	
+
 	dist = cdist(data1,data2)
 	min_dist_fra_partizioni = dist.min()
 
@@ -112,6 +122,36 @@ def calcolo_dist_part_vicine(data1,data2):
 
 
 
+# assegnare classi a punti
+
+
+def AssignClass(part,m):
+
+
+	p = part.query('leaf==True').copy()
+	p.index = np.arange(len(p))
+	data = pd.DataFrame()
+	for i in range(len(p)):
+		#data_part = m[p.iloc[i]['part_number']][2]
+		data_part = pd.DataFrame(m[p.iloc[i]['part_number']])
+		data_part['part_number'] = int(p.iloc[i]['part_number'])*np.ones(len(data_part)).astype(int)
+		#print(len(data_part))
+		data = pd.concat([data,data_part])
+	data.index = np.arange(len(data))
+	
+	list_conn_comp = list(nx.connected_components(G))
+	data['class'] = 0
+	cl = np.arange(len(list_conn_comp))
+	for i in range(len(list_conn_comp)):
+		for j in list_conn_comp[i]:
+			print(j)
+			data.loc[data.query('part_number=='+str(j)).index, 'class'] = cl[i]
+	
+		
+	return data
+	
+	
+	
 
 
 
@@ -155,8 +195,12 @@ for i in range(len(p)):
 		#data2 = data[(data[0]>p.query('part_number=='+str(j))['min0'].iloc[0]) & (data[0]<p.query('part_number=='+str(j))['max0'].iloc[0]) & (data[1]>p.query('part_number=='+str(j))['min1'].iloc[0]) & (data[1]<p.query('part_number=='+str(j))['max1'].iloc[0])]
 		
 		#per solito metodo
-		data1 = m[p.iloc[i]['part_number']][2]
-		data2 = m[j][2]
+		#direttamente da output funzione
+		#data1 = m[p.iloc[i]['part_number']][2]   ##controlla errore!!!!! ci vuole un +1 ???
+		#data2 = m[j][2]
+		#da file
+		data1 = pd.DataFrame(m[p.iloc[i]['part_number']])   ##controlla errore!!!!! ci vuole un +1 ???
+		data2 = pd.DataFrame(m[j])		
 		
 		if (len(data1)==1) or (len(data2)==1):
 			continue
@@ -214,6 +258,7 @@ df_var['ratio'] = df_var['var_part_unica']/df_var['var_sep']
 
 # network
 
+
 G = nx.Graph()
 for i in range(len(df_var)):
 	G.add_edge(df_var['part1'].iloc[i],df_var['part2'].iloc[i],weight=df_var['diff_minimi'].iloc[i])
@@ -221,6 +266,10 @@ for i in range(len(df_var)):
 
 A = nx.to_pandas_adjacency(G)
 edgelist = nx.to_pandas_edgelist(G)
+
+
+#A.to_csv(name+'_ad_matrix.txt',sep='\t',index=True)
+
 
 
 #connsidero degree
@@ -237,22 +286,112 @@ A_nuovo = []
 
 number_connected_components = []
 connected_components = []
+
+list_class = []
 #number_connected_components.append(nx.number_connected_components(G))
 for i in range(len(edgelist)):
 	G.remove_edge(edgelist['source'].iloc[i],edgelist['target'].iloc[i])
-	number_connected_components.append(nx.number_connected_components(G))
+	number_connected_components_i = nx.number_connected_components(G)
+	number_connected_components.append(number_connected_components_i)
 	A_nuovo.append(nx.to_pandas_adjacency(G))
 	connected_components.append(list(nx.connected_components(G)))
-	
+
+
+
+	data = AssignClass(part,m)
+	data['index'] = data['index'].astype(int)
+	#data.index = data['index']
+	list_class.append(data[['index','class']])
+
+
+
+
 edgelist['number_conn_comp'] = number_connected_components	
-#edgelist['conn_comp'] = connected_components
+edgelist['conn_comp'] = connected_components 
+edgelist['list_class'] = list_class
 
 print(edgelist[edgelist.columns[:-1]])
 print(connected_components)
 
 
+#%%
 
 
+lista_list_class = []
+lista_conn_comp = []
+lista_list_class.append(edgelist['list_class'].iloc[0])
+lista_conn_comp.append([list(ele) for ele in list(edgelist['conn_comp'].iloc[0])])
+for i in range(1,len(edgelist)):
+	if edgelist['number_conn_comp'].iloc[i] != edgelist['number_conn_comp'].iloc[i-1]:
+		lista_list_class.append(edgelist['list_class'].iloc[i])
+		lista_conn_comp.append([list(ele) for ele in list(edgelist['conn_comp'].iloc[i])])
+
+#%%
+
+
+with open(name+'_list_class.json', 'w') as f:
+    f.write(json.dumps([df.to_dict() for df in lista_list_class]))
+
+with open('prova.json', 'w') as f:
+    f.write(json.dumps([df for df in lista_conn_comp[0]]))
+
+
+#list_class1 = json.load(open(name+'_list_class.json','r'))
+#pd.DataFrame(list_class[0])
+
+
+#%%
+
+numero_partizionamenti = 4
+
+list_part_tot = []
+list_m_tot = []
+list_class_tot = []
+for i in range(numero_partizionamenti):
+	list_cl = json.load(open('dati1_'+str(i+1)+'_list_class.json','r'))
+	list_class_tot.append(list_cl)
+	list_part = json.load(open('dati1_'+str(i+1)+'_part.json','r'))
+	list_part_tot.append(list_part)
+	list_m = json.load(open('dati1_'+str(i+1)+'_m.json','r'))
+	list_m_tot.append(list_m)	
+
+
+
+
+#%%			
+
+
+#from sklearn.metrics.cluster import fowlkes_mallows_score
+from sklearn.metrics.cluster import adjusted_mutual_info_score
+from itertools import combinations
+
+pair = list(combinations(np.arange(len(list_class_tot)),2))
+
+
+coeff_tot = []
+for k in range(len(pair)):
+
+	coeff=[]
+	index1 = pair[k][0]
+	index2 = pair[k][1]
+	for i in range(min(len(list_class_tot[index1]),len(list_class_tot[index2]))):
+		cl1 = pd.DataFrame(list_class_tot[index1][i])
+		cl1.columns = ['index','class1']
+		cl2 = pd.DataFrame(list_class_tot[index2][i])
+		cl2.columns = ['index','class2']
+		
+		cl = pd.merge(cl1,cl2,right_on='index',left_on='index')
+		coeff.append(adjusted_mutual_info_score(cl['class1'],cl['class2']))
+		
+	coeff_tot.append(coeff)
+
+
+coeff_medio = pd.DataFrame(coeff_tot).mean()
+
+fig,ax = plt.subplots()
+for i in range(len(coeff_tot)):
+	ax.plot(np.arange(2,len(coeff_tot[i])+1),coeff_tot[i][1:],alpha=0.3)
+ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 
 
 

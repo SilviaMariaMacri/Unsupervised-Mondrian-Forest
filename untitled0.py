@@ -1,3 +1,13 @@
+metrics
+
+json.load
+json.dump
+
+
+
+
+
+
 a,b = -0.5,-1.25 
 theta = np.radians(-45)
 c, s = np.cos(theta), np.sin(theta)
@@ -18,6 +28,9 @@ fig,ax = plt.subplots()
 ax.scatter(X[:,0],X[:,1])
 
 X_ruotato = X.copy()
+
+
+
 
 
 #%%
@@ -59,17 +72,17 @@ cov4 = [[0.04,0], [0,0.1]]
 np.random.seed(8)
 x4 = np.random.multivariate_normal(mean4, cov4, a)
 
-
+'''
 mean5 = (2.5,-2.5)
 cov5 = [[0.01,b1+0.1], [b1+0.1,0.01]]
 np.random.seed(50)
 x5 = np.random.multivariate_normal(mean5, cov5, a)
-
+'''
 
 
 
 			
-X = np.vstack([x1,x2,x3,x4,x5])
+X = np.vstack([x1,x2,x3,x4])
 
 			
 fig,ax = plt.subplots()

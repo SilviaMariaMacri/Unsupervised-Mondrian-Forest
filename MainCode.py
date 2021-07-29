@@ -10,8 +10,9 @@ import seaborn as sns
 
 #%% data
 
- 
-dat = datasets.make_moons(n_samples=50,noise=0.01)
+
+
+dat = datasets.make_moons(n_samples=150,noise=0.07)
 iris = datasets.load_iris()
 '''
 #iris
@@ -22,13 +23,13 @@ data[[0,1,2]]
 
 
 #%% 2D
-
+dat = datasets.make_circles(n_samples=300,noise=0.05,random_state=0,factor=0.5)
 #make_moons
 X = dat[0]
 y = dat[1]
 
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
+#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
 
 
 
@@ -236,16 +237,5 @@ for i in range(len(part[part['dim']==0])):
 for i in range(len(part[part['dim']==1])):
 	ax.hlines(part.query('dim==1')['x'].iloc[i],part.query('dim==1')['min0'].iloc[i],part.query('dim==1')['max0'].iloc[i],color='orange')#, linestyle = '--', color=color[i], linewidth=1) # - QD_peaks[i][1]
 	ax.text(part.query('dim==1')['min0'].iloc[i],part.query('dim==1')['x'].iloc[i],part.query('dim==1')['father'].iloc[i])#,  fontsize=12, color=color[i])
-
-
-
-
-#%%
-
-
-
-
-
-
 
 

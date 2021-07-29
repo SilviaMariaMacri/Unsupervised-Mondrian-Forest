@@ -18,23 +18,57 @@ from matplotlib.patches import Polygon
 # coppie di vertici 
 #vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
 t0=0
-lifetime=1.5
+lifetime=2
 #dist_matrix = DistanceMatrix(X)
 m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
 
+
 PlotPolygon(X,part)
+
+
+
+#list(part.query('leaf==True')['vertici'])
+#%%
+#json.dump
+
+import json
+
+name = 'dati1_5'
+
+#part
+part.to_json(name+'_part.json')
+#m
+lista = list(np.array(m)[:,2])
+with open(name+'_m.json', 'w') as f:
+    f.write(json.dumps([df.to_dict() for df in lista]))
+#%%	
+#leggere
+#part
+part = json.load(open(name+'_part.json','r'))
+part = pd.DataFrame(part)
+#m
+m = json.load(open(name+'_m.json','r'))
+
+
 
 
 #%%
 
-
+number=[7,8,9,10,11,12,13,14,15,16,17,18,19,20]
 part = []
-for i in range(100):
+for i in range(len(number)):
 	print('AAAAAAAAAAAAAAAAAAA',i)
 	m,box,part_i=MondrianPolygon(X,t0,lifetime,dist_matrix)
-	part.append(part_i)
+	#part.append(part_i)
 	
-PlotPolygon(X,part)
+	#part
+	part_i.to_json('dati1_'+str(number[i])+'_part.json')
+	#m
+	lista = list(np.array(m)[:,2])
+	with open('dati1_'+str(number[i])+'_m.json', 'w') as f:
+	    f.write(json.dumps([df.to_dict() for df in lista]))
+
+#PlotPolygon(X,part)
 
 
 

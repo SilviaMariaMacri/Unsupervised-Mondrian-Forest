@@ -292,6 +292,132 @@ def CutCentroid(dist_matrix,data):
 
 
 
+
+
+
+
+
+
+def MinDist(data1,data2,matrix):
+
+
+	pd1 = cdist(data1,data1)
+	i1_data1,i2_data1 = np.tril_indices(len(data1), k=-1)
+	pd2 = cdist(data2,data2)
+	i1_data2, i2_data2 = np.tril_indices(len(data2), k=-1)
+
+
+	df1 = {'i1':i1_data1,'i2':i2_data1,'dist':pd1[i1_data1,i2_data1]}
+	df1 = pd.DataFrame(df1)
+	min1 = []
+	for i in range(df1['i1'].max()+1):
+		x = df1.query('i1=='+str(i)+' or i2=='+str(i))['dist'].min()
+		min1.append(x)
+
+
+	df2 = {'i1':i1_data2,'i2':i2_data2,'dist':pd2[i1_data2,i2_data2]}
+	df2 = pd.DataFrame(df2)
+	min2 = []
+	for i in range(df2['i1'].max()+1):
+		x = df2.query('i1=='+str(i)+' or i2=='+str(i))['dist'].min()
+		min2.append(x)
+	
+	
+	min_tot = np.hstack([min1,min2])
+	media = np.mean(min_tot)
+	
+	dist = cdist(data1,data2)
+	min_dist_fra_partizioni = dist.min()
+
+	
+	return media,min_dist_fra_partizioni	  
+
+
+
+
+def CutMinDist(dist_matrix,data):
+	
+	data_index = data.drop([0,1],axis=1)
+	data_pair = list(combinations(data_index['index'], 2))
+	data_pair = pd.DataFrame(data_pair)
+	data_pair.columns = ['index2','index1']
+
+
+	
+	diff_min_dist = []
+	for i in range(len(data_pair)):
+		#print(i)
+		
+		matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[i]) & (dist_matrix['index2']==data_pair['index2'].iloc[i])].copy()
+		
+		data1 = np.array(matrix.query('dist_point_cut>0')[['point_0','point_1']].copy())
+		data2 = np.array(matrix.query('dist_point_cut<0')[['point_0','point_1']].copy())
+		
+		if (len(data1)==1) or (len(data2)==1):
+			diff_min_dist.append('nan')
+			
+		else:
+			
+			pd1 = cdist(data1,data1)
+			pd2 = cdist(data2,data2)
+			
+			min1 = np.min(np.where(pd1!= 0, pd1, np.inf),axis=0)
+			min2 = np.min(np.where(pd2!= 0, pd2, np.inf),axis=0)
+			
+			min_tot = np.hstack([min1,min2])
+			media = np.mean(min_tot)
+		
+			dist = cdist(data1,data2)
+			min_dist_fra_partizioni = dist.min()
+
+			#media,min_dist_fra_partizioni = MinDist(data1,data2,matrix)
+			diff = min_dist_fra_partizioni - media
+			diff_min_dist.append(diff)
+		
+	data_pair['diff_min_dist'] = diff_min_dist
+	
+
+	if data_pair['diff_min_dist'].unique()[0]=='nan':
+		return 
+
+	data_pair = data_pair.drop(data_pair[data_pair['diff_min_dist']=='nan'].index)
+	
+	data_pair.index = np.arange(len(data_pair))
+
+	q=data_pair['diff_min_dist']**50
+	#q=data_pair['ratio_centroid']**100
+	p = q/q.sum()
+	index_cut = choice(data_pair.index,p=p)
+	
+	# a*x + b*y = c  retta cut
+	matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[index_cut]) & (dist_matrix['index2']==data_pair['index2'].iloc[index_cut])].copy()
+	matrix.index = np.arange(len(matrix))
+	a = matrix['norm_vect_0'].iloc[0] #versore0
+	b = matrix['norm_vect_1'].iloc[0] #versore1
+	c = matrix['magnitude_norm_vect'].iloc[0] #modulo 
+
+
+	return a,b,c,matrix 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def Cut(dist_matrix,data):
 	
 
@@ -388,9 +514,10 @@ def Cut_with_data(data,l,dist_matrix):
 	#scegline uno
 	#a,b,c,matrix = CutCoeff_DistMax(dist_matrix)
 	try:
-		a,b,c,matrix = CutVariance(dist_matrix,data)
+		#a,b,c,matrix = CutVariance(dist_matrix,data)
 		#a,b,c,matrix = CutCentroid(dist_matrix,data)
 		#a,b,c,matrix = Cut(dist_matrix,data)
+		a,b,c,matrix = CutMinDist(dist_matrix,data)
 	except TypeError:
 		return
 	
@@ -402,7 +529,7 @@ def Cut_with_data(data,l,dist_matrix):
 	for i in n_vert:
 		# (y1-y2)*(x-x2) = (x1-x2)*(y-y2)  retta passante per i due vertici
 		al = l[i][0][1] - l[i][1][1] # y1-y2
-		bl = l[i][1][0] - l[i][0][0] # x2-x1
+		bl = l[i][1][0] - l[i][0][0] # x2-x1 
 		cl = l[i][0][1]*l[i][1][0] - l[i][0][0]*l[i][1][1] # y1*x2-x1*y2
 		
 		A = [[al,bl],[a,b]]

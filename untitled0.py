@@ -84,6 +84,14 @@ x5 = np.random.multivariate_normal(mean5, cov5, a)
 			
 X = np.vstack([x1,x2,x3,x4])
 
+#class
+y1 = np.zeros(a)
+y2 = np.ones(a)
+y3 = 2*np.ones(a)
+y4 = 3*np.ones(a)
+y = np.hstack([y1,y2,y3,y4])
+
+
 			
 fig,ax = plt.subplots()
 #ax.scatter(x1[:,0],x1[:,1],color='b')

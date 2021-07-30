@@ -11,8 +11,9 @@ import seaborn as sns
 #%% data
 
 
+dat = datasets.make_circles(n_samples=200,noise=0.05,random_state=0,factor=0.5)
 
-dat = datasets.make_moons(n_samples=150,noise=0.07)
+dat = datasets.make_moons(n_samples=150,noise=0.07,random_state=0)
 iris = datasets.load_iris()
 '''
 #iris
@@ -23,7 +24,7 @@ data[[0,1,2]]
 
 
 #%% 2D
-dat = datasets.make_circles(n_samples=300,noise=0.05,random_state=0,factor=0.5)
+
 #make_moons
 X = dat[0]
 y = dat[1]

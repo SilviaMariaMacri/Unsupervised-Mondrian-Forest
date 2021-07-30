@@ -248,7 +248,8 @@ def PlotPolygon(X,part):
 
 
 
-
+#part = pd.DataFrame(list_part_tot[1]).copy()
+#connected_components = list_conn_comp[1]
 
 def PlotClass(X,part,connected_components):
 	
@@ -298,3 +299,102 @@ def PlotClass(X,part,connected_components):
 
 
 
+
+def PlotClass_numero_cluster_fissato(X,list_part_tot,list_conn_comp,number_of_clusters):
+	
+	
+	for i in range(len(list_part_tot)):
+		part = pd.DataFrame(list_part_tot[i]).copy()
+		connected_components = list_conn_comp[i].copy()
+	
+		p = part.query('leaf==True').copy()
+		p.index = np.arange(len(p))
+		
+		
+		fig,ax = plt.subplots()
+					
+		color=cm.rainbow(np.linspace(0,1,len(connected_components[number_of_clusters-1])))
+		for j in range(len(connected_components[number_of_clusters-1])):
+			for k in range(len(connected_components[number_of_clusters-1][j])):
+				p2 = p[p['part_number']==list(connected_components[number_of_clusters-1][j])[k]].copy()
+				box = p2['box'].iloc[0].copy()
+				poligono = Polygon(box, facecolor=color[j], alpha=0.5, edgecolor='black')
+				ax.add_patch(poligono)
+					
+					
+				b = pd.DataFrame(box)
+				x_avg = np.mean(b[0])
+				y_avg = np.mean(b[1])
+				ax.text(x_avg,y_avg,p2['part_number'].iloc[0])
+				
+				
+		ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
+	
+					
+					
+		xmin = part['box'].iloc[0][0][0]-0.05
+		ymin = part['box'].iloc[0][0][1]-0.05
+		xmax = part['box'].iloc[0][2][0]+0.05
+		ymax = part['box'].iloc[0][2][1]+0.05
+	
+		ax.set_xlim(xmin,xmax)
+		ax.set_ylim(ymin,ymax)		
+					
+		#plt.show()
+		plt.savefig(str(i))
+		
+	return
+
+
+
+
+
+
+#makecircles = ok in automatico
+#makemoons =  invertire solo ultimo
+#dati1 = cambiare i=0,1,9,11
+
+
+def PlotClass_binario(list_part_tot,list_conn_comp,number_of_clusters):
+
+	fig,ax = plt.subplots()
+	for i in range(len(list_part_tot)):
+		
+		
+		part = pd.DataFrame(list_part_tot[i]).copy()
+		connected_components = list_conn_comp[i].copy()
+		
+		p = part.query('leaf==True').copy()
+		p.index = np.arange(len(p))
+		
+		
+		j=2
+		#if (i==1):
+		#	j=1
+		for k in range(len(connected_components[number_of_clusters-1][j])):
+			p2 = p[p['part_number']==list(connected_components[number_of_clusters-1][j])[k]].copy()
+			
+			box = p2['box'].iloc[0].copy()
+			poligono = Polygon(box, facecolor='black', alpha=1/16, edgecolor=None,linewidth=0.00001)
+			ax.add_patch(poligono)
+			
+
+			
+
+		xmin = part['box'].iloc[0][0][0]-0.05
+		ymin = part['box'].iloc[0][0][1]-0.05
+		xmax = part['box'].iloc[0][2][0]+0.05
+		ymax = part['box'].iloc[0][2][1]+0.05
+	
+		ax.set_xlim(xmin,xmax)
+		ax.set_ylim(ymin,ymax)		
+		
+	plt.savefig('imm_binaria_'+str(i))
+		
+
+	return
+
+
+
+
+#import cv2

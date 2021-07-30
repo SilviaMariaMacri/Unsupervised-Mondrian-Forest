@@ -1,3 +1,7 @@
+makemoons: dat = datasets.make_moons(n_samples=150,noise=0.07,random_state=0)
+makecircles1: dat = datasets.make_circles(n_samples=200,noise=0.05,random_state=0,factor=0.5)
+
+
 dati1:
 a = 50
 

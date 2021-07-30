@@ -1,5 +1,91 @@
-from sklearn.metrics.cluster import fowlkes_mallows_score
+#salvo adjacency matrix
 
+name = 'makecircles1'#'dati1'
+
+for i in range(16):
+	print(i)
+	#leggo
+	part = json.load(open(name+'_'+str(i+1)+'_part.json','r'))
+	part = pd.DataFrame(part)
+	m = json.load(open(name+'_'+str(i+1)+'_m.json','r'))
+
+	score = 'min' #'var','centroid'
+	part_links = PartLinkScore(part,m,score)
+	
+	weight = 'diff_min' #'var_ratio','ratio_centroid','diff_centroid',
+	G,A,edgelist = Network(part_links,weight)
+	A.to_csv(name+'_'+str(i+1)+'_ad_matrix.txt',sep='\t',index=True)
+	
+	edgelist_percolation,list_class_fin,conn_comp_fin = Percolation(G,edgelist)
+	
+	
+	with open(name+'_'+str(i+1)+'_list_class.json', 'w') as f:
+	    f.write(json.dumps([df.to_dict() for df in list_class_fin]))
+	
+	with open(name+'_'+str(i+1)+'_conn_comp.json', 'w') as f:
+	    f.write(json.dumps([df for df in conn_comp_fin]))
+	
+
+
+#%% leggo file .json
+
+
+name = 'makecircles1'
+numero_partizionamenti = 16
+
+list_part_tot = []
+list_m_tot = []
+list_conn_comp = []
+list_class_tot = []
+for i in range(numero_partizionamenti):
+	list_cl = json.load(open(name+'_'+str(i+1)+'_list_class.json','r'))
+	list_class_tot.append(list_cl)
+	list_conn_comp.append(json.load(open(name+'_'+str(i+1)+'_conn_comp.json','r')))
+	list_part = json.load(open(name+'_'+str(i+1)+'_part.json','r'))
+	list_part_tot.append(list_part)
+	list_m = json.load(open(name+'_'+str(i+1)+'_m.json','r'))
+	list_m_tot.append(list_m)	
+
+
+
+number_of_clusters = 4
+#PlotClass_numero_cluster_fissato(X,list_part_tot,list_conn_comp,number_of_clusters)
+
+		
+#%% grafico compatibilità classificazioni
+
+
+#from sklearn.metrics.cluster import fowlkes_mallows_score
+from sklearn.metrics.cluster import adjusted_mutual_info_score
+from itertools import combinations
+
+pair = list(combinations(np.arange(len(list_class_tot)),2))
+
+
+coeff_tot = []
+for k in range(len(pair)):
+
+	coeff=[]
+	index1 = pair[k][0]
+	index2 = pair[k][1]
+	for i in range(min(len(list_class_tot[index1]),len(list_class_tot[index2]))):
+		cl1 = pd.DataFrame(list_class_tot[index1][i])
+		cl1.columns = ['index','class1']
+		cl2 = pd.DataFrame(list_class_tot[index2][i])
+		cl2.columns = ['index','class2']
+		
+		cl = pd.merge(cl1,cl2,right_on='index',left_on='index')
+		coeff.append(adjusted_mutual_info_score(cl['class1'],cl['class2']))
+		
+	coeff_tot.append(coeff)
+
+
+coeff_medio = pd.DataFrame(coeff_tot).mean()
+
+fig,ax = plt.subplots()
+for i in range(len(coeff_tot)):
+	ax.plot(np.arange(2,len(coeff_tot[i])+1),coeff_tot[i][1:],alpha=0.3)
+ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 
 
 
@@ -8,7 +94,19 @@ from sklearn.metrics.cluster import fowlkes_mallows_score
 
 #%%
 
+data_classification = pd.DataFrame(list_class_tot[0][number_of_clusters-1])
+data_classification.columns = ['index','class0']
+number_of_clusters = 4
+for i in range(1,len(list_class_tot)):
+	data = pd.DataFrame(list_class_tot[i][number_of_clusters-1])
+	data.columns = ['index','class'+str(i)]
+	data_classification = pd.merge(data_classification,data,right_on='index',left_on='index')
+	
 
+
+
+
+#%%
 
 import numpy as np
 import pandas as pd
@@ -31,12 +129,12 @@ def calcolo_varianza_part_vicine(data1,data2):
 	pd12 = np.hstack([pd1, pd2])
 	
 	var_part_unica = np.var(pd)
-	var1 = np.var(pd1)
-	var2 = np.var(pd2)
+	#var1 = np.var(pd1)
+	#var2 = np.var(pd2)
 	var_entrambe_separate = np.var(pd12) 
 
 
-	return var_part_unica,var1,var2,var_entrambe_separate
+	return var_part_unica,var_entrambe_separate#,var1,var2
 
 
 
@@ -60,17 +158,17 @@ def Centroid_part_vicine(data1,data2):
 	for i in range(3):
 		dist.append(cdist(data_tot[i],[centr[i]]))
 	
-	mean_dist12 = np.mean(dist[2])
-	mean_dist1 = np.mean(dist[0])
-	mean_dist2 = np.mean(dist[1])	
+	#mean_dist12 = np.mean(dist[2])
+	#mean_dist1 = np.mean(dist[0])
+	#mean_dist2 = np.mean(dist[1])	
 	ratio = np.mean(dist[2])/np.mean(np.vstack([dist[0],dist[1]]))	
 	difference = np.mean(dist[2]) - np.mean(np.vstack([dist[0],dist[1]]))
 	
-	data1_number = len(data1)
-	data2_number = len(data2)
+	#data1_number = len(data1)
+	#data2_number = len(data2)
 
 
-	return ratio,difference,mean_dist1,mean_dist2,mean_dist12,data1_number,data2_number	  
+	return ratio,difference#,mean_dist1,mean_dist2,mean_dist12,data1_number,data2_number	  
 
 
 
@@ -110,7 +208,7 @@ def calcolo_dist_part_vicine(data1,data2):
 	#media2 = np.mean(min2)
 	#min_media_sep = (media1+media2)/2
 	media = np.mean(min_tot)
-	var = np.sqrt(np.var(min_tot))
+	#var = np.sqrt(np.var(min_tot))
 
 
 
@@ -118,7 +216,7 @@ def calcolo_dist_part_vicine(data1,data2):
 	min_dist_fra_partizioni = dist.min()
 
 	
-	return media,var,min_dist_fra_partizioni	  
+	return media,min_dist_fra_partizioni#,var	  
 
 
 
@@ -144,7 +242,7 @@ def AssignClass(part,m):
 	cl = np.arange(len(list_conn_comp))
 	for i in range(len(list_conn_comp)):
 		for j in list_conn_comp[i]:
-			print(j)
+			#print(j)
 			data.loc[data.query('part_number=='+str(j)).index, 'class'] = cl[i]
 	
 		
@@ -156,242 +254,158 @@ def AssignClass(part,m):
 
 
 
-
-
-
-
-
-part1 = []
-part2 = []
-v_unica = []
-v_sep = []
-ratio_centroid = []
-difference_centroid = []
-v1 = []
-v2= []
-
-mean_centr1 = []
-mean_centr2 = []
-mean_centr12 = []
-number_of_points1 = []
-number_of_points2 = []
-
-diff_minimi = []
-
-p = part.query('leaf==True').copy()
-p.index = np.arange(len(p))
-
-
-for i in range(len(p)):
-	print(i)
+# score = 'var','centroid','min'
+def PartLinkScore(part,m,score):
 	
-	for j in p.iloc[i]['neighbors']:
-		if type(j)!=int:
-			continue
+	# è utile tener conto del numero di punti contenuti in una partizione? ()
+	
+	part1 = []
+	part2 = []
+	p = part.query('leaf==True').copy()
+	p.index = np.arange(len(p))
+	
+	v_unica = []
+	v_sep = []
+	ratio_centroid = []
+	difference_centroid = []
+	diff_minimi = []
+	
+	for i in range(len(p)):
+		for j in p.iloc[i]['neighbors']:
+			if type(j)!=int:
+				continue
+			data1 = pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
+			data2 = pd.DataFrame(m[j]) #m[j][2]
+			if (len(data1)==1) or (len(data2)==1):
+				continue
 		
-		#per griglia regolare
-		#data = 
-		#data1 = data[(data[0]>p['min0'].iloc[i]) & (data[0]<p['max0'].iloc[i]) & (data[1]>p['min1'].iloc[i]) & (data[1]<p['max1'].iloc[i])]
-		#data2 = data[(data[0]>p.query('part_number=='+str(j))['min0'].iloc[0]) & (data[0]<p.query('part_number=='+str(j))['max0'].iloc[0]) & (data[1]>p.query('part_number=='+str(j))['min1'].iloc[0]) & (data[1]<p.query('part_number=='+str(j))['max1'].iloc[0])]
-		
-		#per solito metodo
-		#direttamente da output funzione
-		#data1 = m[p.iloc[i]['part_number']][2]   ##controlla errore!!!!! ci vuole un +1 ???
-		#data2 = m[j][2]
-		#da file
-		data1 = pd.DataFrame(m[p.iloc[i]['part_number']])   ##controlla errore!!!!! ci vuole un +1 ???
-		data2 = pd.DataFrame(m[j])		
-		
-		if (len(data1)==1) or (len(data2)==1):
-			continue
-		
-		
-		part1.append(p.iloc[i]['part_number'])
-		part2.append(j)
-		
-		var_part_unica,var1,var2,var_entrambe_separate = calcolo_varianza_part_vicine(data1,data2)
-		v_unica.append(var_part_unica)
-		v_sep.append(var_entrambe_separate)
-		v1.append(var1)
-		v2.append(var2)
-		
-		
-		if (len(data1)==0) and (len(data2)==0):
-			ratio_centroid.append(np.nan)
-			difference_centroid.append(np.nan)
-		else:
-			ratio,difference,mean_dist1,mean_dist2,mean_dist12,data1_number,data2_number  = Centroid_part_vicine(data1,data2)
-			ratio_centroid.append(ratio)
-			difference_centroid.append(difference)
-			mean_centr1.append(mean_dist1)
-			mean_centr2.append(mean_dist2)
-			mean_centr12.append(mean_dist12)
-			number_of_points1.append(data1_number)
-			number_of_points2.append(data2_number)
+			part1.append(p.iloc[i]['part_number'])
+			part2.append(j)
 			
-			
-		media_i,std_dev_i,min_dist_i = calcolo_dist_part_vicine(data1,data2)
-		#media.append(media_i)
-		#std_dev.append(std_dev_i)
-		#min_dist.append(min_dist_i)
-		differenza_minimi = min_dist_i - media_i
-		diff_minimi.append(differenza_minimi)
+			if score == 'var':
+				var_part_unica,var_entrambe_separate = calcolo_varianza_part_vicine(data1,data2)
+				v_unica.append(var_part_unica)
+				v_sep.append(var_entrambe_separate)
+		
+			if score == 'centroid':
+				if (len(data1)==0) and (len(data2)==0):
+					ratio_centroid.append(np.nan)
+					difference_centroid.append(np.nan)
+				else:
+					ratio,difference  = Centroid_part_vicine(data1,data2)
+					ratio_centroid.append(ratio)
+					difference_centroid.append(difference)
+
+			if score == 'min':
+				media_i,min_dist_i = calcolo_dist_part_vicine(data1,data2)
+				differenza_minimi = min_dist_i - media_i
+				diff_minimi.append(differenza_minimi)
+						
+	if score == 'var':
+		part_links = {'part1':part1,'part2':part2,'var_part_unica':v_unica,'var_sep':v_sep}
+		part_links = pd.DataFrame(part_links)
+		part_links['var_ratio'] = part_links['var_part_unica']/part_links['var_sep']
+		
+	if score == 'centroid':
+		part_links = {'part1':part1,'part2':part2,'ratio_centroid':ratio_centroid,'diff_centroid':difference_centroid}
+		part_links = pd.DataFrame(part_links)
+
+	if score == 'min':
+		part_links = {'part1':part1,'part2':part2,'diff_min':diff_minimi}
+		part_links = pd.DataFrame(part_links)
+
+
+	#df_var['diff_pesata'] = df_var['mean_dist_centr12']/(df_var['#points_1']+df_var['#points_2']) - (df_var['mean_dist_centr1']/df_var['#points_1'] + df_var['mean_dist_centr2']/df_var['#points_2'])/2
+	#df_var['mean_difference_neighbors'] = 
+	#df_var['diff_pesata'] = df_var['mean_dist_centr12']*(df_var['#points_1']+df_var['#points_2']) - (df_var['mean_dist_centr1']*df_var['#points_1'] + df_var['mean_dist_centr2']*df_var['#points_2'])/2
+	
+	return part_links
 
 
 
-#varianza
-df_var = {'part1':part1,'part2':part2,'#points_1':number_of_points1,'#points_2':number_of_points2,'var1':v1,'var2':v2,'var_part_unica':v_unica,'var_sep':v_sep,'ratio_centroid':ratio_centroid,'difference_centroid':difference_centroid,'mean_dist_centr1':mean_centr1,'mean_dist_centr2':mean_centr2,'mean_dist_centr12':mean_centr12,'diff_minimi':diff_minimi}
-df_var = pd.DataFrame(df_var)
-df_var['ratio'] = df_var['var_part_unica']/df_var['var_sep']
-
-
-#df_var['diff_pesata'] = df_var['mean_dist_centr12']/(df_var['#points_1']+df_var['#points_2']) - (df_var['mean_dist_centr1']/df_var['#points_1'] + df_var['mean_dist_centr2']/df_var['#points_2'])/2
-#df_var['mean_difference_neighbors'] = 
-#df_var['diff_pesata'] = df_var['mean_dist_centr12']*(df_var['#points_1']+df_var['#points_2']) - (df_var['mean_dist_centr1']*df_var['#points_1'] + df_var['mean_dist_centr2']*df_var['#points_2'])/2
-
-
-#df_var =df_var.dropna()
-
-#df_var = df_var.sort_values(by='difference_centroid',ascending=False)
-#df_var.index = np.arange(len(df_var))
-
-
-# network
-
-
-G = nx.Graph()
-for i in range(len(df_var)):
-	G.add_edge(df_var['part1'].iloc[i],df_var['part2'].iloc[i],weight=df_var['diff_minimi'].iloc[i])
-
-
-A = nx.to_pandas_adjacency(G)
-edgelist = nx.to_pandas_edgelist(G)
-
+# weight = 'var_ratio','ratio_centroid','diff_centroid','diff_min'
+def Network(part_links,weight):
+	
+	G = nx.Graph()
+	for i in range(len(part_links)):
+		G.add_edge(part_links['part1'].iloc[i],part_links['part2'].iloc[i],weight=part_links[weight].iloc[i])
+	
+	A = nx.to_pandas_adjacency(G)
+	edgelist = nx.to_pandas_edgelist(G)
+	edgelist = edgelist.sort_values(by='weight',ascending=False)
+	edgelist.index = np.arange(len(edgelist))
+	
+	return G,A,edgelist
 
 #A.to_csv(name+'_ad_matrix.txt',sep='\t',index=True)
 
 
 
-#connsidero degree
-degree = pd.DataFrame(nx.degree(G,weight='weight'))
-degree.columns = ['node','degree']
 
-#edgelist = pd.merge()
-
-
-edgelist = edgelist.sort_values(by='weight',ascending=False)
-edgelist.index = np.arange(len(edgelist))
-
-A_nuovo = []
-
-number_connected_components = []
-connected_components = []
-
-list_class = []
-#number_connected_components.append(nx.number_connected_components(G))
-for i in range(len(edgelist)):
-	G.remove_edge(edgelist['source'].iloc[i],edgelist['target'].iloc[i])
-	number_connected_components_i = nx.number_connected_components(G)
-	number_connected_components.append(number_connected_components_i)
-	A_nuovo.append(nx.to_pandas_adjacency(G))
-	connected_components.append(list(nx.connected_components(G)))
-
-
-
-	data = AssignClass(part,m)
-	data['index'] = data['index'].astype(int)
-	#data.index = data['index']
-	list_class.append(data[['index','class']])
-
-
-
-
-edgelist['number_conn_comp'] = number_connected_components	
-edgelist['conn_comp'] = connected_components 
-edgelist['list_class'] = list_class
-
-print(edgelist[edgelist.columns[:-1]])
-print(connected_components)
-
-
-#%%
-
-
-lista_list_class = []
-lista_conn_comp = []
-lista_list_class.append(edgelist['list_class'].iloc[0])
-lista_conn_comp.append([list(ele) for ele in list(edgelist['conn_comp'].iloc[0])])
-for i in range(1,len(edgelist)):
-	if edgelist['number_conn_comp'].iloc[i] != edgelist['number_conn_comp'].iloc[i-1]:
-		lista_list_class.append(edgelist['list_class'].iloc[i])
-		lista_conn_comp.append([list(ele) for ele in list(edgelist['conn_comp'].iloc[i])])
-
-#%%
-
-
-with open(name+'_list_class.json', 'w') as f:
-    f.write(json.dumps([df.to_dict() for df in lista_list_class]))
-
-with open('prova.json', 'w') as f:
-    f.write(json.dumps([df for df in lista_conn_comp[0]]))
-
-
-#list_class1 = json.load(open(name+'_list_class.json','r'))
-#pd.DataFrame(list_class[0])
-
-
-#%%
-
-numero_partizionamenti = 4
-
-list_part_tot = []
-list_m_tot = []
-list_class_tot = []
-for i in range(numero_partizionamenti):
-	list_cl = json.load(open('dati1_'+str(i+1)+'_list_class.json','r'))
-	list_class_tot.append(list_cl)
-	list_part = json.load(open('dati1_'+str(i+1)+'_part.json','r'))
-	list_part_tot.append(list_part)
-	list_m = json.load(open('dati1_'+str(i+1)+'_m.json','r'))
-	list_m_tot.append(list_m)	
-
-
-
-
-#%%			
-
-
-#from sklearn.metrics.cluster import fowlkes_mallows_score
-from sklearn.metrics.cluster import adjusted_mutual_info_score
-from itertools import combinations
-
-pair = list(combinations(np.arange(len(list_class_tot)),2))
-
-
-coeff_tot = []
-for k in range(len(pair)):
-
-	coeff=[]
-	index1 = pair[k][0]
-	index2 = pair[k][1]
-	for i in range(min(len(list_class_tot[index1]),len(list_class_tot[index2]))):
-		cl1 = pd.DataFrame(list_class_tot[index1][i])
-		cl1.columns = ['index','class1']
-		cl2 = pd.DataFrame(list_class_tot[index2][i])
-		cl2.columns = ['index','class2']
+def Percolation(G,edgelist):
+	
+	number_connected_components = []
+	connected_components = []
+	list_class = []
+	
+	for i in range(len(edgelist)):
+		G.remove_edge(edgelist['source'].iloc[i],edgelist['target'].iloc[i])
+		number_connected_components.append(nx.number_connected_components(G))
+		conn_comp = [list(ele) for ele in list(nx.connected_components(G))]
+		conn_comp =[[int(s) for s in sublist] for sublist in conn_comp]
+		connected_components.append(conn_comp)
 		
-		cl = pd.merge(cl1,cl2,right_on='index',left_on='index')
-		coeff.append(adjusted_mutual_info_score(cl['class1'],cl['class2']))
-		
-	coeff_tot.append(coeff)
+		data = AssignClass(part,m)
+		data['index'] = data['index'].astype(int)
+		list_class.append(data[['index','class']])
+	
+	edgelist_percolation = edgelist.copy()
+	edgelist_percolation['number_conn_comp'] = number_connected_components	
+	edgelist_percolation['conn_comp'] = connected_components 
+	edgelist_percolation['list_class'] = list_class
+	#print(edgelist_percolation[edgelist.columns[:-1]])
+	#print(connected_components)
+	
+	list_class_fin = []
+	conn_comp_fin = []
+	list_class_fin.append(edgelist_percolation['list_class'].iloc[0])
+	conn_comp_fin.append([list(ele) for ele in list(edgelist_percolation['conn_comp'].iloc[0])])
+	for i in range(1,len(edgelist_percolation)):
+		if edgelist_percolation['number_conn_comp'].iloc[i] != edgelist_percolation['number_conn_comp'].iloc[i-1]:
+			list_class_fin.append(edgelist_percolation['list_class'].iloc[i])
+			#conn_comp_fin.append([list(ele) for ele in list(edgelist_percolation['conn_comp'].iloc[i])])
+			conn_comp_fin.append(edgelist_percolation['conn_comp'].iloc[i])
+			
+	return edgelist_percolation,list_class_fin,conn_comp_fin
 
 
-coeff_medio = pd.DataFrame(coeff_tot).mean()
 
-fig,ax = plt.subplots()
-for i in range(len(coeff_tot)):
-	ax.plot(np.arange(2,len(coeff_tot[i])+1),coeff_tot[i][1:],alpha=0.3)
-ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+
+
+
+
+
+
+
+
+
+
+
+
+''' FINEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+'''
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

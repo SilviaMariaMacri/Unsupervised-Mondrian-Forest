@@ -58,14 +58,15 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_
 #%%  Unsupervised
 
 t0=0
-lifetime=2
+lifetime=2.5
 
-number_iterations = 10
-
-
+#number_iterations = 10
 
 part = MondrianUnsupervised(X,t0,lifetime)
 PartitionPlot(X,y,part)
+
+#X_part = AssignPartition(X,part)
+#df =trova_part_vicine(part)
 
 #matrix,points_with_index,part_tot = MondrianIterator(number_iterations,X,t0,lifetime)
 #PartitionPlot(X,y,part_tot)

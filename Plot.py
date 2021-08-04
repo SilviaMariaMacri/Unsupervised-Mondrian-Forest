@@ -121,9 +121,9 @@ def PartitionPlot2D(X,y,part):
 			ax.hlines(p['max1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
 			ax.text(p['min0'].iloc[i],p['min1'].iloc[i],p['part_number'].iloc[i])
 	
-		ax.scatter(data[data['class']==0][0],data[data['class']==0][1],alpha=0.7)
-		ax.scatter(data[data['class']==1][0],data[data['class']==1][1],alpha=0.7)
-		
+		#ax.scatter(data[data['class']==0][0],data[data['class']==0][1],alpha=0.7)
+		#ax.scatter(data[data['class']==1][0],data[data['class']==1][1],alpha=0.7)
+		ax.scatter(X[:,0],X[:,1])
 		plt.show()
 		
 	
@@ -146,18 +146,31 @@ def PartitionPlot2D(X,y,part):
 				ax.hlines(p['max1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i],alpha=0.3,color=c)
 				#ax.text(p['min0'].iloc[i],p['min1'].iloc[i],p['part_number'].iloc[i])
 		
-		ax.scatter(data[data['class']==0][0],data[data['class']==0][1],alpha=0.7)
-		ax.scatter(data[data['class']==1][0],data[data['class']==1][1],alpha=0.7)
-			
+		#ax.scatter(data[data['class']==0][0],data[data['class']==0][1],alpha=0.7)
+		#ax.scatter(data[data['class']==1][0],data[data['class']==1][1],alpha=0.7)
+		ax.scatter(X[:,0],X[:,1])	
 		plt.show()		
 			
 	
 	
 	return
+'''	
+		number_of_clusters = 2
+		p = part[part['leaf']==True]	
+		fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
+		
+		for j in range(len(conn_comp_fin[number_of_clusters-1])):
+			
+			
+			ax.vlines(p['min0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])		
+			ax.vlines(p['max0'].iloc[i],p['min1'].iloc[i],p['max1'].iloc[i])
+			ax.hlines(p['min1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
+			ax.hlines(p['max1'].iloc[i],p['min0'].iloc[i],p['max0'].iloc[i])
+			ax.text(p['min0'].iloc[i],p['min1'].iloc[i],p['part_number'].iloc[i])
 	
-	
-
-
+		ax.scatter(X[:,0],X[:,1],alpha=0.7)
+		plt.show()
+'''
 
 
 def PartitionPlot(X,y,part):
@@ -167,7 +180,6 @@ def PartitionPlot(X,y,part):
 		
 	if len(X[0]) == 3:
 		PartitionPlot3D(X,y,part)
-		
 		
 		
 	return
@@ -248,6 +260,58 @@ def PlotPolygon(X,part):
 
 
 
+
+
+
+
+# tagli paralleli
+box = []
+for i in range(len(part)):
+	box.append([[part['min0'].iloc[i],part['min1'].iloc[i]],[part['max0'].iloc[i],part['min1'].iloc[i]],[part['max0'].iloc[i],part['max1'].iloc[i]],[part['min0'].iloc[i],part['max1'].iloc[i]]])
+part['box'] = box
+
+
+p = part.query('leaf==True').copy()
+p.index = np.arange(len(p))
+
+connected_components = conn_comp_fin.copy()
+for i in range(len(connected_components)):#np.arange(len(connected_components))[::-1]:
+	fig,ax = plt.subplots()
+ 
+	color=cm.rainbow(np.linspace(0,1,len(connected_components[i])))
+	for j in range(len(connected_components[i])):
+		#print(connected_components[i][j])
+		for k in range(len(connected_components[i][j])):
+			#print(list(connected_components[i][j])[k])
+			p2 = p[p['part_number']==list(connected_components[i][j])[k]].copy()
+			box = p2['box'].iloc[0].copy()
+			poligono = Polygon(box, facecolor=color[j], alpha=0.5, edgecolor='black')
+			ax.add_patch(poligono)
+   
+   
+			b = pd.DataFrame(box)
+			x_avg = np.mean(b[0])
+			y_avg = np.mean(b[1])
+			ax.text(x_avg,y_avg,p2['part_number'].iloc[0])
+ 
+ 
+	ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
+ 
+ 
+ 
+	xmin = part['box'].iloc[0][0][0]-0.05
+	ymin = part['box'].iloc[0][0][1]-0.05
+	xmax = part['box'].iloc[0][2][0]+0.05
+	ymax = part['box'].iloc[0][2][1]+0.05
+ 
+	ax.set_xlim(xmin,xmax)
+	ax.set_ylim(ymin,ymax)
+	
+	plt.savefig(str(i))
+		
+	
+	
+	
 #part = pd.DataFrame(list_part_tot[1]).copy()
 #connected_components = list_conn_comp[1]
 
@@ -344,8 +408,6 @@ def PlotClass_numero_cluster_fissato(X,list_part_tot,list_conn_comp,number_of_cl
 		plt.savefig(str(i))
 		
 	return
-
-
 
 
 

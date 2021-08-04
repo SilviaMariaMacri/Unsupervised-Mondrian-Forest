@@ -1,22 +1,23 @@
 #salvo adjacency matrix
 
-name = 'makecircles1'#'dati1'
+name = 'makecircles1_tagli_paralleli'#'dati1'
+tagli_paralleli = True#,False
 
-for i in range(16):
+for i in range(17):
 	print(i)
 	#leggo
 	part = json.load(open(name+'_'+str(i+1)+'_part.json','r'))
 	part = pd.DataFrame(part)
-	m = json.load(open(name+'_'+str(i+1)+'_m.json','r'))
+	#m = json.load(open(name+'_'+str(i+1)+'_m.json','r'))
 
 	score = 'min' #'var','centroid'
-	part_links = PartLinkScore(part,m,score)
+	part_links = PartLinkScore(part,m,score,tagli_paralleli)
 	
 	weight = 'diff_min' #'var_ratio','ratio_centroid','diff_centroid',
 	G,A,edgelist = Network(part_links,weight)
 	A.to_csv(name+'_'+str(i+1)+'_ad_matrix.txt',sep='\t',index=True)
 	
-	edgelist_percolation,list_class_fin,conn_comp_fin = Percolation(G,edgelist)
+	edgelist_percolation,list_class_fin,conn_comp_fin = Percolation(G,edgelist,tagli_paralleli)
 	
 	
 	with open(name+'_'+str(i+1)+'_list_class.json', 'w') as f:
@@ -24,17 +25,18 @@ for i in range(16):
 	
 	with open(name+'_'+str(i+1)+'_conn_comp.json', 'w') as f:
 	    f.write(json.dumps([df for df in conn_comp_fin]))
-	
+
+
 
 
 #%% leggo file .json
 
 
-name = 'makecircles1'
+name = 'makecircles1_tagli_paralleli'
 numero_partizionamenti = 16
 
 list_part_tot = []
-list_m_tot = []
+#list_m_tot = []
 list_conn_comp = []
 list_class_tot = []
 for i in range(numero_partizionamenti):
@@ -43,16 +45,17 @@ for i in range(numero_partizionamenti):
 	list_conn_comp.append(json.load(open(name+'_'+str(i+1)+'_conn_comp.json','r')))
 	list_part = json.load(open(name+'_'+str(i+1)+'_part.json','r'))
 	list_part_tot.append(list_part)
-	list_m = json.load(open(name+'_'+str(i+1)+'_m.json','r'))
-	list_m_tot.append(list_m)	
+	#list_m = json.load(open(name+'_'+str(i+1)+'_m.json','r'))
+	#list_m_tot.append(list_m)	
 
 
 
-number_of_clusters = 4
+number_of_clusters = 2
 #PlotClass_numero_cluster_fissato(X,list_part_tot,list_conn_comp,number_of_clusters)
 
 		
 #%% grafico compatibilità classificazioni
+
 
 
 #from sklearn.metrics.cluster import fowlkes_mallows_score
@@ -112,6 +115,50 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist,pdist
 import networkx as nx
+
+
+
+
+
+#Mondrian tagli paralleli
+def trova_part_vicine(part):
+
+
+	neighbors = []
+	
+	for i in range(len(part.query('leaf==True'))):
+		
+		p = part.query('leaf==True').copy()
+		p.index = np.arange(len(part.query('leaf==True')))
+		
+		for j in range(2):
+			p['min'+str(j)+'_'+str(i)] = p['min'+str(j)].iloc[i]
+			p['max'+str(j)+'_'+str(i)] = p['max'+str(j)].iloc[i]
+			
+		for j in range(2):	
+			p=(p.eval('vicinoA'+str(j)+'_'+str(i)+' = ((min'+str(j)+'>=min'+str(j)+'_'+str(i)+') and (min'+str(j)+'<=max'+str(j)+'_'+str(i)+')) or ( (max'+str(j)+'>=min'+str(j)+'_'+str(i)+') and (max'+str(j)+'<=max'+str(j)+'_'+str(i)+'))')
+		 .eval('vicinoB'+str(j)+'_'+str(i)+' = ((min'+str(j)+'_'+str(i)+'>=min'+str(j)+') and (min'+str(j)+'_'+str(i)+'<=max'+str(j)+')) or ( (max'+str(j)+'_'+str(i)+'>=min'+str(j)+') and (max'+str(j)+'_'+str(i)+'<=max'+str(j)+'))'))
+			
+			#p=p.query('vicino'+str(j)+'_'+str(i)+'==True')
+			p=p.query('(vicinoA'+str(j)+'_'+str(i)+'==True) or (vicinoB'+str(j)+'_'+str(i)+'==True)')
+			
+			
+		p = p.drop(i)
+		
+		neighbors.append(list(p['part_number']))
+	
+	
+	
+	df={'part_number':part.query('leaf==True')['part_number'],'neighbors':neighbors}
+	df=pd.DataFrame(df)
+	df.index = np.arange(len(df))
+	
+
+
+
+	return df
+# per più di due dimensioni?
+# come generalizzarla a partizione con tagli non regolari?
 
 
 
@@ -176,10 +223,13 @@ def Centroid_part_vicine(data1,data2):
 
 
 
-def calcolo_dist_part_vicine(data1,data2):
+def calcolo_dist_part_vicine(data1,data2,tagli_paralleli):
 	
-	data1 = data1.drop('index',axis=1)
+	data1 = data1.drop('index',axis=1) 
 	data2 = data2.drop('index',axis=1)
+	if tagli_paralleli == True:
+		data1 = data1.drop('part_number',axis=1) 
+		data2 = data2.drop('part_number',axis=1)
 	
 	pd1 = cdist(data1,data1)
 	i1_data1,i2_data1 = np.tril_indices(len(data1), k=-1)
@@ -223,17 +273,22 @@ def calcolo_dist_part_vicine(data1,data2):
 # assegnare classi a punti
 
 
-def AssignClass(part,m):
+def AssignClass(G,X,part,m,tagli_paralleli):
 
 
 	p = part.query('leaf==True').copy()
 	p.index = np.arange(len(p))
+	if tagli_paralleli==True:
+		a = AssignPartition(X,part)
 	data = pd.DataFrame()
 	for i in range(len(p)):
-		#data_part = m[p.iloc[i]['part_number']][2]
-		data_part = pd.DataFrame(m[p.iloc[i]['part_number']])
-		data_part['part_number'] = int(p.iloc[i]['part_number'])*np.ones(len(data_part)).astype(int)
-		#print(len(data_part))
+		if tagli_paralleli == True:
+			data_part = a.query('part_number=='+str(p.iloc[i]['part_number'])).copy()
+		else:
+			#data_part = m[p.iloc[i]['part_number']][2]
+			data_part = pd.DataFrame(m[p.iloc[i]['part_number']])
+			data_part['part_number'] = int(p.iloc[i]['part_number'])*np.ones(len(data_part)).astype(int)
+			#print(len(data_part))
 		data = pd.concat([data,data_part])
 	data.index = np.arange(len(data))
 	
@@ -255,7 +310,8 @@ def AssignClass(part,m):
 
 
 # score = 'var','centroid','min'
-def PartLinkScore(part,m,score):
+#tagli_paralleli = True,False
+def PartLinkScore(part,m,score,tagli_paralleli):
 	
 	# è utile tener conto del numero di punti contenuti in una partizione? ()
 	
@@ -263,7 +319,12 @@ def PartLinkScore(part,m,score):
 	part2 = []
 	p = part.query('leaf==True').copy()
 	p.index = np.arange(len(p))
-	
+	# tagli paralleli
+	if tagli_paralleli ==  True:
+		df =trova_part_vicine(part)
+		p = pd.merge(p,df,right_on='part_number',left_on='part_number')
+		a = AssignPartition(X,part)
+		
 	v_unica = []
 	v_sep = []
 	ratio_centroid = []
@@ -274,8 +335,14 @@ def PartLinkScore(part,m,score):
 		for j in p.iloc[i]['neighbors']:
 			if type(j)!=int:
 				continue
-			data1 = pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
-			data2 = pd.DataFrame(m[j]) #m[j][2]
+			if tagli_paralleli == True:
+				data1 = a.query('part_number=='+str(p.iloc[i]['part_number']))
+				data2 = a.query('part_number=='+str(j))
+			else:
+				data1 = pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
+				data2 = pd.DataFrame(m[j]) #m[j][2]
+		
+ 
 			if (len(data1)==1) or (len(data2)==1):
 				continue
 		
@@ -297,7 +364,7 @@ def PartLinkScore(part,m,score):
 					difference_centroid.append(difference)
 
 			if score == 'min':
-				media_i,min_dist_i = calcolo_dist_part_vicine(data1,data2)
+				media_i,min_dist_i = calcolo_dist_part_vicine(data1,data2,tagli_paralleli)
 				differenza_minimi = min_dist_i - media_i
 				diff_minimi.append(differenza_minimi)
 						
@@ -342,20 +409,21 @@ def Network(part_links,weight):
 
 
 
-def Percolation(G,edgelist):
+def Percolation(G,edgelist,tagli_paralleli): 
 	
 	number_connected_components = []
 	connected_components = []
 	list_class = []
 	
 	for i in range(len(edgelist)):
+		print(i)
 		G.remove_edge(edgelist['source'].iloc[i],edgelist['target'].iloc[i])
 		number_connected_components.append(nx.number_connected_components(G))
 		conn_comp = [list(ele) for ele in list(nx.connected_components(G))]
 		conn_comp =[[int(s) for s in sublist] for sublist in conn_comp]
 		connected_components.append(conn_comp)
 		
-		data = AssignClass(part,m)
+		data = AssignClass(G,X,part,m,tagli_paralleli)
 		data['index'] = data['index'].astype(int)
 		list_class.append(data[['index','class']])
 	
@@ -376,6 +444,7 @@ def Percolation(G,edgelist):
 			#conn_comp_fin.append([list(ele) for ele in list(edgelist_percolation['conn_comp'].iloc[i])])
 			conn_comp_fin.append(edgelist_percolation['conn_comp'].iloc[i])
 			
+
 	return edgelist_percolation,list_class_fin,conn_comp_fin
 
 
@@ -709,7 +778,7 @@ for k in range(2):
 #       trovare partizioni vicine tagli perpendicolari
 
 
-
+#Mondrian tagli paralleli
 def trova_part_vicine(part):
 
 

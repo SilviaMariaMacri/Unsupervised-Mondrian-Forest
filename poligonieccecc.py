@@ -54,19 +54,22 @@ m = json.load(open(name+'_m.json','r'))
 
 #%%
 
-number=[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+name = 'makecircles1_tagli_paralleli_'
+
+number=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
 part = []
 for i in range(len(number)):
 	print('AAAAAAAAAAAAAAAAAAA',i)
-	m,box,part_i=MondrianPolygon(X,t0,lifetime,dist_matrix)
+	#m,box,part_i=MondrianPolygon(X,t0,lifetime,dist_matrix)
+	part_i = MondrianUnsupervised(X,t0,lifetime)
 	#part.append(part_i)
 	
 	#part
-	part_i.to_json('makecircles1_'+str(number[i])+'_part.json')
+	part_i.to_json(name+str(number[i])+'_part.json')
 	#m
-	lista = list(np.array(m)[:,2])
-	with open('makecircles1_'+str(number[i])+'_m.json', 'w') as f:
-	    f.write(json.dumps([df.to_dict() for df in lista]))
+	#lista = list(np.array(m)[:,2])
+	#with open(name+str(number[i])+'_m.json', 'w') as f:
+	 #   f.write(json.dumps([df.to_dict() for df in lista]))
 
 #PlotPolygon(X,part)
 

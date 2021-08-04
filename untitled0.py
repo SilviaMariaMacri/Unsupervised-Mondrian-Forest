@@ -32,7 +32,6 @@ X_ruotato = X.copy()
 
 
 
-
 #%%
 
 #gaussiane in diagonale

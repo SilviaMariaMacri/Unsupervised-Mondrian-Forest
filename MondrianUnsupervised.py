@@ -6,7 +6,7 @@ import pandas as pd
 #from sklearn.metrics import accuracy_score
 from itertools import combinations,combinations_with_replacement	
 import networkx as nx
-from scipy.spatial.distance import pdist
+from scipy.spatial.distance import pdist,cdist
 
 
 
@@ -83,11 +83,46 @@ def calcolo_varianza(data,d_cut,x):
 		
 		return var_ratio 
 		
-	
-		
 	else:
 		s='nan'
 		return s
+
+
+
+
+
+def calcolo_diff_min(data,d_cut,x):
+	
+	data1 = data[data[d_cut]>x]
+	data2 = data[data[d_cut]<x]
+	
+	if (len(data1)==1) or (len(data2)==1):
+		diff = 'nan'
+			
+	else:
+		pd1 = cdist(data1,data1)
+		pd2 = cdist(data2,data2)
+			
+		min1 = np.min(np.where(pd1!= 0, pd1, np.inf),axis=0)
+		min2 = np.min(np.where(pd2!= 0, pd2, np.inf),axis=0)
+			
+		min_tot = np.hstack([min1,min2])
+		media = np.mean(min_tot)
+		
+		dist = cdist(data1,data2)
+		min_dist_fra_partizioni = dist.min()
+
+		diff = min_dist_fra_partizioni - media
+			
+		
+	return diff
+
+
+
+
+
+
+
 
 
 
@@ -129,23 +164,29 @@ def Cut_confronto_split_intervalli(data,d):
 	intervals['x'] = intervals['max'] - intervals['interval']/2
 	
 	
+	diff_min = []
 	var_ratio = []
 	for i in range(len(intervals)):
 		d_cut = intervals['dim'].iloc[i]
 		x = intervals['x'].iloc[i]
-		var = calcolo_varianza(data,d_cut,x)
-		var_ratio.append(var)
-		
-		
+		#var = calcolo_varianza(data,d_cut,x)
+		#var_ratio.append(var)
+		diff_min_i = calcolo_diff_min(data,d_cut,x)
+		diff_min.append(diff_min_i)
+	'''	
 	intervals['var_ratio'] = var_ratio
-	
 	# cancella righe con var_ratio=nan
 	intervals = intervals.drop(intervals[intervals['var_ratio']=='nan'].index)
 	intervals.index = np.arange(len(intervals))
-	
-
-
 	q=intervals['var_ratio']**50
+	'''
+
+	intervals['diff_min'] = diff_min
+	# cancella righe con var_ratio=nan
+	intervals = intervals.drop(intervals[intervals['diff_min']=='nan'].index)
+	intervals.index = np.arange(len(intervals))
+	q=intervals['diff_min']**50	
+	
 	p = q/q.sum()
 	index_cut = choice(intervals.index,p=p)
 
@@ -445,16 +486,14 @@ def AssignPartition(X,part):
 			p = p.query("(data"+str(j)+">min"+str(j)+") & (data"+str(j)+"<max"+str(j)+")").copy()
 		
 		part_number.append(p['part_number'].iloc[0])
-
+		
 
 
 	X = pd.DataFrame(X)
 	X['part_number'] = part_number
-	
+	X['index'] = X.index
 		
 	return X
-
-
 
 
 
@@ -532,9 +571,6 @@ def MondrianIterator(number_iterations,X,t0,lifetime):
 	matrix = nx.to_pandas_adjacency(G)
 	
 	data.drop('part_number',axis=1)
-	
-	
-
 
 
 	return matrix,data,part_tot 

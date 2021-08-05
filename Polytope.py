@@ -258,20 +258,11 @@ def Mondrian_SingleCut(t0,lifetime,p,data,dist_matrix,father,neighbors):
 	try:
 		p1,p2,data1,data2 = Cut_with_data(data,p,dist_matrix)
 	except TypeError:
-		return
-
-	neigh1 = [p2]
-	neigh2 = [p1]
-	for i in neighbors:
-		if pc.is_adjacent(p1,i) ==True:
-			neigh1.append(i)
-		if pc.is_adjacent(p2,i) ==True:
-			neigh2.append(i)
-		
+		return		
 	
 	
-	part1 = [t0, p1, data1, neigh1]
-	part2 = [t0, p2, data2, neigh2]
+	part1 = [t0, p1, data1, neighbors]
+	part2 = [t0, p2, data2, neighbors]
 	risultato = [part1, part2, t0, father]
 	
 	
@@ -348,21 +339,44 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 		count += 1
 		print('iterazione: ',count)
 
-	
 		try:
 
 			mondrian = Mondrian_SingleCut(i[0],lifetime,i[1],i[2],dist_matrix,i[3],i[4])
 			
 			count1 = count_part_number+1
+			neigh1 = []
+			list_father_neigh = []
+			for i in mondrian[0][3]:
+				if pc.is_adjacent(mondrian[0][1],m[i][1]) == True:
+					neigh1.append(i)
+					m[i][4].append(count1)
+					list_father_neigh.append(i)
+			neigh1.append(count1+1)
+			mondrian[0][3] = neigh1
 			m.append([mondrian[0][0],mondrian[0][1],mondrian[0][2],count_part_number+1,mondrian[0][3]])
 			count_part_number += 1
 			part_number.append(count_part_number)
 			
 			count2 = count_part_number+1
+			neigh2 = []
+			for i in mondrian[1][3]:
+				if pc.is_adjacent(mondrian[1][1],m[i][1]) == True:
+					neigh2.append(i)
+					m[i][4].append(count2)
+					if i not in list_father_neigh:
+						list_father_neigh.append(i)
+			neigh2.append(count2-1)
+			mondrian[1][3] = neigh2
 			m.append([mondrian[1][0],mondrian[1][1],mondrian[1][2],count_part_number+1,mondrian[1][3]])
 			count_part_number += 1
 			part_number.append(count_part_number)
 			
+			
+			for i in list_father_neigh:
+				m[i][4].remove(mondrian[3])
+			
+			
+
 			
 			for j in range(2):
 				time.append(mondrian[2])
@@ -372,6 +386,7 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 				vert = pypoman.compute_polytope_vertices(poly.A,poly.b)
 				vertices.append(vert)
 				
+										
 			# se voglio fermarmi al primo taglio
 			#if len(m)==3:
 			#	break
@@ -380,6 +395,24 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 		except  TypeError:
 			continue
 		
+	
+			
+			
+			
+			
+
+			
+	#part2 = [t0, p2, data2, neighbors]
+	#risultato = [part1, part2, t0, father]			
+#m0 = [ t0,p,data,count_part_number,neighbors ] 			
+			
+			
+	
+	
+	
+	
+	
+	
 	
 	neigh_part = []	
 	for i in m:
@@ -409,6 +442,7 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 
 
 
+
 #%%
 
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
@@ -417,8 +451,7 @@ hull = ConvexHull(part_leaf['box'].iloc[2])
 
 convex_hull_plot_2d(hull)
 
-part_leaf = part.query('leaf==True')
-part_leaf.index = np.arange(len(part_leaf))
+
 #%%	  non serve credo ma ricordatela
 fig,ax = plt.subplots()
 for i in range(len(part_leaf)):
@@ -430,17 +463,29 @@ for i in range(len(part_leaf)):
 	#ax.add_patch(pp)
 ax.set_xlim(-1.15,1.1)
 ax.set_ylim(-1.1,1.1)
-	#%%
-
-for i in range(len(part)):
-	fig,ax=plt.subplots()
-	part['polytope'].iloc[i].plot(ax=ax,color='white', hatch=None, #alpha=0.3, 
+#%%  
+part_leaf = part.query('leaf==True')
+part_leaf.index = np.arange(len(part_leaf))
+fig,ax=plt.subplots()
+	
+for i in range(len(part_leaf)):
+	part_leaf['polytope'].iloc[i].plot(ax=ax,color='white', hatch=None, #alpha=0.3, 
 									linestyle='solid', linewidth=0.8, edgecolor='black')
-	ax.scatter(m[i][2][0],m[i][2][1])
-	
-ax.set_xlim(-1.15,1.1)
-ax.set_ylim(-1.1,1.1)
-	
-	
+	#ax.scatter(m[i][2][0],m[i][2][1])
+	x_avg = pc.cheby_ball(part_leaf['polytope'].iloc[i])[1][0]
+	y_avg = pc.cheby_ball(part_leaf['polytope'].iloc[i])[1][1]
+	ax.text(x_avg,y_avg,part_leaf['part_number'].iloc[i])
 
-
+estremi = pc.extreme(part['polytope'].iloc[0])	
+xmin = estremi[:,0].min()
+xmax = estremi[:,0].max()
+ymin = estremi[:,1].min()
+ymax = estremi[:,1].max()
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin,ymax)
+#pc.bounding_box(part_leaf['polytope'].iloc[0])	
+#pc.cheby_ball(part['polytope'].iloc[i
+#%%
+r = pc.Region(list(part_leaf['polytope']))
+pc.Partition(pc.union(p1,p2))
+pc.find_adjacent_regions(partition)

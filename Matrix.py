@@ -1,14 +1,3 @@
-
-
-x= pd.DataFrame(data)
-fig,ax = plt.subplots()
-ax.scatter(x[0],x[1])
-for i in range(len(x)):
-	ax.text(x[0].iloc[i],x[1].iloc[i],x['index'].iloc[i])
-#ax.plot()
-
-
-#%%
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist

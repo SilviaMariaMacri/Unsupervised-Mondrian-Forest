@@ -1,76 +1,124 @@
 # cd "C:\Users\silvi\Desktop\Fisica\TESI\Tesi"
 
-import numpy as np
-import pandas as pd
-from sklearn import datasets
-from sklearn.model_selection import train_test_split
 
-import seaborn as sns
+#%% salvo dati
+
+import json
 
 
-#%% data
+def SaveMondrianOutput(namefile,part,m):
+	#part
+	part.to_json(namefile+'_part.json')
+	#m
+	lista = list(np.array(m,dtype=object)[:,2])
+	for i in lista:
+		i.columns = i.columns.astype(str)
+	with open(namefile+'_m.json', 'w') as f:
+		f.write(json.dumps([df.to_dict() for df in lista]))
+	return
+	
 
 
-dat = datasets.make_circles(n_samples=200,noise=0.05,random_state=0,factor=0.5)
+#%% Polytope dimensione generica + classificazione 
 
-dat = datasets.make_moons(n_samples=150,noise=0.07,random_state=0)
-iris = datasets.load_iris()
-'''
-#iris
-data = pd.DataFrame(iris.data)
-data[[0,1,2]]
-'''
+t0 = 0
+lifetime = 5
+#dist_matrix = DistanceMatrix(X)
+number_of_iterations = 16
+name = 'makeblobs_3D_'
 
-
-
-#%% 2D
-
-#make_moons
-X = dat[0]
-y = dat[1]
-
-
-#X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
-
-
-
-
-#%% 3D
-
-
-#make_moons
-data = pd.DataFrame(dat[0])
-
-altra_dim = np.random.normal(0, 1, len(data))
-data[2] = altra_dim
-data['class']=dat[1]
-
-
-X = np.array(data[[0,1,2]])
-y = dat[1]
+for i in range(1,number_of_iterations):
+	m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
+	namefile = name+str(i+1)
+	SaveMondrianOutput(namefile,part_i,m_i)
+	#PlotPolygon(X,part_i)
+	
+	part = json.load(open(namefile+'_part.json','r'))
+	part = pd.DataFrame(part)
+	m = json.load(open(namefile+'_m.json','r'))
+	tagli_paralleli = False #True#,False
+	score = 'min' #'var','centroid'
+	weight = 'diff_min' #'var_ratio','ratio_centroid','diff_centroid',
+	Classification(part,m,X,namefile,score,weight,tagli_paralleli)
+	
 
 
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
+#%% leggo file .json
+
+
+number_of_iterations = 16
+name = 'makemoons_2_'
+
+list_part = []
+list_m = []
+list_class = []
+list_conn_comp = []
+
+for i in range(number_of_iterations):
+	namefile = name+str(i+1)
+	
+	part = json.load(open(namefile+'_part.json','r'))
+	part = pd.DataFrame(part)
+	m = json.load(open(namefile+'_m.json','r'))
+	classified_data = json.load(open(namefile+'_list_class.json','r'))
+	conn_comp = json.load(open(namefile+'_conn_comp.json','r'))
+	
+	list_part.append(part)
+	list_m.append(m)	
+	list_class.append(classified_data)
+	list_conn_comp.append(conn_comp)
+	
+
+
+#%% grafici
+
+# grafico compatibilità classificazioni
+coeff_medio = ClassificationScore(list_class)
+
+number_of_iterations = 16
+for i in range(number_of_iterations):
+
+	i = 8	
+	part = list_part[i]
+	m = list_m[i]
+	classified_data = list_class[i]
+	conn_comp = list_conn_comp[i]
+	
+	# puoi fissare number_of_clusters
+	number_of_clusters = 2
+	#for number_of_clusters in range(len(conn_comp)):
+	#PlotClass_2D(X,part,conn_comp,number_of_clusters)
+	PlotClass_3D(X,part,conn_comp,number_of_clusters)
 
 
 
-#%%  Unsupervised
+
+
+
+
+
+#%% Polygon 2D
+
+t0=0
+lifetime=2
+#dist_matrix = DistanceMatrix(X)
+m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
+PlotPolygon(X,part)
+
+#[['time', 'father', 'part_number', 'neighbors', 'leaf']]
+
+#%% Unsupervised
 
 t0=0
 lifetime=2.5
-
-#number_iterations = 10
-
 part = MondrianUnsupervised(X,t0,lifetime)
-PartitionPlot(X,y,part)
-
+#number_iterations = 10
 #X_part = AssignPartition(X,part)
 #df =trova_part_vicine(part)
-
 #matrix,points_with_index,part_tot = MondrianIterator(number_iterations,X,t0,lifetime)
 #PartitionPlot(X,y,part_tot)
-
+PlotPolygon(X,part)
 
 #%% Supervised
 
@@ -81,163 +129,3 @@ part = MondrianSupervised(X_train,y_train,t0,lifetime)
 #part_with_counts = Count(X_train,y_train,part)
 #accuracy,cl = AssignClass(X_test,y_test,part_with_counts)
 PartitionPlot(X_train,y_train,part)
-
-
-
-#%%  clustermap
-
-
-
-row_colors = []
-for i in range(len(y)):
-	if y[i]==0:
-		row_colors.append('b')
-	else:
-		row_colors.append('orange')
-
-sns.clustermap(matrix, row_colors=row_colors)
-
-
-
-
-#%%
-
-#ok per 1
-sns.clustermap(matrix, row_colors=row_colors, method='ward')
-#sns.clustermap(matrix, row_colors=row_colors, method='weighted', metric='correlation')
-#sns.clustermap(matrix, row_colors=row_colors, method='weighted', metric='cosine')
-
-
-#sns.clustermap(matrix, row_colors=row_colors, method='single', metric='cityblock')
-
-
-
-
-
-
-
-#%%
-
-
-import scipy.cluster.hierarchy as sch
-
-
-# retrieve clusters using fcluster 
-d=sch.distance.pdist(matrix,metric='euclidean')#euclidean,correlation
-L=sch.linkage(d, method='ward')#ward,weighted
-# 0.2 can be modified to retrieve more stringent or relaxed clusters
-#clusters=sch.fcluster(L, 0.9*d.max(), 'distance')
-clusters=sch.fcluster(L,2, 'maxclust')
-
-# clusters indicices correspond to incides of original df
-classificazione_cluster = []
-for i,cluster in enumerate(clusters):
-	#print(matrix.index[i], cluster)
-	if cluster==1:
-		classificazione_cluster.append(cluster)
-	else:
-		classificazione_cluster.append(0)
-
-
-
-
-#PartitionPlot(X,classificazione_cluster,part)
-
-#   grafico confronto classificazioni
-
-
-data2 = pd.DataFrame(X)
-data2['class'] = y
-data2['class_cluster'] = classificazione_cluster
-	
-	
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
-	
-		
-#ax.scatter(data2[data2['class']==0][0],data2[data2['class']==0][1], facecolors='none', edgecolors='b')
-#ax.scatter(data2[data2['class']==1][0],data2[data2['class']==1][1], facecolors='none', edgecolors='orange')
-
-ax.scatter(data2[data2['class_cluster']==0][0],data2[data2['class_cluster']==0][1], color='b',alpha=0.3)
-ax.scatter(data2[data2['class_cluster']==1][0],data2[data2['class_cluster']==1][1], color='orange',alpha=0.3)
-	
-	
-	
-plt.show()
-
-
-
-
-
-#%%
-
-
-
-
-
-#d=sch.distance.pdist(matrix,metric='euclidean')
-#L=sch.linkage(d, method='ward')
-
-
-# calculate full dendrogram
-plt.figure(figsize=(25, 10))
-plt.title('Hierarchical Clustering Dendrogram')
-plt.xlabel('sample index')
-plt.ylabel('distance')
-sch.dendrogram(
-    L,
-    leaf_rotation=90.,  # rotates the x axis labels
-    leaf_font_size=8.,  # font size for the x axis labels
-)
-plt.show()
-
-
-
-
-
-
-
-
-
-#%%
-
-#method
-single
-complete
-average
-weighted
-centroid   Eucl
-median  Eucl
-ward  Eucl
-
-#metric
-matching non usare
-sqeuclidean
-
-
-
-
-#%%
-
-
-fig,ax = plt.subplots()
-
-ax.plot(list(part.query('dim==0')['part_number']),list(part.query('dim==0')['distance']))
-ax.plot(list(part.query('dim==1')['part_number']),list(part.query('dim==1')['distance']))
-
-
-
-#%%
-
-fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(8,5))
-
-for i in range(len(part[part['dim']==0])):
-	ax.vlines(part.query('dim==0')['x'].iloc[i],part.query('dim==0')['min1'].iloc[i],part.query('dim==0')['max1'].iloc[i],color='b')#, linestyle = '--', color=color[i], linewidth=1) # - QD_peaks[i][1]
-	ax.text(part.query('dim==0')['x'].iloc[i],part.query('dim==0')['min1'].iloc[i],part.query('dim==0')['father'].iloc[i],color='b')#,  fontsize=12, color=color[i])
-
-
-
-for i in range(len(part[part['dim']==1])):
-	ax.hlines(part.query('dim==1')['x'].iloc[i],part.query('dim==1')['min0'].iloc[i],part.query('dim==1')['max0'].iloc[i],color='orange')#, linestyle = '--', color=color[i], linewidth=1) # - QD_peaks[i][1]
-	ax.text(part.query('dim==1')['min0'].iloc[i],part.query('dim==1')['x'].iloc[i],part.query('dim==1')['father'].iloc[i])#,  fontsize=12, color=color[i])
-
-

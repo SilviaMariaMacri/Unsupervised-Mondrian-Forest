@@ -1,72 +1,11 @@
 import numpy as np
 import polytope as pc
-
-
-A = np.array([[1.0, 0.0],
-              [0.0, 1.0],
-              [-1.0, -0.0],
-              [-0.0, -1.0]])
-
-b = np.array([2.0, 1.0, 0.0, 0.0])
-
-p1 = pc.Polytope(A, b)
-
-
-# oppure
-#p1 = pc.box2poly([[0, 2], [0, 1]])
-
-'''
-print(p1)
-Single polytope 
-  [[ 1.  0.] |    [[2.]
-   [ 0.  1.] x <=  [1.]
-   [-1. -0.] |     [0.]
-   [-0. -1.]]|     [0.]]
-  '''
-  
-#righe = iperpiani
-#colonne = numero di dimensioni
-
-
-#vedere se punto è contenuto all'interno del politopo
-[0.5, 0.5] in p1
-
-p2 = pc.box2poly([[0, 1], [0, 0.5]])
-
-p1 <= p2  #p1 subset of p2
-p1 == p2  #idem come sopra e viceversa
-p1.union(p2)
-p1.diff(p2)
-p1.intersect(p2)
-
-
-
-#%%
-fig,ax = plt.subplots()
-#p1.plot()
-#p1.bounding_box()
-p2.plot()
-p2.bounding_box()
-
-p.plot()
-
-
-
-#%%
-
-import numpy as np
-import polytope as pc
 import pypoman
 from numpy.random import choice
 import pandas as pd	
 from itertools import combinations
 from scipy.spatial.distance import pdist
-
-
-
-
-
-
+import math
 
 
 
@@ -384,7 +323,13 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 				poly = mondrian[j][1]
 				polytope.append(poly)
 				vert = pypoman.compute_polytope_vertices(poly.A,poly.b)
+				# ordino vertici: (per più dimensioni da errore?)
+				# compute centroid
+				cent=(sum([v[0] for v in vert])/len(vert),sum([v[1] for v in vert])/len(vert))
+				# sort by polar angle
+				vert.sort(key=lambda v: math.atan2(v[1]-cent[1],v[0]-cent[0]))
 				vertices.append(vert)
+				
 				
 										
 			# se voglio fermarmi al primo taglio
@@ -395,21 +340,6 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 		except  TypeError:
 			continue
 		
-	
-			
-			
-			
-			
-
-			
-	#part2 = [t0, p2, data2, neighbors]
-	#risultato = [part1, part2, t0, father]			
-#m0 = [ t0,p,data,count_part_number,neighbors ] 			
-			
-			
-	
-	
-	
 	
 	
 	
@@ -443,13 +373,16 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 
 
 
+
+
+
 #%%
 
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
 
 hull = ConvexHull(part_leaf['box'].iloc[2])
 
-convex_hull_plot_2d(hull)
+#convex_hull_plot_2d(hull)
 
 
 #%%	  non serve credo ma ricordatela
@@ -464,6 +397,8 @@ for i in range(len(part_leaf)):
 ax.set_xlim(-1.15,1.1)
 ax.set_ylim(-1.1,1.1)
 #%%  
+
+
 part_leaf = part.query('leaf==True')
 part_leaf.index = np.arange(len(part_leaf))
 fig,ax=plt.subplots()
@@ -475,7 +410,7 @@ for i in range(len(part_leaf)):
 	x_avg = pc.cheby_ball(part_leaf['polytope'].iloc[i])[1][0]
 	y_avg = pc.cheby_ball(part_leaf['polytope'].iloc[i])[1][1]
 	ax.text(x_avg,y_avg,part_leaf['part_number'].iloc[i])
-
+ax.scatter(X[:,0],X[:,1])
 estremi = pc.extreme(part['polytope'].iloc[0])	
 xmin = estremi[:,0].min()
 xmax = estremi[:,0].max()
@@ -484,7 +419,15 @@ ymax = estremi[:,1].max()
 ax.set_xlim(xmin,xmax)
 ax.set_ylim(ymin,ymax)
 #pc.bounding_box(part_leaf['polytope'].iloc[0])	
-#pc.cheby_ball(part['polytope'].iloc[i
+#pc.cheby_ball(part['polytope'].iloc[i]
+
+
+
+
+# dopo che salvo iu dati
+#pc.Polytope(np.array(part_leaf['polytope'].iloc[i]['A']),np.array(part_leaf['polytope'].iloc[i]['b']))
+# riga 459
+
 #%%
 r = pc.Region(list(part_leaf['polytope']))
 pc.Partition(pc.union(p1,p2))

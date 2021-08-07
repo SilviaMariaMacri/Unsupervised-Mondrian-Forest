@@ -189,7 +189,7 @@ def PartitionPlot(X,y,part):
 
 
 
-
+# funziona anche con tagli paralleli
 def PlotPolygon(X,part):
 	
 
@@ -264,150 +264,127 @@ def PlotPolygon(X,part):
 
 
 
-# tagli paralleli
-box = []
-for i in range(len(part)):
-	box.append([[part['min0'].iloc[i],part['min1'].iloc[i]],[part['max0'].iloc[i],part['min1'].iloc[i]],[part['max0'].iloc[i],part['max1'].iloc[i]],[part['min0'].iloc[i],part['max1'].iloc[i]]])
-part['box'] = box
 
 
-p = part.query('leaf==True').copy()
-p.index = np.arange(len(p))
 
-connected_components = conn_comp_fin.copy()
-for i in range(len(connected_components)):#np.arange(len(connected_components))[::-1]:
+def PlotClass_2D(X,part,conn_comp,number_of_clusters):
+	
+	p = part.query('leaf==True').copy()
+	p.index = np.arange(len(p))
+		
 	fig,ax = plt.subplots()
- 
-	color=cm.rainbow(np.linspace(0,1,len(connected_components[i])))
-	for j in range(len(connected_components[i])):
-		#print(connected_components[i][j])
-		for k in range(len(connected_components[i][j])):
-			#print(list(connected_components[i][j])[k])
-			p2 = p[p['part_number']==list(connected_components[i][j])[k]].copy()
+		 			
+	color=cm.rainbow(np.linspace(0,1,len(conn_comp[number_of_clusters-1])))
+	for j in range(len(conn_comp[number_of_clusters-1])):
+		for k in range(len(conn_comp[number_of_clusters-1][j])):
+			p2 = p[p['part_number']==list(conn_comp[number_of_clusters-1][j])[k]].copy()
 			box = p2['box'].iloc[0].copy()
 			poligono = Polygon(box, facecolor=color[j], alpha=0.5, edgecolor='black')
 			ax.add_patch(poligono)
-   
-   
+					
 			b = pd.DataFrame(box)
 			x_avg = np.mean(b[0])
 			y_avg = np.mean(b[1])
 			ax.text(x_avg,y_avg,p2['part_number'].iloc[0])
- 
- 
+				
+				
 	ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
- 
- 
- 
+	
 	xmin = part['box'].iloc[0][0][0]-0.05
 	ymin = part['box'].iloc[0][0][1]-0.05
 	xmax = part['box'].iloc[0][2][0]+0.05
 	ymax = part['box'].iloc[0][2][1]+0.05
- 
+	
 	ax.set_xlim(xmin,xmax)
-	ax.set_ylim(ymin,ymax)
-	
-	plt.savefig(str(i))
-		
-	
-	
-	
-#part = pd.DataFrame(list_part_tot[1]).copy()
-#connected_components = list_conn_comp[1]
-
-def PlotClass(X,part,connected_components):
-	
-	p = part.query('leaf==True').copy()
-	p.index = np.arange(len(p))
-	
-	
-	for i in range(len(connected_components)):#np.arange(len(connected_components))[::-1]:
-		fig,ax = plt.subplots()
-				
-		color=cm.rainbow(np.linspace(0,1,len(connected_components[i])))
-		for j in range(len(connected_components[i])):
-			#print(connected_components[i][j])
-			for k in range(len(connected_components[i][j])):
-				#print(list(connected_components[i][j])[k])
-				p2 = p[p['part_number']==list(connected_components[i][j])[k]].copy()
-				box = p2['box'].iloc[0].copy()
-				poligono = Polygon(box, facecolor=color[j], alpha=0.5, edgecolor='black')
-				ax.add_patch(poligono)
-				
-				
-				b = pd.DataFrame(box)
-				x_avg = np.mean(b[0])
-				y_avg = np.mean(b[1])
-				ax.text(x_avg,y_avg,p2['part_number'].iloc[0])
-			
-			
-		ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
-
-				
-				
-		xmin = part['box'].iloc[0][0][0]-0.05
-		ymin = part['box'].iloc[0][0][1]-0.05
-		xmax = part['box'].iloc[0][2][0]+0.05
-		ymax = part['box'].iloc[0][2][1]+0.05
-
-		ax.set_xlim(xmin,xmax)
-		ax.set_ylim(ymin,ymax)		
-				
-		#plt.show()
-		plt.savefig(str(i))
-		
-		return
-	
-
-
-
-
-
-
-def PlotClass_numero_cluster_fissato(X,list_part_tot,list_conn_comp,number_of_clusters):
-	
-	
-	for i in range(len(list_part_tot)):
-		part = pd.DataFrame(list_part_tot[i]).copy()
-		connected_components = list_conn_comp[i].copy()
-	
-		p = part.query('leaf==True').copy()
-		p.index = np.arange(len(p))
-		
-		
-		fig,ax = plt.subplots()
+	ax.set_ylim(ymin,ymax)		
 					
-		color=cm.rainbow(np.linspace(0,1,len(connected_components[number_of_clusters-1])))
-		for j in range(len(connected_components[number_of_clusters-1])):
-			for k in range(len(connected_components[number_of_clusters-1][j])):
-				p2 = p[p['part_number']==list(connected_components[number_of_clusters-1][j])[k]].copy()
-				box = p2['box'].iloc[0].copy()
-				poligono = Polygon(box, facecolor=color[j], alpha=0.5, edgecolor='black')
-				ax.add_patch(poligono)
-					
-					
-				b = pd.DataFrame(box)
-				x_avg = np.mean(b[0])
-				y_avg = np.mean(b[1])
-				ax.text(x_avg,y_avg,p2['part_number'].iloc[0])
-				
-				
-		ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
-	
-					
-					
-		xmin = part['box'].iloc[0][0][0]-0.05
-		ymin = part['box'].iloc[0][0][1]-0.05
-		xmax = part['box'].iloc[0][2][0]+0.05
-		ymax = part['box'].iloc[0][2][1]+0.05
-	
-		ax.set_xlim(xmin,xmax)
-		ax.set_ylim(ymin,ymax)		
-					
-		#plt.show()
-		plt.savefig(str(i))
+	plt.show()
+	#plt.savefig(str(i))
 		
 	return
+
+
+
+
+
+
+
+
+
+import mpl_toolkits.mplot3d as a3
+from scipy.spatial import ConvexHull
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+
+
+
+def PlotClass_3D(X,part,conn_comp,number_of_clusters):
+
+
+	p = part.query('leaf==True')
+	p.index = np.arange(len(p))
+	
+	ax = plt.axes(projection='3d')
+	ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
+	
+	color=cm.rainbow(np.linspace(0,1,len(conn_comp[number_of_clusters-1])))
+	for j in range(len(conn_comp[number_of_clusters-1])):
+		for k in range(len(conn_comp[number_of_clusters-1][j])):
+			p2 = p[p['part_number']==list(conn_comp[number_of_clusters-1][j])[k]].copy()
+			p2.index = [0]
+			verts = p2['box'][0]
+			hull = ConvexHull(verts)
+			faces = hull.simplices
+			poly = []
+			for s in faces:
+				sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
+				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+				f = a3.art3d.Poly3DCollection([sq],linewidths=0.01)
+				f.set_color(color[j])
+				f.set_alpha(0.1)
+				ax.add_collection3d(f)	
+
+					
+	plt.show()
+	return
+
+
+
+#p1 = pc.Polytope()
+#for k in range(len(conn_comp[number_of_clusters-1][j])):
+#	p2 = p[p['part_number']==list(conn_comp[number_of_clusters-1][j])[k]].copy()
+#	pp = pc.Polytope(np.array(p2['polytope'].iloc[i]['A']),np.array(p2['polytope'].iloc[i]['b']))					
+#	p1 = pc.union(p1,pp)			
+			#poly.append(pyny.Polygon(np.array(sq)))
+		
+#polyhedron = pyny.Polyhedron(poly)#.get_plotable3d(alpha=0.3)
+#polyhedron.plot(ax=ax,opacity=0.5)
+
+
+
+#get_area()[source]
+#ax.add_collection3d(Poly3DCollection(verts, 
+ #facecolors='cyan', linewidths=1, edgecolors='r', alpha=.25))
+
+#import pyny3d.geoms as pyny
+
+#poly1 = pyny.Polygon(np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]))
+#poly2 = pyny.Polygon(np.array([[0, 0, 3], [0.5, 0, 3], [0.5, 0.5, 3], [0, 0.5, 3]]))
+#polyhedron = pyny.Polyhedron.by_two_polygons(poly1, poly2)
+#polyhedron.plot('b')
+
+	
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -460,3 +437,5 @@ def PlotClass_binario(list_part_tot,list_conn_comp,number_of_clusters):
 
 
 #import cv2
+
+	

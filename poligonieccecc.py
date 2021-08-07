@@ -8,79 +8,6 @@ from matplotlib.patches import Polygon
 #from matplotlib.pyplot import cm
 
 
-
-
-
-#%%
-
-
-#part.query('leaf==True')[['time', 'father', 'part_number', 'neighbors', 'leaf']]
-# coppie di vertici 
-#vertici_iniziali=[ [[0,0],[1,0]], [[1,0],[1,1]], [[1,1],[0,1]], [[0,1],[0,0]]]
-t0=0
-lifetime=2
-#dist_matrix = DistanceMatrix(X)
-m,box,part=MondrianPolygon(X,t0,lifetime,dist_matrix)
-
-
-PlotPolygon(X,part)
-
-
-
-#list(part.query('leaf==True')['vertici'])
-#%%
-#json.dump
-
-import json
-
-name = 'dati1_5'
-
-#part
-part.to_json(name+'_part.json')
-#m
-lista = list(np.array(m)[:,2])
-with open(name+'_m.json', 'w') as f:
-    f.write(json.dumps([df.to_dict() for df in lista]))
-#%%	
-#leggere
-#part
-part = json.load(open(name+'_part.json','r'))
-part = pd.DataFrame(part)
-#m
-m = json.load(open(name+'_m.json','r'))
-
-
-
-
-#%%
-
-name = 'makecircles1_tagli_paralleli_'
-
-number=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
-part = []
-for i in range(len(number)):
-	print('AAAAAAAAAAAAAAAAAAA',i)
-	#m,box,part_i=MondrianPolygon(X,t0,lifetime,dist_matrix)
-	part_i = MondrianUnsupervised(X,t0,lifetime)
-	#part.append(part_i)
-	
-	#part
-	part_i.to_json(name+str(number[i])+'_part.json')
-	#m
-	#lista = list(np.array(m)[:,2])
-	#with open(name+str(number[i])+'_m.json', 'w') as f:
-	 #   f.write(json.dumps([df.to_dict() for df in lista]))
-
-#PlotPolygon(X,part)
-
-
-
-#%% per salvare su file
-
-for i in range(len(part)):
-	part[i].to_csv('98iterazioniNoheader.txt',mode='a',index=False,sep='\t',header=False)
-
-
 #%%
 
 sns.set_style('whitegrid')
@@ -163,20 +90,4 @@ for i in range(len(box)):
 	plt.show()
 
 	
-
-#%%  area poligono
-
-
-box = box[0]
-
-
-def PolyArea(box):
-	
-	df_box = pd.DataFrame(box)
-	x = df_box[0]
-	y = df_box[1]
-    
-	return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
-
-print(PolyArea(box))
 

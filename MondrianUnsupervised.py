@@ -393,6 +393,15 @@ def MondrianUnsupervised(X,t0,lifetime):
 		
 	
 	part = pd.merge(df, df_box, left_index=True, right_index=True)
+	
+	
+	#per grafico
+	vertici = []
+	for i in range(len(part)):
+		vertici.append([[part['min0'].iloc[i],part['min1'].iloc[i]],[part['max0'].iloc[i],part['min1'].iloc[i]],[part['max0'].iloc[i],part['max1'].iloc[i]],[part['min0'].iloc[i],part['max1'].iloc[i]]])
+	part['box'] = vertici
+
+
 
 
 

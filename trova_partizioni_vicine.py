@@ -1,107 +1,9 @@
-#salvo adjacency matrix
 
-name = 'makecircles1_tagli_paralleli'#'dati1'
-tagli_paralleli = True#,False
-
-for i in range(17):
-	print(i)
-	#leggo
-	part = json.load(open(name+'_'+str(i+1)+'_part.json','r'))
-	part = pd.DataFrame(part)
-	#m = json.load(open(name+'_'+str(i+1)+'_m.json','r'))
-
-	score = 'min' #'var','centroid'
-	part_links = PartLinkScore(part,m,score,tagli_paralleli)
-	
-	weight = 'diff_min' #'var_ratio','ratio_centroid','diff_centroid',
-	G,A,edgelist = Network(part_links,weight)
-	A.to_csv(name+'_'+str(i+1)+'_ad_matrix.txt',sep='\t',index=True)
-	
-	edgelist_percolation,list_class_fin,conn_comp_fin = Percolation(G,edgelist,tagli_paralleli)
-	
-	
-	with open(name+'_'+str(i+1)+'_list_class.json', 'w') as f:
-	    f.write(json.dumps([df.to_dict() for df in list_class_fin]))
-	
-	with open(name+'_'+str(i+1)+'_conn_comp.json', 'w') as f:
-	    f.write(json.dumps([df for df in conn_comp_fin]))
-
-
-
-
-#%% leggo file .json
-
-
-name = 'makecircles1_tagli_paralleli'
-numero_partizionamenti = 16
-
-list_part_tot = []
-#list_m_tot = []
-list_conn_comp = []
-list_class_tot = []
-for i in range(numero_partizionamenti):
-	list_cl = json.load(open(name+'_'+str(i+1)+'_list_class.json','r'))
-	list_class_tot.append(list_cl)
-	list_conn_comp.append(json.load(open(name+'_'+str(i+1)+'_conn_comp.json','r')))
-	list_part = json.load(open(name+'_'+str(i+1)+'_part.json','r'))
-	list_part_tot.append(list_part)
-	#list_m = json.load(open(name+'_'+str(i+1)+'_m.json','r'))
-	#list_m_tot.append(list_m)	
-
-
-
-number_of_clusters = 2
-#PlotClass_numero_cluster_fissato(X,list_part_tot,list_conn_comp,number_of_clusters)
-
-		
-#%% grafico compatibilità classificazioni
-
-
-
-#from sklearn.metrics.cluster import fowlkes_mallows_score
-from sklearn.metrics.cluster import adjusted_mutual_info_score
-from itertools import combinations
-
-pair = list(combinations(np.arange(len(list_class_tot)),2))
-
-
-coeff_tot = []
-for k in range(len(pair)):
-
-	coeff=[]
-	index1 = pair[k][0]
-	index2 = pair[k][1]
-	for i in range(min(len(list_class_tot[index1]),len(list_class_tot[index2]))):
-		cl1 = pd.DataFrame(list_class_tot[index1][i])
-		cl1.columns = ['index','class1']
-		cl2 = pd.DataFrame(list_class_tot[index2][i])
-		cl2.columns = ['index','class2']
-		
-		cl = pd.merge(cl1,cl2,right_on='index',left_on='index')
-		coeff.append(adjusted_mutual_info_score(cl['class1'],cl['class2']))
-		
-	coeff_tot.append(coeff)
-
-
-coeff_medio = pd.DataFrame(coeff_tot).mean()
-
-fig,ax = plt.subplots()
-for i in range(len(coeff_tot)):
-	ax.plot(np.arange(2,len(coeff_tot[i])+1),coeff_tot[i][1:],alpha=0.3)
-ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
-
-
-
-
-
-
-#%%
-
-data_classification = pd.DataFrame(list_class_tot[0][number_of_clusters-1])
+data_classification = pd.DataFrame(list_class[0][number_of_clusters-1])
 data_classification.columns = ['index','class0']
 number_of_clusters = 4
-for i in range(1,len(list_class_tot)):
-	data = pd.DataFrame(list_class_tot[i][number_of_clusters-1])
+for i in range(1,len(list_class)):
+	data = pd.DataFrame(list_class[i][number_of_clusters-1])
 	data.columns = ['index','class'+str(i)]
 	data_classification = pd.merge(data_classification,data,right_on='index',left_on='index')
 	
@@ -115,7 +17,8 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist,pdist
 import networkx as nx
-
+from sklearn.metrics.cluster import adjusted_mutual_info_score
+from itertools import combinations
 
 
 
@@ -304,14 +207,14 @@ def AssignClass(G,X,part,m,tagli_paralleli):
 	return data
 	
 	
-	
+
 
 
 
 
 # score = 'var','centroid','min'
 #tagli_paralleli = True,False
-def PartLinkScore(part,m,score,tagli_paralleli):
+def PartLinkScore(X,part,m,score,tagli_paralleli):
 	
 	# è utile tener conto del numero di punti contenuti in una partizione? ()
 	
@@ -404,12 +307,12 @@ def Network(part_links,weight):
 	
 	return G,A,edgelist
 
+
 #A.to_csv(name+'_ad_matrix.txt',sep='\t',index=True)
 
 
 
-
-def Percolation(G,edgelist,tagli_paralleli): 
+def Percolation(X,G,edgelist,tagli_paralleli): 
 	
 	number_connected_components = []
 	connected_components = []
@@ -452,9 +355,66 @@ def Percolation(G,edgelist,tagli_paralleli):
 
 
 
+def Classification(part,m,X,namefile,score,weight,tagli_paralleli):	
+		
+	part_links = PartLinkScore(X,part,m,score,tagli_paralleli)
+	
+	G,A,edgelist = Network(part_links,weight)
+	A.to_csv(namefile+'_ad_matrix.txt',sep='\t',index=True)
+	
+	edgelist_percolation,list_class_fin,conn_comp_fin = Percolation(X,G,edgelist,tagli_paralleli)
+	
+	with open(namefile+'_list_class.json', 'w') as f:
+	    f.write(json.dumps([df.to_dict() for df in list_class_fin]))
+	
+	with open(namefile+'_conn_comp.json', 'w') as f:
+	    f.write(json.dumps([df for df in conn_comp_fin]))
+		
+	
+	return
 
 
 
+
+
+
+def ClassificationScore(list_class):
+	
+	pair = list(combinations(np.arange(len(list_class)),2))
+	
+	coeff_tot = []
+	for k in range(len(pair)):
+	
+		coeff=[]
+		index1 = pair[k][0]
+		index2 = pair[k][1]
+		for i in range(min(len(list_class[index1]),len(list_class[index2]))):
+			cl1 = pd.DataFrame(list_class[index1][i])
+			cl1.columns = ['index','class1']
+			cl2 = pd.DataFrame(list_class[index2][i])
+			cl2.columns = ['index','class2']
+			
+			cl = pd.merge(cl1,cl2,right_on='index',left_on='index')
+			coeff.append(adjusted_mutual_info_score(cl['class1'],cl['class2']))
+			
+		coeff_tot.append(coeff)
+	
+	coeff_medio = pd.DataFrame(coeff_tot).mean()
+	
+	fig,ax = plt.subplots()
+	for i in range(len(coeff_tot)):
+		ax.plot(np.arange(2,len(coeff_tot[i])+1),coeff_tot[i][1:],alpha=0.2)
+	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+	plt.show()
+	
+	fig,ax = plt.subplots()
+	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+	plt.show()
+	
+	return coeff_medio
+	
+	
+	
 
 
 

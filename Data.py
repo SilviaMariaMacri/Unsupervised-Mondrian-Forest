@@ -14,6 +14,7 @@ dat = datasets.make_blobs(n_samples=[30,30,30,30,30],n_features=3,cluster_std=1,
 X = dat[0]
 y = dat[1]
 
+fig = plt.figure()
 ax = plt.axes(projection='3d')
 ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
 
@@ -23,7 +24,7 @@ X = dat[0]
 y = dat[1]
 
 #%% make moons 2D
-dat = datasets.make_moons(n_samples=150,noise=0.07,random_state=10)
+dat = datasets.make_moons(n_samples=100,noise=0.07,random_state=20)
 X = dat[0]
 y = dat[1]
 
@@ -36,7 +37,7 @@ y = dat[1]
 
 #%% iris 4D
 iris = datasets.load_iris() 
-X = iris.data
+X = iris.data[0:20]
 y = iris.target
 
 #%% dati ruotati
@@ -111,8 +112,8 @@ x5 = np.random.multivariate_normal(mean5, cov5, a)
 
 
 			
-X = np.vstack([x1,x2,x3,x4])
 
+X = np.vstack([x1,x2,x3,x4])
 #class
 y1 = np.zeros(a)
 y2 = np.ones(a)

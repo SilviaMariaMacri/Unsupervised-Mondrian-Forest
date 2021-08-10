@@ -22,13 +22,14 @@ def SaveMondrianOutput(namefile,part,m):
 #%% Polytope dimensione generica + classificazione 
 
 t0 = 0
-lifetime = 5
+lifetime = 10
 #dist_matrix = DistanceMatrix(X)
-number_of_iterations = 16
-name = 'makeblobs_3D_'
+number_of_iterations = 6
+name = 'makemoons2_lifetime10_MondrianPolygon_'
 
-for i in range(1,number_of_iterations):
-	m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
+for i in range(number_of_iterations):
+	#m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
+	m_i,box,part_i=MondrianPolygon(X,t0,lifetime,dist_matrix)
 	namefile = name+str(i+1)
 	SaveMondrianOutput(namefile,part_i,m_i)
 	#PlotPolygon(X,part_i)
@@ -41,14 +42,14 @@ for i in range(1,number_of_iterations):
 	weight = 'diff_min' #'var_ratio','ratio_centroid','diff_centroid',
 	Classification(part,m,X,namefile,score,weight,tagli_paralleli)
 	
-
+#togli X da classification
 
 
 #%% leggo file .json
 
 
-number_of_iterations = 16
-name = 'makemoons_2_'
+number_of_iterations = 2
+name = 'makemoons2_lifetime10_MondrianPolygon_'
 
 list_part = []
 list_m = []
@@ -74,12 +75,11 @@ for i in range(number_of_iterations):
 #%% grafici
 
 # grafico compatibilità classificazioni
-coeff_medio = ClassificationScore(list_class)
+#coeff_medio = ClassificationScore(list_class)
 
-number_of_iterations = 16
+number_of_iterations = 2
 for i in range(number_of_iterations):
-
-	i = 8	
+	#i=10
 	part = list_part[i]
 	m = list_m[i]
 	classified_data = list_class[i]
@@ -87,15 +87,15 @@ for i in range(number_of_iterations):
 	
 	# puoi fissare number_of_clusters
 	number_of_clusters = 2
-	#for number_of_clusters in range(len(conn_comp)):
-	#PlotClass_2D(X,part,conn_comp,number_of_clusters)
-	PlotClass_3D(X,part,conn_comp,number_of_clusters)
+	#for number_of_clusters in range(2,5):#len(conn_comp)):
+	PlotClass_2D(m,part,conn_comp,number_of_clusters)
+	#PlotClass_3D(m,part,conn_comp,number_of_clusters)
 
 
 
 
 
-
+ 
 
 
 #%% Polygon 2D

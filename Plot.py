@@ -190,7 +190,7 @@ def PartitionPlot(X,y,part):
 
 
 # funziona anche con tagli paralleli
-def PlotPolygon(X,part):
+def PlotPolygon(m,part):
 	
 
 
@@ -211,8 +211,9 @@ def PlotPolygon(X,part):
 			y_avg = np.mean(b[1])
 			ax.text(x_avg,y_avg,part.query('leaf==True')['part_number'].iloc[i])
 			
-			
-		ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
+			data = pd.DataFrame(m[part.query('leaf==True')['part_number'].iloc[i]])
+			ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+		#ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
 			
 		#xmin = box_new[0][0][0]-0.05
 		#ymin = box_new[0][0][1]-0.05
@@ -241,8 +242,9 @@ def PlotPolygon(X,part):
 				p = Polygon(box_new, facecolor = 'none', edgecolor='b',alpha=0.05)
 				ax.add_patch(p)
 				
-			
-		ax.scatter(X[:,0],X[:,1],s=10,alpha=0.5)
+				data = pd.DataFrame(m[part.query('leaf==True')['part_number'].iloc[i]])
+				ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+		#ax.scatter(X[:,0],X[:,1],s=10,alpha=0.5)
 			
 		#xmin = box_new[0][0][0]-0.05
 		#ymin = box_new[0][0][1]-0.05
@@ -267,13 +269,13 @@ def PlotPolygon(X,part):
 
 
 
-def PlotClass_2D(X,part,conn_comp,number_of_clusters):
+def PlotClass_2D(m,part,conn_comp,number_of_clusters):
 	
 	p = part.query('leaf==True').copy()
 	p.index = np.arange(len(p))
 		
 	fig,ax = plt.subplots()
-		 			
+	
 	color=cm.rainbow(np.linspace(0,1,len(conn_comp[number_of_clusters-1])))
 	for j in range(len(conn_comp[number_of_clusters-1])):
 		for k in range(len(conn_comp[number_of_clusters-1][j])):
@@ -286,17 +288,18 @@ def PlotClass_2D(X,part,conn_comp,number_of_clusters):
 			x_avg = np.mean(b[0])
 			y_avg = np.mean(b[1])
 			ax.text(x_avg,y_avg,p2['part_number'].iloc[0])
-				
-				
-	ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
+			
+			data = pd.DataFrame(m[list(conn_comp[number_of_clusters-1][j])[k]])
+			ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+	#ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
 	
-	xmin = part['box'].iloc[0][0][0]-0.05
-	ymin = part['box'].iloc[0][0][1]-0.05
-	xmax = part['box'].iloc[0][2][0]+0.05
-	ymax = part['box'].iloc[0][2][1]+0.05
+	#xmin = part['box'].iloc[0][0][0]-0.05
+	#ymin = part['box'].iloc[0][0][1]-0.05
+	#xmax = part['box'].iloc[0][2][0]+0.05
+	#ymax = part['box'].iloc[0][2][1]+0.05
 	
-	ax.set_xlim(xmin,xmax)
-	ax.set_ylim(ymin,ymax)		
+	#ax.set_xlim(xmin,xmax)
+	#ax.set_ylim(ymin,ymax)		
 					
 	plt.show()
 	#plt.savefig(str(i))
@@ -318,17 +321,49 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 
-def PlotClass_3D(X,part,conn_comp,number_of_clusters):
+def PlotClass_3D(m,part,conn_comp,number_of_clusters):
 
 
 	p = part.query('leaf==True')
 	p.index = np.arange(len(p))
 	
+	fig = plt.figure()
 	ax = plt.axes(projection='3d')
-	ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
-	
+	#ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
 	color=cm.rainbow(np.linspace(0,1,len(conn_comp[number_of_clusters-1])))
+	data = pd.DataFrame()
 	for j in range(len(conn_comp[number_of_clusters-1])):
+		for k in range(len(conn_comp[number_of_clusters-1][j])):
+			p2 = p[p['part_number']==list(conn_comp[number_of_clusters-1][j])[k]].copy()
+			p2.index = [0]
+			verts = p2['box'][0]
+			hull = ConvexHull(verts)
+			faces = hull.simplices
+			poly = []
+			for s in faces:
+				sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
+				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+				f = a3.art3d.Poly3DCollection([sq],linewidths=0.01)
+				f.set_color(color[j])
+				f.set_alpha(0.1)
+				ax.add_collection3d(f)
+			data_k = pd.DataFrame(m[list(conn_comp[number_of_clusters-1][j])[k]])
+			data = pd.concat([data,data_k])
+	data.index = np.arange(len(data))
+	ax.scatter3D(data['0'],data['1'],data['2'],alpha=0.5,color='b')
+
+					
+	plt.show()
+	
+	
+	
+	#color=cm.rainbow(np.linspace(0,1,len(conn_comp[number_of_clusters-1])))
+	for j in range(len(conn_comp[number_of_clusters-1])):
+		fig = plt.figure()
+		ax = plt.axes(projection='3d')
+		#ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
+		ax.scatter3D(data['0'],data['1'],data['2'],alpha=0.5,color='b')
 		for k in range(len(conn_comp[number_of_clusters-1][j])):
 			p2 = p[p['part_number']==list(conn_comp[number_of_clusters-1][j])[k]].copy()
 			p2.index = [0]
@@ -347,6 +382,9 @@ def PlotClass_3D(X,part,conn_comp,number_of_clusters):
 
 					
 	plt.show()
+	
+	
+	
 	return
 
 

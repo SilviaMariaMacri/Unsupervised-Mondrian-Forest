@@ -4,7 +4,7 @@ import pypoman
 from numpy.random import choice
 import pandas as pd	
 from itertools import combinations
-from scipy.spatial.distance import pdist
+#from scipy.spatial.distance import pdist
 import math
 
 

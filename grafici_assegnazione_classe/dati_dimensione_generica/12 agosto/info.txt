@@ -1,0 +1,5 @@
+makeblobs2D_1:
+dat = datasets.make_blobs(n_samples=[50,50,30,30],n_features=2,cluster_std=0.9,random_state=18)
+
+makemoons1
+dat = datasets.make_circles(n_samples=100,noise=0.05,random_state=0,factor=0.5)

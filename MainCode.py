@@ -22,21 +22,22 @@ def SaveMondrianOutput(namefile,part,m):
 #%% Polytope dimensione generica + classificazione 
 
 t0 = 0
-lifetime = 10
-#dist_matrix = DistanceMatrix(X)
-number_of_iterations = 6
-name = 'makemoons2_lifetime10_MondrianPolygon_'
+lifetime = 2
+dist_matrix = DistanceMatrix(X)
+number_of_iterations = 1
+name = 'p1_'
 
 for i in range(number_of_iterations):
 	#m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
-	m_i,box,part_i=MondrianPolygon(X,t0,lifetime,dist_matrix)
+	m_i,part_i = MondrianUnsupervised(X,t0,lifetime)
 	namefile = name+str(i+1)
 	SaveMondrianOutput(namefile,part_i,m_i)
-	#PlotPolygon(X,part_i)
 	
 	part = json.load(open(namefile+'_part.json','r'))
 	part = pd.DataFrame(part)
 	m = json.load(open(namefile+'_m.json','r'))
+	#PlotPolygon(X,part)
+	
 	tagli_paralleli = False #True#,False
 	score = 'min' #'var','centroid'
 	weight = 'diff_min' #'var_ratio','ratio_centroid','diff_centroid',
@@ -48,8 +49,8 @@ for i in range(number_of_iterations):
 #%% leggo file .json
 
 
-number_of_iterations = 2
-name = 'makemoons2_lifetime10_MondrianPolygon_'
+number_of_iterations = 1
+name = 'makemoons1_'
 
 list_part = []
 list_m = []
@@ -75,27 +76,25 @@ for i in range(number_of_iterations):
 #%% grafici
 
 # grafico compatibilità classificazioni
-#coeff_medio = ClassificationScore(list_class)
+#name_file = False #se non vuoi salvare plot
+#coeff_medio = ClassificationScore(list_class,name_file)
 
-number_of_iterations = 2
-for i in range(number_of_iterations):
-	#i=10
+#number_of_iterations = 3
+#for i in range(number_of_iterations):
+	i=0
 	part = list_part[i]
 	m = list_m[i]
 	classified_data = list_class[i]
 	conn_comp = list_conn_comp[i]
 	
 	# puoi fissare number_of_clusters
-	number_of_clusters = 2
-	#for number_of_clusters in range(2,5):#len(conn_comp)):
-	PlotClass_2D(m,part,conn_comp,number_of_clusters)
+	number_of_clusters = 4
+	#for number_of_clusters in range(len(conn_comp)):
+	name_file = False #'plot_4clusters_'+str(i)
+	PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file)
 	#PlotClass_3D(m,part,conn_comp,number_of_clusters)
 
 
-
-
-
- 
 
 
 #%% Polygon 2D

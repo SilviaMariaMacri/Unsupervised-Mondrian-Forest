@@ -4,7 +4,7 @@ import pypoman
 from numpy.random import choice
 import pandas as pd	
 from itertools import combinations
-#from scipy.spatial.distance import pdist
+from scipy.spatial.distance import cdist
 import math
 
 
@@ -31,31 +31,34 @@ def CutMinDist(dist_matrix,data):
 		data1 = np.array(matrix.query('dist_point_cut>0')[names].copy())
 		data2 = np.array(matrix.query('dist_point_cut<0')[names].copy())
 		
-		if (len(data1)==1) or (len(data2)==1):
-			diff_min_dist.append('nan')
+		#if (len(data1)==1) and (len(data2)==1):
+		#	diff_min_dist.append('nan')
 			
-		else:
+		#else:
 			
-			pd1 = cdist(data1,data1)
-			pd2 = cdist(data2,data2)
+		pd1 = cdist(data1,data1)
+		pd2 = cdist(data2,data2)
 			
-			min1 = np.min(np.where(pd1!= 0, pd1, np.inf),axis=0)
-			min2 = np.min(np.where(pd2!= 0, pd2, np.inf),axis=0)
+		min1 = np.min(np.where(pd1!= 0, pd1, np.inf),axis=0)
+		min2 = np.min(np.where(pd2!= 0, pd2, np.inf),axis=0)
 			
-			min_tot = np.hstack([min1,min2])
-			media = np.mean(min_tot)
+		min_tot = np.hstack([min1,min2])
+		if np.inf in min_tot:
+			min_tot = list(min_tot)
+			min_tot.remove(np.inf)
+		media = np.mean(min_tot)
 		
-			dist = cdist(data1,data2)
-			min_dist_fra_partizioni = dist.min()
+		dist = cdist(data1,data2)
+		min_dist_fra_partizioni = dist.min()
 
-			#media,min_dist_fra_partizioni = MinDist(data1,data2,matrix)
-			diff = min_dist_fra_partizioni - media
-			diff_min_dist.append(diff)
+		#media,min_dist_fra_partizioni = MinDist(data1,data2,matrix)
+		diff = min_dist_fra_partizioni - media
+		diff_min_dist.append(diff)
 		
 	data_pair['diff_min_dist'] = diff_min_dist
 	
 
-	if data_pair['diff_min_dist'].unique()[0]=='nan':
+	if (len(data_pair['diff_min_dist'].unique()) == 1) and (data_pair['diff_min_dist'].unique()[0]=='nan'):
 		return 
 
 	data_pair = data_pair.drop(data_pair[data_pair['diff_min_dist']=='nan'].index)

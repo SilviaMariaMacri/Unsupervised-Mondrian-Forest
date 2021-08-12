@@ -125,51 +125,35 @@ def Centroid_part_vicine(data1,data2):
 
 
 
-
-def calcolo_dist_part_vicine(data1,data2,tagli_paralleli):
+def MinDistBetweenPart(data1,data2,tagli_paralleli):
 	
 	data1 = data1.drop('index',axis=1) 
 	data2 = data2.drop('index',axis=1)
+	
 	if tagli_paralleli == True:
 		data1 = data1.drop('part_number',axis=1) 
 		data2 = data2.drop('part_number',axis=1)
+		
+	data1 = np.array(data1)
+	data2 = np.array(data2)
 	
 	pd1 = cdist(data1,data1)
-	i1_data1,i2_data1 = np.tril_indices(len(data1), k=-1)
 	pd2 = cdist(data2,data2)
-	i1_data2, i2_data2 = np.tril_indices(len(data2), k=-1)
-
-
-	df1 = {'i1':i1_data1,'i2':i2_data1,'dist':pd1[i1_data1,i2_data1]}
-	df1 = pd.DataFrame(df1)
-	min1 = []
-	for i in range(df1['i1'].max()+1):
-		x = df1.query('i1=='+str(i)+' or i2=='+str(i))['dist'].min()
-		min1.append(x)
-
-
-	df2 = {'i1':i1_data2,'i2':i2_data2,'dist':pd2[i1_data2,i2_data2]}
-	df2 = pd.DataFrame(df2)
-	min2 = []
-	for i in range(df2['i1'].max()+1):
-		x = df2.query('i1=='+str(i)+' or i2=='+str(i))['dist'].min()
-		min2.append(x)
-	
-	
+			
+	min1 = np.min(np.where(pd1!= 0, pd1, np.inf),axis=0)
+	min2 = np.min(np.where(pd2!= 0, pd2, np.inf),axis=0)
+			
 	min_tot = np.hstack([min1,min2])
-	#media1 = np.mean(min1)
-	#media2 = np.mean(min2)
-	#min_media_sep = (media1+media2)/2
+	if np.inf in min_tot:
+		min_tot = list(min_tot)
+		min_tot.remove(np.inf)
 	media = np.mean(min_tot)
-	#var = np.sqrt(np.var(min_tot))
-
-
-
+	
 	dist = cdist(data1,data2)
 	min_dist_fra_partizioni = dist.min()
 
 	
-	return media,min_dist_fra_partizioni#,var	  
+	return media,min_dist_fra_partizioni	  
 
 
 
@@ -224,7 +208,7 @@ def PartLinkScore(X,part,m,score,tagli_paralleli):
 	p.index = np.arange(len(p))
 	# tagli paralleli
 	if tagli_paralleli ==  True:
-		df =trova_part_vicine(part)
+		df = trova_part_vicine(part)
 		p = pd.merge(p,df,right_on='part_number',left_on='part_number')
 		a = AssignPartition(X,part)
 		
@@ -246,9 +230,6 @@ def PartLinkScore(X,part,m,score,tagli_paralleli):
 				data2 = pd.DataFrame(m[j]) #m[j][2]
 		
  
-			if (len(data1)==1) or (len(data2)==1):
-				continue
-		
 			part1.append(p.iloc[i]['part_number'])
 			part2.append(j)
 			
@@ -267,7 +248,7 @@ def PartLinkScore(X,part,m,score,tagli_paralleli):
 					difference_centroid.append(difference)
 
 			if score == 'min':
-				media_i,min_dist_i = calcolo_dist_part_vicine(data1,data2,tagli_paralleli)
+				media_i,min_dist_i = MinDistBetweenPart(data1,data2,tagli_paralleli)
 				differenza_minimi = min_dist_i - media_i
 				diff_minimi.append(differenza_minimi)
 						
@@ -308,7 +289,6 @@ def Network(part_links,weight):
 	return G,A,edgelist
 
 
-#A.to_csv(name+'_ad_matrix.txt',sep='\t',index=True)
 
 
 
@@ -378,7 +358,7 @@ def Classification(part,m,X,namefile,score,weight,tagli_paralleli):
 
 
 
-def ClassificationScore(list_class):
+def ClassificationScore(list_class,name_file):
 	
 	pair = list(combinations(np.arange(len(list_class)),2))
 	
@@ -402,14 +382,23 @@ def ClassificationScore(list_class):
 	coeff_medio = pd.DataFrame(coeff_tot).mean()
 	
 	fig,ax = plt.subplots()
+	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+	ax.scatter(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 	for i in range(len(coeff_tot)):
 		ax.plot(np.arange(2,len(coeff_tot[i])+1),coeff_tot[i][1:],alpha=0.2)
-	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 	plt.show()
+	
+	if name_file != False:
+		plt.savefig(name_file)
 	
 	fig,ax = plt.subplots()
 	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+	ax.scatter(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 	plt.show()
+	#linestyle = '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
+	
+	if name_file != False:
+		plt.savefig(name_file+'_medio')
 	
 	return coeff_medio
 	

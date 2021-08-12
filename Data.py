@@ -1,30 +1,33 @@
 # make circles in 3D
-
+#make_s_curve(n_samples=100, *, noise=0.0, random_state=None)[source]
 
 
 import numpy as np
 import pandas as pd
 from sklearn import datasets
-#from sklearn.model_selection import train_test_split
 
+#from sklearn.model_selection import train_test_split
 #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
 
 #%% make blobs 3D
-dat = datasets.make_blobs(n_samples=[30,30,30,30,30],n_features=3,cluster_std=1,random_state=1)
+dat = datasets.make_blobs(n_samples=[50,50,30,30],n_features=2,cluster_std=0.9,random_state=18)
 X = dat[0]
 y = dat[1]
+fig,ax = plt.subplots()
+ax.scatter(X[:,0],X[:,1])
+
 
 fig = plt.figure()
 ax = plt.axes(projection='3d')
 ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
 
 #%% make circles 2D
-dat = datasets.make_circles(n_samples=100,noise=0.05,random_state=0,factor=0.5)
+dat = datasets.make_circles(n_samples=10,noise=0.05,random_state=0,factor=0.5)
 X = dat[0]
 y = dat[1]
 
 #%% make moons 2D
-dat = datasets.make_moons(n_samples=100,noise=0.07,random_state=20)
+dat = datasets.make_moons(n_samples=100,noise=0.07,random_state=3)
 X = dat[0]
 y = dat[1]
 

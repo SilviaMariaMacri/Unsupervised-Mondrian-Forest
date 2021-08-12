@@ -211,9 +211,12 @@ def PlotPolygon(m,part):
 			y_avg = np.mean(b[1])
 			ax.text(x_avg,y_avg,part.query('leaf==True')['part_number'].iloc[i])
 			
-			data = pd.DataFrame(m[part.query('leaf==True')['part_number'].iloc[i]])
-			ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
-		#ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
+			if isinstance(m, dict):
+				data = pd.DataFrame(m[part.query('leaf==True')['part_number'].iloc[i]])
+				ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+		if isinstance(m, np.ndarray):
+			X = m.copy()
+			ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
 			
 		#xmin = box_new[0][0][0]-0.05
 		#ymin = box_new[0][0][1]-0.05
@@ -269,7 +272,7 @@ def PlotPolygon(m,part):
 
 
 
-def PlotClass_2D(m,part,conn_comp,number_of_clusters):
+def PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file):
 	
 	p = part.query('leaf==True').copy()
 	p.index = np.arange(len(p))
@@ -302,7 +305,8 @@ def PlotClass_2D(m,part,conn_comp,number_of_clusters):
 	#ax.set_ylim(ymin,ymax)		
 					
 	plt.show()
-	#plt.savefig(str(i))
+	if name_file != False:
+		plt.savefig(name_file)
 		
 	return
 
@@ -314,7 +318,6 @@ def PlotClass_2D(m,part,conn_comp,number_of_clusters):
 
 
 
-import mpl_toolkits.mplot3d as a3
 from scipy.spatial import ConvexHull
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
@@ -339,12 +342,11 @@ def PlotClass_3D(m,part,conn_comp,number_of_clusters):
 			verts = p2['box'][0]
 			hull = ConvexHull(verts)
 			faces = hull.simplices
-			poly = []
 			for s in faces:
 				sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
 				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
 					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
-				f = a3.art3d.Poly3DCollection([sq],linewidths=0.01)
+				f = Poly3DCollection([sq],linewidths=0.01)
 				f.set_color(color[j])
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)
@@ -370,12 +372,11 @@ def PlotClass_3D(m,part,conn_comp,number_of_clusters):
 			verts = p2['box'][0]
 			hull = ConvexHull(verts)
 			faces = hull.simplices
-			poly = []
 			for s in faces:
 				sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
 				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
 					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
-				f = a3.art3d.Poly3DCollection([sq],linewidths=0.01)
+				f = Poly3DCollection([sq],linewidths=0.01)
 				f.set_color(color[j])
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)	

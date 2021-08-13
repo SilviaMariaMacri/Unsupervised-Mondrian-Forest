@@ -49,8 +49,8 @@ for i in range(number_of_iterations):
 #%% leggo file .json
 
 
-number_of_iterations = 1
-name = 'prova_'
+number_of_iterations = 16
+name = 'makeblobs_3D_'
 
 list_part = []
 list_m = []
@@ -75,24 +75,29 @@ for i in range(number_of_iterations):
 
 #%% grafici
 
+
 # grafico compatibilità classificazioni
-#name_file = False #se non vuoi salvare plot
+#name_file = 'makeblobs_3D_NUOVO' #se non vuoi salvare plot
 #coeff_medio = ClassificationScore(list_class,name_file)
 
-number_of_iterations = 1
+number_of_iterations = 16
 for i in range(number_of_iterations):
-	#i=0
+	print(i)
+	#%%
+	i=10
 	part = list_part[i]
 	m = list_m[i]
 	classified_data = list_class[i]
 	conn_comp = list_conn_comp[i]
+	#namefile = name+str(i+1)+'_NUOVO'
+	#Classification(part,m,X,namefile,score,weight,tagli_paralleli)
 	
 	# puoi fissare number_of_clusters
-	number_of_clusters = 4
-	#for number_of_clusters in range(len(conn_comp)):
-	name_file = False #'plot_4clusters_'+str(i)
-	PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file)
-	#PlotClass_3D(m,part,conn_comp,number_of_clusters)
+	number_of_clusters = 5
+	#for number_of_clusters in range(6):#len(conn_comp)):
+	#name_file = 'plot_2clusters_NUOVO_'+str(i)
+	#PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file)
+	PlotClass_3D(m,part,conn_comp,number_of_clusters)
 
 
 

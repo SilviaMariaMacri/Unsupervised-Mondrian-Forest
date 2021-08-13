@@ -158,14 +158,9 @@ def MinDistBetweenPart(data1,data2,tagli_paralleli):
 
 
 # assegnare classi a punti
-
-
-def AssignClass(G,X,p_red,m_red,tagli_paralleli):
-
-	p = p_red.copy()
+def AssignClass(G,X,p,m_leaf,tagli_paralleli):
 	
-	#p = part.query('leaf==True').copy()
-	#p.index = np.arange(len(p))
+	
 	if tagli_paralleli==True:
 		a = AssignPartition(X,part)
 	data = pd.DataFrame()
@@ -174,7 +169,7 @@ def AssignClass(G,X,p_red,m_red,tagli_paralleli):
 			data_part = a.query('part_number=='+str(p.iloc[i]['part_number'])).copy()
 		else:
 			#data_part = m[p.iloc[i]['part_number']][2]
-			data_part = pd.DataFrame(m_red[p.iloc[i]['part_number']])
+			data_part = pd.DataFrame(m_leaf[i])
 			data_part['part_number'] = int(p.iloc[i]['part_number'])*np.ones(len(data_part)).astype(int)
 			#print(len(data_part))
 		data = pd.concat([data,data_part])
@@ -286,11 +281,11 @@ def MergePart(m,part):
 
 
 
-
+m
 #print
 # score = 'var','centroid','min'
 #tagli_paralleli = True,False
-def PartLinkScore(X,part,m,score,tagli_paralleli):
+def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
 	
 	# è utile tener conto del numero di punti contenuti in una partizione? ()
 	#merged_partitions,p,m_red = MergePart(m,part)
@@ -311,18 +306,18 @@ def PartLinkScore(X,part,m,score,tagli_paralleli):
 	diff_minimi = []
 
 	for i in range(len(p)):
-		print('i = ',i)
+		#print('i = ',i)
 		for j in p.iloc[i]['neighbors']:
-			print(j)
+			#print(j)
 			if type(j)!=int:
 				continue
 			if tagli_paralleli == True:
 				data1 = a.query('part_number=='+str(p.iloc[i]['part_number']))
 				data2 = a.query('part_number=='+str(j))
 			else:
-				data1 = pd.DataFrame(m_red[i])#pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
-				data2 = pd.DataFrame(m_red[p[p['part_number']==j].index[0]])#pd.DataFrame(m[j]) #m[j][2]
-				print(data2)
+				data1 = pd.DataFrame(m_leaf[i])#pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
+				data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])#pd.DataFrame(m[j]) #m[j][2]
+				
  
 			part1.append(p.iloc[i]['part_number'])
 			part2.append(j)
@@ -364,7 +359,7 @@ def PartLinkScore(X,part,m,score,tagli_paralleli):
 	#df_var['mean_difference_neighbors'] = 
 	#df_var['diff_pesata'] = df_var['mean_dist_centr12']*(df_var['#points_1']+df_var['#points_2']) - (df_var['mean_dist_centr1']*df_var['#points_1'] + df_var['mean_dist_centr2']*df_var['#points_2'])/2
 	
-	return part_links,merged_partitions
+	return part_links
 
 
 
@@ -387,7 +382,7 @@ def Network(part_links,weight):
 
 
 
-def Percolation(X,G,edgelist,tagli_paralleli,merged_partitions,p_red,m_red): 
+def Percolation(X,G,edgelist,tagli_paralleli,merged_part,p,m_leaf): 
 	
 	number_connected_components = []
 	connected_components = []
@@ -402,15 +397,15 @@ def Percolation(X,G,edgelist,tagli_paralleli,merged_partitions,p_red,m_red):
 		
 		for j in range(len(conn_comp)):
 			for k in conn_comp[j]:
-				if k in list(merged_partitions['part_to_merge']):
+				if k in list(merged_part['part_to_merge']):
 					print(k)
-					associated_part = merged_partitions[merged_partitions['part_to_merge']==k]['part_single_data']
+					associated_part = merged_part[merged_part['part_to_merge']==k]['part_single_data']
 					for l in range(len(associated_part)):
 						conn_comp[j].append(float(associated_part.iloc[l]))
 		
 		connected_components.append(conn_comp)
 		
-		data = AssignClass(G,X,p_red,m_red,tagli_paralleli)#AssignClass(G,X,part,m,tagli_paralleli)
+		data = AssignClass(G,X,p,m_leaf,tagli_paralleli)#AssignClass(G,X,part,m,tagli_paralleli)
 		data['index'] = data['index'].astype(int)
 		list_class.append(data[['index','class']])
 	
@@ -444,20 +439,19 @@ def Classification(part,m,X,namefile,score,weight,tagli_paralleli):
 	part_copy = part.copy()
 	m_copy = m.copy()	
 	merged_part,p,m_leaf =  MergePart(m_copy,part_copy)
-	part_links,merged_partitions,p_red,m_red = PartLinkScore(X,part,m,score,tagli_paralleli)
+	part_links = PartLinkScore(X,p,m_leaf,score,tagli_paralleli)
 	
 	G,A,edgelist = Network(part_links,weight)
 	A.to_csv(namefile+'_ad_matrix.txt',sep='\t',index=True)
 	
-	edgelist_percolation,list_class_fin,conn_comp_fin = Percolation(X,G,edgelist,tagli_paralleli,merged_partitions,p_red,m_red)
+	edgelist_percolation,list_class_fin,conn_comp_fin = Percolation(X,G,edgelist,tagli_paralleli,merged_part,p,m_leaf)
 	
 	with open(namefile+'_list_class.json', 'w') as f:
 	    f.write(json.dumps([df.to_dict() for df in list_class_fin]))
 	
 	with open(namefile+'_conn_comp.json', 'w') as f:
 	    f.write(json.dumps([df for df in conn_comp_fin]))
-		
-	
+
 	return
 
 

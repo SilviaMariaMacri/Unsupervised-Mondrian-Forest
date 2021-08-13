@@ -50,7 +50,7 @@ for i in range(number_of_iterations):
 
 
 number_of_iterations = 1
-name = 'makemoons1_'
+name = 'prova_'
 
 list_part = []
 list_m = []
@@ -63,8 +63,8 @@ for i in range(number_of_iterations):
 	part = json.load(open(namefile+'_part.json','r'))
 	part = pd.DataFrame(part)
 	m = json.load(open(namefile+'_m.json','r'))
-	classified_data = json.load(open(namefile+'_list_class.json','r'))
-	conn_comp = json.load(open(namefile+'_conn_comp.json','r'))
+	classified_data = json.load(open(namefile+'_NUOVO_list_class.json','r'))
+	conn_comp = json.load(open(namefile+'_NUOVO_conn_comp.json','r'))
 	
 	list_part.append(part)
 	list_m.append(m)	
@@ -79,9 +79,9 @@ for i in range(number_of_iterations):
 #name_file = False #se non vuoi salvare plot
 #coeff_medio = ClassificationScore(list_class,name_file)
 
-#number_of_iterations = 3
-#for i in range(number_of_iterations):
-	i=0
+number_of_iterations = 1
+for i in range(number_of_iterations):
+	#i=0
 	part = list_part[i]
 	m = list_m[i]
 	classified_data = list_class[i]

@@ -211,7 +211,7 @@ def PlotPolygon(m,part):
 			y_avg = np.mean(b[1])
 			ax.text(x_avg,y_avg,part.query('leaf==True')['part_number'].iloc[i])
 			
-			if isinstance(m, dict):
+			if isinstance(m, list):
 				data = pd.DataFrame(m[part.query('leaf==True')['part_number'].iloc[i]])
 				ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
 		if isinstance(m, np.ndarray):
@@ -292,7 +292,7 @@ def PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file):
 			y_avg = np.mean(b[1])
 			ax.text(x_avg,y_avg,p2['part_number'].iloc[0])
 			
-			data = pd.DataFrame(m[list(conn_comp[number_of_clusters-1][j])[k]])
+			data = pd.DataFrame(m[int(list(conn_comp[number_of_clusters-1][j])[k])])
 			ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
 	#ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
 	

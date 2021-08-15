@@ -122,7 +122,7 @@ def Centroid_part_vicine(data1,data2):
 
 
 
-
+#in MergePart data1 corrisponde alla partizione con dato singolo
 
 
 def MinDistBetweenPart(data1,data2,tagli_paralleli):
@@ -148,12 +148,27 @@ def MinDistBetweenPart(data1,data2,tagli_paralleli):
 		min_tot = list(min_tot)
 		min_tot.remove(np.inf)
 	media = np.mean(min_tot)
-	
+	mean2 = np.mean(min2)
+		
 	dist = cdist(data1,data2)
+	#data1 = righe
+	#data2 = colonne
 	min_dist_fra_partizioni = dist.min()
-
+	ind = np.unravel_index(np.argmin(dist, axis=None), dist.shape)
 	
-	return media,min_dist_fra_partizioni	  
+	dist_point2 = pd2[ind[1]]
+	dist_point2 = np.delete(dist_point2,ind[1])
+	min_data2 = np.min(dist_point2)
+		
+	try:
+		dist_point1 = pd1[ind[0]]
+		dist_point1 = np.delete(dist_point1,ind[0])
+		min_data1 = np.min(dist_point1)
+		mean1 = np.mean(min1)	
+	except ValueError:
+		return media,min_dist_fra_partizioni,min_data2,mean2
+	
+	return media,min_dist_fra_partizioni,min_data1,min_data2,mean1,mean2	  
 
 
 
@@ -209,12 +224,15 @@ def MergePart(m,part):
 			part_with_single_data = p['part_number'].iloc[i]
 			list_part_with_single_data.append(part_with_single_data)
 			#cerco minima distanza con part vicine
-			data1 = m_i
+			data1 = m_i.copy()
 			min_dist = []
 			for j in p['neighbors'].iloc[i]:
 				data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])
-				media,min_dist_fra_partizioni = MinDistBetweenPart(data1,data2,False)#forse il False lo devi modificare	
-				min_dist.append(min_dist_fra_partizioni)
+				if len(data2) > 1:
+					media,min_dist_fra_partizioni,min_data2,mean2 = MinDistBetweenPart(data1,data2,False)#forse il False lo devi modificare	
+					min_dist.append(min_dist_fra_partizioni+min_data2)
+				else:
+					min_dist.append(np.inf)
 			minimo_fra_minimi = min(min_dist)
 			index_nearest_part = min_dist.index(minimo_fra_minimi)
 			part_to_merge = p['neighbors'].iloc[i][index_nearest_part]
@@ -281,7 +299,7 @@ def MergePart(m,part):
 
 
 
-m
+
 #print
 # score = 'var','centroid','min'
 #tagli_paralleli = True,False
@@ -304,7 +322,13 @@ def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
 	ratio_centroid = []
 	difference_centroid = []
 	diff_minimi = []
-
+	'''
+	list_min_dist_i = []
+	list_min_data1=[]
+	list_min_data2=[]
+	list_mean1=[]
+	list_mean2=[]
+	'''
 	for i in range(len(p)):
 		#print('i = ',i)
 		for j in p.iloc[i]['neighbors']:
@@ -335,12 +359,28 @@ def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
 					ratio,difference  = Centroid_part_vicine(data1,data2)
 					ratio_centroid.append(ratio)
 					difference_centroid.append(difference)
-
+ 
 			if score == 'min':
-				media_i,min_dist_i = MinDistBetweenPart(data1,data2,tagli_paralleli)
-				differenza_minimi = min_dist_i - media_i
+				media_i,min_dist_i,min_data1,min_data2,mean1,mean2 = MinDistBetweenPart(data1,data2,tagli_paralleli)
+				differenza_minimi = abs(min_dist_i - media_i) + min_data1 + min_data2
 				diff_minimi.append(differenza_minimi)
-						
+				#differenza_minimi = abs(min_dist_i*(min_data1/mean1)*(min_data2/mean2) - media_i)
+				#3differenza_minimi = (min_dist_i - media_i)*(min_data1/mean1)*(min_data2/mean2)
+				#4differenza_minimi = (min_dist_i - media_i)*(min_data1/mean1 + min_data2/mean2)
+				#1differenza_minimi = (min_dist_i - media_i)*min_data1*min_data2
+				#prova5 = differenza_minimi = (min_dist_i*(min_data1/mean1 + min_data2/mean2) - media_i)
+				#prova6 = differenza_minimi = (min_dist_i*(min_data1/mean1)*(min_data2/mean2) - media_i)
+				#valoreassoluto = abs(differenza_minimi)
+				#14agosto = differenza_minimi = abs(min_dist_i - media_i)*(min_data1/mean1)*(min_data2/mean2)
+				
+				
+				#list_min_dist_i.append(min_dist_i)
+				#list_min_data1.append(min_data1)
+				#list_min_data2.append(min_data2)
+				#list_mean1.append(mean1)
+				#list_mean2.append(mean2)
+				
+				
 	if score == 'var':
 		part_links = {'part1':part1,'part2':part2,'var_part_unica':v_unica,'var_sep':v_sep}
 		part_links = pd.DataFrame(part_links)
@@ -351,7 +391,7 @@ def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
 		part_links = pd.DataFrame(part_links)
 
 	if score == 'min':
-		part_links = {'part1':part1,'part2':part2,'diff_min':diff_minimi}
+		part_links = {'part1':part1,'part2':part2,'diff_min':diff_minimi}#,'min_dist':list_min_dist_i,'min_data1':list_min_data1,'min_data2':list_min_data2,'mean1':list_mean1,'mean2':list_mean2}
 		part_links = pd.DataFrame(part_links)
 
 
@@ -389,7 +429,7 @@ def Percolation(X,G,edgelist,tagli_paralleli,merged_part,p,m_leaf):
 	list_class = []
 	
 	for i in range(len(edgelist)):
-		print(i)
+		#print(i)
 		G.remove_edge(edgelist['source'].iloc[i],edgelist['target'].iloc[i])
 		number_connected_components.append(nx.number_connected_components(G))
 		conn_comp = [list(ele) for ele in list(nx.connected_components(G))]
@@ -398,7 +438,7 @@ def Percolation(X,G,edgelist,tagli_paralleli,merged_part,p,m_leaf):
 		for j in range(len(conn_comp)):
 			for k in conn_comp[j]:
 				if k in list(merged_part['part_to_merge']):
-					print(k)
+					#print(k)
 					associated_part = merged_part[merged_part['part_to_merge']==k]['part_single_data']
 					for l in range(len(associated_part)):
 						conn_comp[j].append(float(associated_part.iloc[l]))
@@ -430,15 +470,16 @@ def Percolation(X,G,edgelist,tagli_paralleli,merged_part,p,m_leaf):
 	return edgelist_percolation,list_class_fin,conn_comp_fin
 
 
-
+print
 
 
 
 def Classification(part,m,X,namefile,score,weight,tagli_paralleli):	
 	
-	part_copy = part.copy()
-	m_copy = m.copy()	
-	merged_part,p,m_leaf =  MergePart(m_copy,part_copy)
+	#part_copy = part.copy()
+	#m_copy = m.copy()	
+	merged_part,p,m_leaf =  MergePart(m,part)
+	print(merged_part)
 	part_links = PartLinkScore(X,p,m_leaf,score,tagli_paralleli)
 	
 	G,A,edgelist = Network(part_links,weight)
@@ -506,445 +547,5 @@ def ClassificationScore(list_class,name_file):
 	
 	
 
-
-
-
-
-
-'FINEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE'
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-#%%
-
-#part[['time', 'father', 'part_number', 'neighbors', 'leaf']]
-#part.query('leaf==True')
-import numpy as np
-import pandas as pd
-from scipy.spatial.distance import cdist,pdist
-import seaborn as sns
-import matplotlib.pylab as plt
-from matplotlib.patches import Polygon
-
-
-
-def calcolo_varianza_part_vicine(data1,data2):
-	
-	data1 = data1.drop('index',axis=1)
-	data2 = data2.drop('index',axis=1)
-	
-	pd1 = pdist(data1)
-	pd2 = pdist(data2)
-	
-	data = np.vstack([np.array(data1),np.array(data2)])
-	pd = pdist(data)
-	pd12 = np.hstack([pd1, pd2])
-	
-	var_part_unica = np.var(pd)
-	var1 = np.var(pd1)
-	var2 = np.var(pd2)
-	var_entrambe_separate = np.var(pd12) 
-
-	
-	return var_part_unica,var1,var2,var_entrambe_separate
-
-
-def calcolo_dist_part_vicine(data1,data2):
-	
-	data1 = data1.drop('index',axis=1)
-	data2 = data2.drop('index',axis=1)
-	
-	pd1 = cdist(data1,data1)
-	i1_data1,i2_data1 = np.tril_indices(len(data1), k=-1)
-	pd2 = cdist(data2,data2)
-	i1_data2, i2_data2 = np.tril_indices(len(data2), k=-1)
-
-
-	df1 = {'i1':i1_data1,'i2':i2_data1,'dist':pd1[i1_data1,i2_data1]}
-	df1 = pd.DataFrame(df1)
-	min1 = []
-	for i in range(df1['i1'].max()+1):
-		x = df1.query('i1=='+str(i)+' or i2=='+str(i))['dist'].min()
-		min1.append(x)
-
-
-	df2 = {'i1':i1_data2,'i2':i2_data2,'dist':pd2[i1_data2,i2_data2]}
-	df2 = pd.DataFrame(df2)
-	min2 = []
-	for i in range(df2['i1'].max()+1):
-		x = df2.query('i1=='+str(i)+' or i2=='+str(i))['dist'].min()
-		min2.append(x)
-	
-	
-	min_tot = np.hstack([min1,min2])
-	#media1 = np.mean(min1)
-	#media2 = np.mean(min2)
-	#min_media_sep = (media1+media2)/2
-	media = np.mean(min_tot)
-	var = np.sqrt(np.var(min_tot))
-
-
-	
-	dist = cdist(data1,data2)
-	min_dist_fra_partizioni = dist.min()
-
-	
-	return media,var,min_dist_fra_partizioni
-
-
-
-
-
-#%%
-
-#devi fare la media delle distanze minime fra coppie di punti
-
-
-#varianza
-soglia= 2.5
-#minimi
-coeff=3
-
-
-
-
-
-part1 = []
-part2 = []
-v_unica = []
-#v1 = []
-#v2 = []
-v_sep = []
-media=[]
-std_dev=[]
-min_dist=[]
-
-p = part.query('leaf==True').copy()
-p.index = np.arange(len(p))
-
-for i in range(len(p)):
-	print(i)
-	
-	for j in p.iloc[i]['neighbors']:
-		if type(j)!=int:
-			continue
-		
-		
-		data1 = m[p.iloc[i]['part_number']][2]
-		data2 = m[j][2]
-		
-		if (len(data1)==1) or (len(data2)==1):
-			continue
-		
-		 
-		part1.append(p.iloc[i]['part_number'])
-		part2.append(j)
-		
-		var_part_unica,var1,var2,var_entrambe_separate = calcolo_varianza_part_vicine(data1,data2)
-		v_unica.append(var_part_unica)
-		#v1.append(var1)
-		#v2.append(var2)
-		v_sep.append(var_entrambe_separate)
-
-		media_i,std_dev_i,min_dist_i = calcolo_dist_part_vicine(data1,data2)
-		media.append(media_i)
-		std_dev.append(std_dev_i)
-		min_dist.append(min_dist_i)
-
-
-#varianza		
-df_var = {'part1':part1,'part2':part2,'var_part_unica':v_unica,'var_sep':v_sep}
-df_var = pd.DataFrame(df_var)
-df_var['ratio'] = df_var['var_part_unica']/df_var['var_sep']
-
-df_var.eval('stessa_classe = ratio<'+str(soglia),inplace=True)
-
-
-
-#minimi ecc
-df_min = {'part1':part1,'part2':part2,'media':media,'std_dev':std_dev,'min_dist':min_dist}
-df_min = pd.DataFrame(df_min)
-
-df_min.eval('stessa_classe = min_dist < media + '+str(coeff)+'*std_dev',inplace=True)  #puoi moltiplicare qualcosa per la std dev
-
-
-df = [df_var,df_min]
-titolo = ['calcolo varianza, soglia='+str(soglia),'min, coeff='+str(coeff)]
-
-
-dataframe_tot = []
-
-
-
-
-
-for k in range(2):
-	partizione = []
-	stessa_classe = []
-	classe_diversa = []
-	for i in p['part_number']:
-		partizione.append(i)
-		
-		df_ridotto1 = df[k].query('part1=='+str(i)+' and stessa_classe==True').copy()
-		df_ridotto2 = df[k].query('part2=='+str(i)+' and stessa_classe==True').copy()
-		
-		part_stessa_classe = np.unique(np.hstack([list(df_ridotto1['part2']),list(df_ridotto2['part1'])]))
-		stessa_classe.append(part_stessa_classe)
-		
-		df_ridotto1 = df[k].query('part1=='+str(i)+' and stessa_classe==False').copy()
-		df_ridotto2 = df[k].query('part2=='+str(i)+' and stessa_classe==False').copy()
-		
-		part_classe_diversa = np.unique(np.hstack([list(df_ridotto1['part2']),list(df_ridotto2['part1'])]))
-		classe_diversa.append(part_classe_diversa)
-		
-	dataframe = {'partizione':partizione,'stessa_classe':stessa_classe,'classe_diversa':classe_diversa}
-	dataframe=pd.DataFrame(dataframe)
-		
-	
-	
-
-
-	# assegna classe
-	
-	classe = []
-	classe.append([0])
-	for i in range(len(dataframe)-1):
-		classe.append([])
-		
-		
-	dataframe['classe'] = classe
-	#dataframe['classe2'] = classe2
-	
-	
-	h=[]
-	for i in range(len(dataframe)):
-		if len(dataframe['stessa_classe'].iloc[i]) != 0:
-			h.append(dataframe['partizione'].iloc[i])
-			break
-	for i in h:
-		for j in dataframe.query('partizione=='+str(i))['stessa_classe'].iloc[0]:
-			dataframe.query('partizione=='+str(j))['classe'].iloc[0].append(0)
-			if j not in h:
-				h.append(j)
-			
-
-	'''
-	h = []
-	classe = []
-	for i in range(len(dataframe)):
-		classe.append([])
-	for i in range(len(dataframe)):
-		if len(dataframe['stessa_classe'].iloc[i]) != 0:
-			classe[i].append(1)
-			h.append(dataframe['partizione'].iloc[i])
-			break
-	for i in h:
-		for j in dataframe.query('partizione=='+str(i))['stessa_classe'].iloc[0]:
-			classe[dataframe[dataframe['partizione'] == j].index[0]].append(1)
-			if j not in h:
-				h.append(j)
-	
-	k= []
-	for i in range(len(dataframe)):
-		if len(classe[i]) == 0:
-			classe[i].append(0)  # problema
-			k.append(dataframe['partizione'].iloc[i])
-			
-	for i in k:
-		for j in dataframe.query('partizione=='+str(i))['stessa_classe'].iloc[0]:
-			classe[dataframe[dataframe['partizione'] == j].index[0]].append(0)
-			if j not in k:
-				k.append(j)
-			
-	'''			
-
-	
-	
-	
-	dataframe_tot.append(dataframe)
-	
-	
-	sns.set_style('whitegrid')
-	fig,ax = plt.subplots()
-	
-	
-	for i in range(len(p)):
-		box_new = p['box'].iloc[i]
-		if len(dataframe[dataframe['partizione']==p['part_number'].iloc[i]]['classe'].iloc[0]) !=0:
-			poligono = Polygon(box_new, facecolor = 'blue', alpha=0.5, edgecolor='black')
-			ax.add_patch(poligono)
-			b = pd.DataFrame(box_new)
-			x_avg = np.mean(b[0])
-			y_avg = np.mean(b[1])
-			ax.text(x_avg,y_avg,p['part_number'].iloc[i])#,color='b')
-	
-		else:
-			poligono = Polygon(box_new, facecolor = 'orange',alpha=0.5, edgecolor='black')
-			ax.add_patch(poligono)
-			b = pd.DataFrame(box_new)
-			x_avg = np.mean(b[0])
-			y_avg = np.mean(b[1])
-			ax.text(x_avg,y_avg,p['part_number'].iloc[i])#,color='orange')
-			
-	ax.set_title(titolo[k])
-				
-	ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
-				
-	plt.show()
-			
-		
-	
-	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#%%
-#       trovare partizioni vicine tagli perpendicolari
-
-
-#Mondrian tagli paralleli
-def trova_part_vicine(part):
-
-
-	neighbors = []
-	
-	for i in range(len(part.query('leaf==True'))):
-		
-		p = part.query('leaf==True').copy()
-		p.index = np.arange(len(part.query('leaf==True')))
-		
-		for j in range(2):
-			p['min'+str(j)+'_'+str(i)] = p['min'+str(j)].iloc[i]
-			p['max'+str(j)+'_'+str(i)] = p['max'+str(j)].iloc[i]
-			
-		for j in range(2):	
-			p=(p.eval('vicinoA'+str(j)+'_'+str(i)+' = ((min'+str(j)+'>=min'+str(j)+'_'+str(i)+') and (min'+str(j)+'<=max'+str(j)+'_'+str(i)+')) or ( (max'+str(j)+'>=min'+str(j)+'_'+str(i)+') and (max'+str(j)+'<=max'+str(j)+'_'+str(i)+'))')
-		 .eval('vicinoB'+str(j)+'_'+str(i)+' = ((min'+str(j)+'_'+str(i)+'>=min'+str(j)+') and (min'+str(j)+'_'+str(i)+'<=max'+str(j)+')) or ( (max'+str(j)+'_'+str(i)+'>=min'+str(j)+') and (max'+str(j)+'_'+str(i)+'<=max'+str(j)+'))'))
-			
-			#p=p.query('vicino'+str(j)+'_'+str(i)+'==True')
-			p=p.query('(vicinoA'+str(j)+'_'+str(i)+'==True) or (vicinoB'+str(j)+'_'+str(i)+'==True)')
-			
-			
-		p = p.drop(i)
-		
-		neighbors.append(list(p['part_number']))
-	
-	
-	
-	df={'part_number':part.query('leaf==True')['part_number'],'neighbors':neighbors}
-	df=pd.DataFrame(df)
-	df.index = np.arange(len(df))
-	
-
-
-
-	return df
-# per più di due dimensioni?
-# come generalizzarla a partizione con tagli non regolari?
-
-
-
-
-
-#  calcolo varianza per partizioni vicine 
-
-
-def calcolo_varianza_part_vicine(data,i,j):
-	
-	
-	
-	data1 = data.query('part_number=='+str(i))
-	data2 = data.query('part_number=='+str(j))
-	
-	pd1 = pdist(data1)
-	pd2 = pdist(data2)
-	
-	pd = pdist(data)
-	pd12 = np.hstack([pd1, pd2])
-	
-	var_part_unica = np.var(pd)
-	var1 = np.var(pd1)
-	var2 = np.var(pd2)
-	
-	#var_part_separate = np.var(pd12)
-	#score_1 = np.abs(np.log(np.var(pd12)/np.var(pd)))
-	#score_2 = np.abs(np.log(np.var(pd1)/np.var(pd2)))
-	#print(score_1>score_2)
-
-	
-	return var_part_unica,var1,var2 #score_1,score_2, var_part_unica,var_part_separate
-
-
-
-
-
-part_vicine = trova_part_vicine(part)
-punti = AssignPartition(X,part)
-
-#separazione_corretta = [] 
-
-
-part1 = []
-part2 = []
-score_1 = []
-score_2 = []
-#v_unica = []
-#v_sep = []
-
-
-for i in part_vicine['part_number']:
-	
-	for j in list(part_vicine[part_vicine['part_number']==i]['neighbors'])[0]:
-		part2.append(j)
-		part1.append(i)
-		
-		p = punti.query('(part_number=='+str(i)+') or (part_number=='+str(j)+')').copy()
-		
-		
-		var_part_unica,var1,var2 = calcolo_varianza_part_vicine(punti,i,j)
-		#s1,s2,v1,v2 = calcolo_varianza_part_vicine(punti,i,j)
-		#score_1.append(s1)
-		#score_2.append(s2)
-		#v_unica.append(v1)
-		#v_sep.append(v2)
-		
-		
-df = {'part1':part1,'part2':part2,'var_part_unica':var_part_unica,'var1':var1,'var2':var2}#'score_1':score_1,'score_2':score_2}		
-df = pd.DataFrame(df)		#'v_unica':v_unica,'v_sep':v_sep}#
-		#if s1 > s2:
-		#	separazione_corretta.append(True)
-		#else:
-		#	separazione_corretta.append(False)
-		
-
-		
-		
-	
-#conto_punti = punti.query('part_number=='+str(i)).count()[0]
 
 

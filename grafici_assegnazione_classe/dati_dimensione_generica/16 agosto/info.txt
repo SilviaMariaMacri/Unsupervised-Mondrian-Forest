@@ -1,0 +1,2 @@
+makeblobs_3D:
+dat = datasets.make_blobs(n_samples=[30,30,30,30,30],n_features=3,cluster_std=1,random_state=1)

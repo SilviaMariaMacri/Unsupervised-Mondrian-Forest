@@ -172,6 +172,56 @@ def MinDistBetweenPart(data1,data2):#,tagli_paralleli
 
 
 
+
+
+
+
+def MinDistBetweenPart_SUM(data1,data2):
+	
+	data1 = data1.drop('index',axis=1) 
+	data2 = data2.drop('index',axis=1)
+	
+	data1 = np.array(data1)
+	data2 = np.array(data2)
+	
+	pd1 = cdist(data1,data1)
+	pd2 = cdist(data2,data2)
+			
+	min1 = np.min(np.where(pd1!= 0, pd1, np.inf),axis=0)
+	min2 = np.min(np.where(pd2!= 0, pd2, np.inf),axis=0)
+			
+	min_tot = np.hstack([min1,min2])
+	if np.inf in min_tot:
+		min_tot = list(min_tot)
+		min_tot.remove(np.inf)
+	media = np.mean(min_tot)
+		
+	dist = cdist(data1,data2)
+	#data1 = righe
+	#data2 = colonne
+	min_dist_fra_partizioni = dist.min()
+	ind = np.unravel_index(np.argmin(dist, axis=None), dist.shape)
+	#da ind ricavo A e B
+	
+	dist_point1 = pd1[ind[0]]
+	dist_point1 = np.where(dist_point1!= 0, dist_point1, np.inf)
+	ind1 = np.unravel_index(np.argmin(dist_point1, axis=None), dist_point1.shape)
+	ind1 = ind1[0] 
+	dist1 = dist[ind1,:]
+	min_dist1 = np.min(dist1)
+	
+	dist_point2 = pd2[ind[1]]
+	dist_point2 = np.where(dist_point2!= 0, dist_point2, np.inf)
+	ind2 = np.unravel_index(np.argmin(dist_point2, axis=None), dist_point2.shape)
+	ind2 = ind2[0] #nuovo punto in data2
+	dist2 = dist[:,ind2]
+	min_dist2 = np.min(dist2)
+		
+	return media,min_dist_fra_partizioni,min_dist1,min_dist2  
+
+
+
+
 # assegnare classi a punti
 def AssignClass(G,X,p,m_leaf,tagli_paralleli):
 	
@@ -205,7 +255,7 @@ def AssignClass(G,X,p,m_leaf,tagli_paralleli):
 
 def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
 	
-	p = p_true.copy(deep=True)
+	p = p_true.copy()
 	m_leaf = m_leaf_true.copy()
 	index1 = p[p['part_number']==part_to_remove].index[0]
 	index2 = p[p['part_number']==part_to_merge].index[0]
@@ -217,22 +267,26 @@ def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
 	data2.index = np.arange(len(data2))
 	m_leaf[index2] = data2.to_dict()
 	
-	#neigh = list(p['neighbors'])
-	#merged_part = list(p['merged_part'])
+	neigh = list(p['neighbors'])
+	merged_part = list(p['merged_part'])
 			
 	#sostituisco vicini in tutte le partizioni di p e aggiungo vicini di single_part a part unita
-	p['neighbors'].iloc[index1].remove(part_to_merge)
-	p['neighbors'].iloc[index2].remove(part_to_remove)
-	for j in p['neighbors'].iloc[index1]:
-		if j not in p['neighbors'].iloc[index2]:
-			p['neighbors'].iloc[index2].append(j)
-		p['neighbors'].iloc[p[p['part_number']==j].index[0]].remove(part_to_remove)
-		if part_to_merge not in p['neighbors'].iloc[p[p['part_number']==j].index[0]]:
-			p['neighbors'].iloc[p[p['part_number']==j].index[0]].append(part_to_merge)
+	neigh[index1].remove(part_to_merge)
+	neigh[index2].remove(part_to_remove)
+	for j in neigh[index1]:
+		if j not in neigh[index2]:
+			neigh[index2].append(j)
+		neigh[p[p['part_number']==j].index[0]].remove(part_to_remove)
+		if part_to_merge not in neigh[p[p['part_number']==j].index[0]]:
+			neigh[p[p['part_number']==j].index[0]].append(part_to_merge)
 	
-	for j in p['merged_part'].iloc[index1]:
-		p['merged_part'].iloc[index2].append(j)
-	p['merged_part'].iloc[index2].append(part_to_remove)
+	for j in merged_part[index1]:
+		merged_part[index2].append(j)
+	merged_part[index2].append(part_to_remove)
+	
+	p['neighbors'] = neigh
+	p['merged_part'] = merged_part
+	
 	p = p.drop(index1)
 	p.index = np.arange(len(p))
 	m_leaf = np.delete(m_leaf, index1).tolist()
@@ -274,8 +328,9 @@ def MergePart_SingleData(m,part):
 			for j in p['neighbors'].iloc[index1]:
 				data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])
 				if len(data2) > 1:
-					media,min_dist_fra_partizioni,min_data2,mean2 = MinDistBetweenPart(data1,data2)	
-					min_dist.append(min_dist_fra_partizioni + min_data2)
+					#media,min_dist_fra_partizioni,min_data2,mean2 = MinDistBetweenPart(data1,data2)	
+					media,min_dist_fra_partizioni,min_dist1,min_dist2 = MinDistBetweenPart_SUM(data1,data2)
+					min_dist.append(min_dist_fra_partizioni + min_dist2)
 				else:
 					min_dist.append(np.inf)
 			minimo_fra_minimi = min(min_dist)
@@ -389,8 +444,9 @@ def PartLinkScore(m_leaf,p,score):#X,,tagli_paralleli
 					difference_centroid.append(difference)
  
 			if score == 'min':
-				media_i,min_dist_i,min_data1,min_data2,mean1,mean2 = MinDistBetweenPart(data1,data2)
-				differenza_minimi = abs(min_dist_i - media_i) + min_data1 + min_data2
+				#media_i,min_dist_i,min_data1,min_data2,mean1,mean2 = MinDistBetweenPart(data1,data2)
+				media_i,min_dist_i,min_dist1,min_dist2 = MinDistBetweenPart_SUM(data1,data2)
+				differenza_minimi = abs(min_dist_i - media_i) + min_dist1 + min_dist2
 				diff_minimi.append(differenza_minimi)
 				#differenza_minimi = abs(min_dist_i*(min_data1/mean1)*(min_data2/mean2) - media_i)
 				#3differenza_minimi = (min_dist_i - media_i)*(min_data1/mean1)*(min_data2/mean2)
@@ -527,59 +583,86 @@ def Classification_TD(part,m,X,namefile,score,weight,tagli_paralleli):
 
 	return
 
+	
+	#m
+	lista = list(np.array(m,dtype=object)[:,2])
+	for i in lista:
+		i.columns = i.columns.astype(str)
+	with open(namefile+'_m.json', 'w') as f:
+		f.write(json.dumps([df.to_dict() for df in lista]))
+	return
 
 
 
-def Classification_BU(m,part,weight,score):#,namefile):
+def Classification_BU(m,part,weight,score,namefile):
+	
+	#namefile = 'prova1'
 	
 	m_leaf,p =  MergePart_SingleData(m,part)
 	print(p)
+	
+	p.to_json(namefile+'_p_0.json')	
+	with open(namefile+'_m_leaf_0.json', 'w') as f:
+	    f.write(json.dumps([df for df in m_leaf]))
+	
+	
 	G = nx.Graph()
 	for i in range(len(p)):
 		G.add_node(p['part_number'].iloc[i])
-	
-	list_p = []
-	list_m = []
-	list_p.append(p)
-	list_m.append(m_leaf)
+		
+	#list_p = []
+	#list_m = []
+	#list_p.append(p_copia)
+	#list_m.append(m_leaf_copia)
+	c = 0
 	while nx.number_connected_components(G) > 1:
+		c += 1
+		
 		part_links = PartLinkScore(m_leaf,p,score)
 		G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links[weight].iloc[0])
 		m_leaf,p = MergePart(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
-		list_p.append(p)
-		list_m.append(m_leaf)
-		print(p)
+		
+		p.to_json(namefile+'_p_'+str(c)+'.json')	
+		with open(namefile+'_m_leaf_'+str(c)+'.json', 'w') as f:
+		    f.write(json.dumps([df for df in m_leaf]))
+		print(p)	
+		#list_p.append(p)
+		#list_m.append(m_leaf)
+		
 	
 	#list_p.reverse()
 	#list_m.reverse()
 		
-#	with open(namefile+'_p.json', 'w') as f:
-#	    f.write(json.dumps([df.to_dict() for df in list_p]))
-	
-#	with open(namefile+'_m_leaf.json', 'w') as f:
-#	    f.write(json.dumps([df for df in list_m]))
-
 		
-	return list_m,list_p
+	return #list_m,list_p
 
 
 
 	 	
 
-def Plot2D(part,list_m,list_p,number_of_clusters):
+def Plot2D(part,list_m,list_p,number_of_clusters,name_file):
 
 	p = list_p[number_of_clusters-1]
-	for i in range(len(p)):
-		p['merged_part'].iloc[i].append(p['part_number'].iloc[i])
+	
+	#for i in range(len(p)):
+	#	p['merged_part'].iloc[i].append(p['part_number'].iloc[i])
 
 	#sns.set_style('whitegrid')
 	fig,ax = plt.subplots()
 		
 	color=cm.rainbow(np.linspace(0,1,len(p)))
 	for i in range(len(p)):
+		box = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
+		pol = Polygon(box, facecolor=color[i], alpha=0.3, edgecolor='black')
+		ax.add_patch(pol)
+			
+		b = pd.DataFrame(box)
+		x_avg = np.mean(b[0])
+		y_avg = np.mean(b[1])
+		ax.text(x_avg,y_avg,p['part_number'].iloc[i])
 		for j in p['merged_part'].iloc[i]:
 			box = part[part['part_number']==j]['box'][0]
-			pol = Polygon(box, facecolor=color[i], alpha=0.5, edgecolor='black')
+			pol = Polygon(box, facecolor=color[i], alpha=0.3, edgecolor='black')
 			ax.add_patch(pol)
 			
 			b = pd.DataFrame(box)
@@ -591,6 +674,8 @@ def Plot2D(part,list_m,list_p,number_of_clusters):
 		ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
 		
 	plt.show()
+	if name_file != False:
+		plt.savefig(name_file)	
 	return
 	
 
@@ -645,5 +730,78 @@ def ClassificationScore(list_class,name_file):
 	
 	
 
+	data['class'] = 0
+	cl = np.arange(len(list_conn_comp))
+	for i in range(len(list_conn_comp)):
+		for j in list_conn_comp[i]:
+			#print(j)
+			data.loc[data.query('part_number=='+str(j)).index, 'class'] = cl[i]
 
+'''
+class_data_tot = []
+for i in range(len(list_m_leaf_tot)):
+	list_m_leaf = list_m_leaf_tot[i].copy()
+	classified_data = AssignClass_BU(list_m_leaf)
+	class_data_tot.append(classified_data)
+'''
+
+def AssignClass_BU(list_m_leaf):
+
+	classified_data = []
+	for i in range(len(list_m_leaf)):
+		classe = np.arange(len(list_m_leaf[i]))
+		df = pd.DataFrame()
+		for j in range(len(list_m_leaf[i])):
+			df_j = pd.DataFrame(list_m_leaf[i][j])
+			df_j['class'] = classe[j]
+			df = pd.concat([df,df_j])
+		df = df[['index','class']]
+		df.index = np.arange(len(df))
+		classified_data.append(df)
+		
+	return classified_data
+
+
+
+def ClassificationScore_BU(class_data_tot,name_file):
+	
+	pair = list(combinations(np.arange(len(list_m_leaf_tot)),2))
+	
+	coeff_tot = []
+	for k in range(len(pair)):
+	
+		coeff=[]
+		index1 = pair[k][0]
+		index2 = pair[k][1]
+		for i in range(min(len(class_data_tot[index1]),len(class_data_tot[index2]))):
+			cl1 = class_data_tot[index1][i]
+			cl2 = class_data_tot[index2][i]
+			coeff.append(adjusted_mutual_info_score(cl1['class'],cl2['class']))
+			
+		coeff_tot.append(coeff)
+	
+	coeff_medio = pd.DataFrame(coeff_tot).mean()
+	
+	fig,ax = plt.subplots()
+	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+	ax.scatter(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+	for i in range(len(coeff_tot)):
+		ax.plot(np.arange(2,len(coeff_tot[i])+1),coeff_tot[i][1:],alpha=0.2)
+	plt.show()
+	
+	if name_file != False:
+		plt.savefig(name_file)
+	
+	fig,ax = plt.subplots()
+	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+	ax.scatter(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
+	plt.show()
+	#linestyle = '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
+	
+	if name_file != False:
+		plt.savefig(name_file+'_medio')
+	
+	return coeff_medio
+	
+	
 

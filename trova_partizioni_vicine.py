@@ -342,40 +342,8 @@ def MergePart_SingleData(m,part):
 			
 			m_leaf,p = MergePart(m_leaf,p,i,part_to_merge)
 			
-			'''
-			#unisco i dati in m_leaf
-			data2 = pd.DataFrame(m_leaf[p[p['part_number']==part_to_merge].index[0]])
-			data2 = pd.concat([data2,data1])
-			data2.index = np.arange(len(data2))
-			m_leaf[p[p['part_number']==part_to_merge].index[0]] = data2.to_dict()
-			
-			#sostituisco vicini in tutte le partizioni di p e aggiungo vicini di single_part a part unita
-			p['neighbors'].iloc[i].remove(part_to_merge)
-			p['neighbors'].iloc[p[p['part_number']==part_to_merge].index[0]].remove(part_with_single_data)
-			for j in p['neighbors'].iloc[i]:
-				if j not in p['neighbors'].iloc[p[p['part_number']==part_to_merge].index[0]]:
-					p['neighbors'].iloc[p[p['part_number']==part_to_merge].index[0]].append(j)
-				p['neighbors'].iloc[p[p['part_number']==j].index[0]].remove(part_with_single_data)
-				if part_to_merge not in p['neighbors'].iloc[p[p['part_number']==j].index[0]]:
-					p['neighbors'].iloc[p[p['part_number']==j].index[0]].append(part_to_merge)
-			
-
-	#neigh = list(p['neighbors'])
-	#neigh_new = []
-	#for i in range(len(neigh)):
-	#	neigh_new.append(list(set(neigh[i])))
-	#p = p.drop('neighbors',axis=1)
-	#p['neighbors'] = neigh_new
-	p = p.drop(merged_part['index'])
-	p.index = np.arange(len(p))
-	m_leaf = np.delete(m_leaf, list(merged_part['index'])).tolist()
-	'''
-	
-	#merged_part = {'part_single_data':list_part_with_single_data,'part_to_merge':list_part_to_merge}#'index':index,
-	#merged_part = pd.DataFrame(merged_part)
-	
 		
-	return m_leaf,p #merged_part,
+	return m_leaf,p
 
 
 
@@ -584,19 +552,12 @@ def Classification_TD(part,m,X,namefile,score,weight,tagli_paralleli):
 	return
 
 	
-	#m
-	lista = list(np.array(m,dtype=object)[:,2])
-	for i in lista:
-		i.columns = i.columns.astype(str)
-	with open(namefile+'_m.json', 'w') as f:
-		f.write(json.dumps([df.to_dict() for df in lista]))
-	return
+
+
 
 
 
 def Classification_BU(m,part,weight,score,namefile):
-	
-	#namefile = 'prova1'
 	
 	m_leaf,p =  MergePart_SingleData(m,part)
 	print(p)
@@ -605,18 +566,11 @@ def Classification_BU(m,part,weight,score,namefile):
 	with open(namefile+'_m_leaf_0.json', 'w') as f:
 	    f.write(json.dumps([df for df in m_leaf]))
 	
-	
 	G = nx.Graph()
 	for i in range(len(p)):
 		G.add_node(p['part_number'].iloc[i])
 		
-	#list_p = []
-	#list_m = []
-	#list_p.append(p_copia)
-	#list_m.append(m_leaf_copia)
-	c = 0
 	while nx.number_connected_components(G) > 1:
-		c += 1
 		
 		part_links = PartLinkScore(m_leaf,p,score)
 		G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links[weight].iloc[0])
@@ -626,59 +580,12 @@ def Classification_BU(m,part,weight,score,namefile):
 		with open(namefile+'_m_leaf_'+str(c)+'.json', 'w') as f:
 		    f.write(json.dumps([df for df in m_leaf]))
 		print(p)	
-		#list_p.append(p)
-		#list_m.append(m_leaf)
-		
 	
-	#list_p.reverse()
-	#list_m.reverse()
-		
-		
-	return #list_m,list_p
+	return 
 
 
 
 	 	
-
-def Plot2D(part,list_m,list_p,number_of_clusters,name_file):
-
-	p = list_p[number_of_clusters-1]
-	
-	#for i in range(len(p)):
-	#	p['merged_part'].iloc[i].append(p['part_number'].iloc[i])
-
-	#sns.set_style('whitegrid')
-	fig,ax = plt.subplots()
-		
-	color=cm.rainbow(np.linspace(0,1,len(p)))
-	for i in range(len(p)):
-		box = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
-		pol = Polygon(box, facecolor=color[i], alpha=0.3, edgecolor='black')
-		ax.add_patch(pol)
-			
-		b = pd.DataFrame(box)
-		x_avg = np.mean(b[0])
-		y_avg = np.mean(b[1])
-		ax.text(x_avg,y_avg,p['part_number'].iloc[i])
-		for j in p['merged_part'].iloc[i]:
-			box = part[part['part_number']==j]['box'][0]
-			pol = Polygon(box, facecolor=color[i], alpha=0.3, edgecolor='black')
-			ax.add_patch(pol)
-			
-			b = pd.DataFrame(box)
-			x_avg = np.mean(b[0])
-			y_avg = np.mean(b[1])
-			ax.text(x_avg,y_avg,j)
-		
-		data = pd.DataFrame(list_m[0][0])
-		ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
-		
-	plt.show()
-	if name_file != False:
-		plt.savefig(name_file)	
-	return
-	
-
 
 
 
@@ -730,20 +637,6 @@ def ClassificationScore(list_class,name_file):
 	
 	
 
-	data['class'] = 0
-	cl = np.arange(len(list_conn_comp))
-	for i in range(len(list_conn_comp)):
-		for j in list_conn_comp[i]:
-			#print(j)
-			data.loc[data.query('part_number=='+str(j)).index, 'class'] = cl[i]
-
-'''
-class_data_tot = []
-for i in range(len(list_m_leaf_tot)):
-	list_m_leaf = list_m_leaf_tot[i].copy()
-	classified_data = AssignClass_BU(list_m_leaf)
-	class_data_tot.append(classified_data)
-'''
 
 def AssignClass_BU(list_m_leaf):
 

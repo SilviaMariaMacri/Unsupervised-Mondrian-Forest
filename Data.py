@@ -40,7 +40,7 @@ y = dat[1]
 
 #%% iris 4D
 iris = datasets.load_iris() 
-X = iris.data[0:20]
+X = iris.data
 y = iris.target
 
 #%% dati ruotati

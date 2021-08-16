@@ -27,16 +27,15 @@ def SaveMondrianOutput(namefile,part,m):
 
 t0 = 0
 lifetime = 5
-#dist_matrix = DistanceMatrix(X)
-number_of_iterations = 10
-name = 'makeblobs_3D_'
+dist_matrix = DistanceMatrix(X)
+number_of_iterations = 1
+name = 'iris_'
 
 for i in range(number_of_iterations):
 	m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
-	#m_i,part_i = MondrianPolygon(X,t0,lifetime,dist_matrix)
 	namefile = name+str(i+1)
 	SaveMondrianOutput(namefile,part_i,m_i)
-	
+
 	part = json.load(open(namefile+'_part.json','r'))
 	part = pd.DataFrame(part)
 	m = json.load(open(namefile+'_m.json','r'))
@@ -53,12 +52,16 @@ for i in range(number_of_iterations):
 #%% leggo file .json
 
 
-number_of_iterations = 6
+number_of_iterations = 16
 
-name = 'makemoons1_'
+name = 'makemoons_2_'
 
 list_part = []
 list_m = []
+
+list_p_tot = []
+list_m_leaf_tot = []
+
 #list_class = []
 #list_conn_comp = []
 
@@ -69,26 +72,12 @@ for i in range(number_of_iterations):
 	part = json.load(open(namefile+'_part.json','r'))
 	part = pd.DataFrame(part)
 	m = json.load(open(namefile+'_m.json','r'))
-	#classified_data = json.load(open(namefile+'_list_class.json','r'))
-	#conn_comp = json.load(open(namefile+'_conn_comp.json','r'))
 	list_part.append(part)
-	list_m.append(m)	
-	#list_class.append(classified_data)
-	#list_conn_comp.append(conn_comp)
-
-
-#%%  leggo file classificazione bottom up
-
-#namefile = 'prova1'
-
-list_p_tot = []
-list_m_leaf_tot = []
-number_of_iterations = 10
-for i in range(number_of_iterations):
+	list_m.append(m)
+	
 	list_p = []
 	list_m_leaf = []
-	namefile = 'provaSUM_'+str(i)
-	for l in range(100):
+	for l in range(1000):
 		try:
 			p = json.load(open(namefile+'_p_'+str(l)+'.json','r'))
 			p = pd.DataFrame(p)
@@ -98,47 +87,91 @@ for i in range(number_of_iterations):
 			list_m_leaf.append(m_leaf)
 		except FileNotFoundError:
 			break
-	
 	list_p.reverse()
 	list_m_leaf.reverse()
 	list_p_tot.append(list_p)
 	list_m_leaf_tot.append(list_m_leaf)
-#%%
-for i in range(len(list_p_tot)):
-	number_of_clusters  = 2
-	name_file = '2cluster_SUM_'+str(i)
-	Plot2D(list_part[i],list_m_leaf_tot[i],list_p_tot[i],number_of_clusters,name_file)
-#%% grafici
+
+	#classified_data = json.load(open(namefile+'_list_class.json','r'))
+	#conn_comp = json.load(open(namefile+'_conn_comp.json','r'))
+	#list_class.append(classified_data)
+	#list_conn_comp.append(conn_comp)
 
 
-# grafico compatibilità classificazioni
-#name_file = 'makeblobs_3D_NUOVO' #se non vuoi salvare plot
+
+
+#%%  grafico compatibilità classificazioni
+
+name_file = 'makemoons_2_'
 #coeff_medio = ClassificationScore(list_class,name_file)
 
-number_of_iterations = 6
+
+class_data_tot = []
+for i in range(len(list_m_leaf_tot)):
+	list_m_leaf = list_m_leaf_tot[i].copy()
+	classified_data = AssignClass_BU(list_m_leaf)
+	class_data_tot.append(classified_data)
+
+ClassificationScore_BU(class_data_tot,name_file)
+
+
+#%% grafici
+
+#name = 'makeblobs_3D_'
+number_of_iterations = 16
 for i in range(number_of_iterations):
 	print(i)
 
-	#i=0
+
 	part = list_part[i]
 	m = list_m[i]
-	#merged_part,p,m_leaf =  MergePart(m,part)
-	#print(merged_part)
+	list_m_leaf = list_m_leaf_tot[i]
+	list_p = list_p_tot[i]
+	#PlotPolygon(m,part)
+	
+	#namefile = name+str(i+1)
+	#Classification_BU(m,part,weight,score,namefile)
+
+	number_of_clusters = 2
+	namefile = name+str(i)
+	#for number_of_clusters in range(len(list_p)):
+	Plot2D(part,list_m_leaf,list_p,number_of_clusters,namefile)
+	#Plot3D(part,list_m,list_p,number_of_clusters)
+	
 	#classified_data = list_class[i]
 	#conn_comp = list_conn_comp[i]
-	#namefile = name+str(i+1)#+'_14agostoSOMMA'
-	#Classification(part,m,X,namefile,score,weight,tagli_paralleli)
-	#PlotPolygon(m,part)
-	# puoi fissare number_of_clusters
-	#number_of_clusters = 2
 	#for number_of_clusters in range(len(conn_comp)):
-	#name_file = False#'plot_3clusters_MP_'+str(i+1)
+	#name_file = False#'plot_3clusters_MP_'+str(i+1)	
 	#PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file)
 	#PlotClass_3D(m,part,conn_comp,number_of_clusters)
-	namefile = 'provaSUM_'+str(i)
-	Classification_BU(m,part,weight,score,namefile)
-	#for number_of_clusters in range(len(list_p)):
-	#Plot2D(part,list_m_leaf,list_p,number_of_clusters)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #%% Polygon 2D

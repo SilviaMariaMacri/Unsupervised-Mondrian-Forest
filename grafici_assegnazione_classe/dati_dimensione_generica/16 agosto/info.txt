@@ -1,2 +1,6 @@
 makeblobs_3D:
 dat = datasets.make_blobs(n_samples=[30,30,30,30,30],n_features=3,cluster_std=1,random_state=1)
+
+
+makemoons_2:
+dat = datasets.make_moons(n_samples=150,noise=0.07,random_state=10)

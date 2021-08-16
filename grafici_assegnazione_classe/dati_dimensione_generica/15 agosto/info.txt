@@ -1,0 +1,2 @@
+makemoons1:
+dat = datasets.make_moons(n_samples=150,noise=0.07,random_state=0)

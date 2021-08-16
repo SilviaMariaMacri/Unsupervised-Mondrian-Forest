@@ -1,5 +1,9 @@
 # cd "C:\Users\silvi\Desktop\Fisica\TESI\Tesi"
+import time
 
+start = time.time()
+end = time.time()
+print(end - start)
 
 #%% salvo dati
 
@@ -22,14 +26,14 @@ def SaveMondrianOutput(namefile,part,m):
 #%% Polytope dimensione generica + classificazione 
 
 t0 = 0
-lifetime = 10
-dist_matrix = DistanceMatrix(X)
-number_of_iterations = 10
-name = 'makemoons1_somma_'
+lifetime = 5
+#dist_matrix = DistanceMatrix(X)
+number_of_iterations = 1
+name = 'makemoons1_MP_'
 
 for i in range(number_of_iterations):
-	m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
-	#m_i,part_i = MondrianUnsupervised(X,t0,lifetime)
+	#m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
+	m_i,part_i = MondrianPolygon(X,t0,lifetime,dist_matrix)
 	namefile = name+str(i+1)
 	SaveMondrianOutput(namefile,part_i,m_i)
 	
@@ -84,8 +88,8 @@ for i in range(number_of_iterations):
 number_of_iterations = 10
 for i in range(number_of_iterations):
 	print(i)
-	
-	#i=10
+#%%	
+	i=0
 	part = list_part[i]
 	m = list_m[i]
 	#merged_part,p,m_leaf =  MergePart(m,part)
@@ -94,15 +98,16 @@ for i in range(number_of_iterations):
 	conn_comp = list_conn_comp[i]
 	#namefile = name+str(i+1)#+'_14agostoSOMMA'
 	#Classification(part,m,X,namefile,score,weight,tagli_paralleli)
-	
+	#PlotPolygon(m,part)
 	# puoi fissare number_of_clusters
-	number_of_clusters =3
+	number_of_clusters = 2
 	#for number_of_clusters in range(len(conn_comp)):
-	name_file = 'plot_3clusters_somma_'+str(i)
-	PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file)
+	#name_file = False#'plot_3clusters_MP_'+str(i+1)
+	#PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file)
 	#PlotClass_3D(m,part,conn_comp,number_of_clusters)
-
-
+	list_m_leaf,list_p = Classification_BU(m,part,weight,score)
+	#for number_of_clusters in range(len(list_p)):
+	#	Plot2D(part,list_m_leaf,list_p,number_of_clusters)
 
 
 #%% Polygon 2D

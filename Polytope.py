@@ -50,9 +50,11 @@ def CutMinDist(dist_matrix,data):
 		
 		dist = cdist(data1,data2)
 		min_dist_fra_partizioni = dist.min()
+		
+		
 
 		#media,min_dist_fra_partizioni = MinDist(data1,data2,matrix)
-		diff = min_dist_fra_partizioni - media
+		diff = abs(min_dist_fra_partizioni - media)
 		diff_min_dist.append(diff)
 		
 	data_pair['diff_min_dist'] = diff_min_dist
@@ -378,7 +380,7 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 
 
 
-
+'''
 #%%
 
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
@@ -435,3 +437,4 @@ ax.set_ylim(ymin,ymax)
 r = pc.Region(list(part_leaf['polytope']))
 pc.Partition(pc.union(p1,p2))
 pc.find_adjacent_regions(partition)
+'''

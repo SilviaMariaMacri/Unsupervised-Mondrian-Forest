@@ -1,14 +1,3 @@
-import time
-
-start = time.time()
-end = time.time()
-print(end - start)
-
-
-
-
-#%%
-
 import numpy as np
 from numpy.random import choice
 import pandas as pd	
@@ -16,7 +5,7 @@ from scipy.spatial import distance
 from itertools import combinations
 #import matplotlib.pyplot as plt
 #from matplotlib.patches import Polygon
-from scipy.spatial.distance import pdist
+from scipy.spatial.distance import pdist,cdist
 
 
 
@@ -371,7 +360,7 @@ def CutMinDist(dist_matrix,data):
 			min_dist_fra_partizioni = dist.min()
 
 			#media,min_dist_fra_partizioni = MinDist(data1,data2,matrix)
-			diff = min_dist_fra_partizioni - media
+			diff = abs(min_dist_fra_partizioni - media)
 			diff_min_dist.append(diff)
 		
 	data_pair['diff_min_dist'] = diff_min_dist
@@ -1015,5 +1004,5 @@ def MondrianPolygon(X,t0,lifetime,dist_matrix):
 	
 	
 	
-	return m,box,part
+	return m,part#,box
 		

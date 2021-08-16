@@ -125,14 +125,14 @@ def Centroid_part_vicine(data1,data2):
 #in MergePart data1 corrisponde alla partizione con dato singolo
 
 
-def MinDistBetweenPart(data1,data2,tagli_paralleli):
+def MinDistBetweenPart(data1,data2):#,tagli_paralleli
 	
 	data1 = data1.drop('index',axis=1) 
 	data2 = data2.drop('index',axis=1)
 	
-	if tagli_paralleli == True:
-		data1 = data1.drop('part_number',axis=1) 
-		data2 = data2.drop('part_number',axis=1)
+	#if tagli_paralleli == True:
+	#	data1 = data1.drop('part_number',axis=1) 
+	#	data2 = data2.drop('part_number',axis=1)
 		
 	data1 = np.array(data1)
 	data2 = np.array(data2)
@@ -200,44 +200,94 @@ def AssignClass(G,X,p,m_leaf,tagli_paralleli):
 	
 		
 	return data
+
+
+
+def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
+	
+	p = p_true.copy(deep=True)
+	m_leaf = m_leaf_true.copy()
+	index1 = p[p['part_number']==part_to_remove].index[0]
+	index2 = p[p['part_number']==part_to_merge].index[0]
+	#unisco i dati in m_leaf
+	data1 = pd.DataFrame(m_leaf[index1])
+	
+	data2 = pd.DataFrame(m_leaf[index2])
+	data2 = pd.concat([data2,data1])
+	data2.index = np.arange(len(data2))
+	m_leaf[index2] = data2.to_dict()
+	
+	#neigh = list(p['neighbors'])
+	#merged_part = list(p['merged_part'])
+			
+	#sostituisco vicini in tutte le partizioni di p e aggiungo vicini di single_part a part unita
+	p['neighbors'].iloc[index1].remove(part_to_merge)
+	p['neighbors'].iloc[index2].remove(part_to_remove)
+	for j in p['neighbors'].iloc[index1]:
+		if j not in p['neighbors'].iloc[index2]:
+			p['neighbors'].iloc[index2].append(j)
+		p['neighbors'].iloc[p[p['part_number']==j].index[0]].remove(part_to_remove)
+		if part_to_merge not in p['neighbors'].iloc[p[p['part_number']==j].index[0]]:
+			p['neighbors'].iloc[p[p['part_number']==j].index[0]].append(part_to_merge)
+	
+	for j in p['merged_part'].iloc[index1]:
+		p['merged_part'].iloc[index2].append(j)
+	p['merged_part'].iloc[index2].append(part_to_remove)
+	p = p.drop(index1)
+	p.index = np.arange(len(p))
+	m_leaf = np.delete(m_leaf, index1).tolist()
+	
+	return m_leaf,p
+	
+	
+
+
+
+
+
 	
 
 #unisce partizione con solo un dato a quella più vicina
-def MergePart(m,part): 
+def MergePart_SingleData(m,part): 
 	
-	p = part.copy()
+	p = part.copy(deep=True)
 	p = p.query('leaf==True')
 	p = p[['part_number','neighbors']]
+	merged_part = []
+	for i in range(len(p)):
+		merged_part.append([])
+	p['merged_part'] = merged_part
 	p.index = np.arange(len(p))
 	m_leaf = m.copy()
 	m_leaf = np.delete(m, list(part.query('leaf==False')['part_number'])).tolist()
 	
-	list_part_to_merge = []
-	list_part_with_single_data = []
-	index = []
-	for i in range(len(m_leaf)):
-		#print(i)
-		m_i = pd.DataFrame(m_leaf[i])
+	#list_part_with_single_data = []
+	#list_part_to_merge = []
+	list_part = list(p['part_number'])
+	for i in list_part:
+		index1 = p[p['part_number']==i].index[0]
+		data1 = pd.DataFrame(m_leaf[index1])
 		#consdidero solo partizioni con unico dato all'interno
-		if len(m_i) == 1:
-			index.append(i)
-			part_with_single_data = p['part_number'].iloc[i]
-			list_part_with_single_data.append(part_with_single_data)
+		if len(data1) == 1: 
 			#cerco minima distanza con part vicine
-			data1 = m_i.copy()
 			min_dist = []
-			for j in p['neighbors'].iloc[i]:
+			for j in p['neighbors'].iloc[index1]:
 				data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])
 				if len(data2) > 1:
-					media,min_dist_fra_partizioni,min_data2,mean2 = MinDistBetweenPart(data1,data2,False)#forse il False lo devi modificare	
-					min_dist.append(min_dist_fra_partizioni+min_data2)
+					media,min_dist_fra_partizioni,min_data2,mean2 = MinDistBetweenPart(data1,data2)	
+					min_dist.append(min_dist_fra_partizioni + min_data2)
 				else:
 					min_dist.append(np.inf)
 			minimo_fra_minimi = min(min_dist)
 			index_nearest_part = min_dist.index(minimo_fra_minimi)
-			part_to_merge = p['neighbors'].iloc[i][index_nearest_part]
-			list_part_to_merge.append(part_to_merge)
+			part_to_merge = p['neighbors'].iloc[index1][index_nearest_part]
+			#list_part_with_single_data.append(i)
+			#list_part_to_merge.append(part_to_merge)
 			
+			
+			m_leaf,p = MergePart(m_leaf,p,i,part_to_merge)
+			
+			'''
 			#unisco i dati in m_leaf
 			data2 = pd.DataFrame(m_leaf[p[p['part_number']==part_to_merge].index[0]])
 			data2 = pd.concat([data2,data1])
@@ -248,54 +298,29 @@ def MergePart(m,part):
 			p['neighbors'].iloc[i].remove(part_to_merge)
 			p['neighbors'].iloc[p[p['part_number']==part_to_merge].index[0]].remove(part_with_single_data)
 			for j in p['neighbors'].iloc[i]:
-				p['neighbors'].iloc[p[p['part_number']==part_to_merge].index[0]].append(j)
+				if j not in p['neighbors'].iloc[p[p['part_number']==part_to_merge].index[0]]:
+					p['neighbors'].iloc[p[p['part_number']==part_to_merge].index[0]].append(j)
 				p['neighbors'].iloc[p[p['part_number']==j].index[0]].remove(part_with_single_data)
-				p['neighbors'].iloc[p[p['part_number']==j].index[0]].append(part_to_merge)
-				
-			#for k in range(len(p)):
-			#	if part_with_single_data in p['neighbors'].iloc[k]:
-			#		p['neighbors'].iloc[k]
-			#		p['neighbors'].iloc[k]
-			#		p['neighbors'].iloc[]
-					
+				if part_to_merge not in p['neighbors'].iloc[p[p['part_number']==j].index[0]]:
+					p['neighbors'].iloc[p[p['part_number']==j].index[0]].append(part_to_merge)
 			
-	merged_part = {'index':index,'part_single_data':list_part_with_single_data,'part_to_merge':list_part_to_merge}
-	merged_part = pd.DataFrame(merged_part)
-	
-	'''
-	p_reduced = p.copy()
-	m_reduced = m.copy()
-	list_neigh = list(p_reduced['neighbors'])
-	for i in range(len(df)):
-		print(i)
-		m_i = pd.concat([pd.DataFrame(m[df['part_single_data'].iloc[i]]),pd.DataFrame(m[df['part_to_merge'].iloc[i]])])
-		m_i.index = np.arange(len(m_i))
-		m[df['part_to_merge'].iloc[i]] = m_i.to_dict()
-		neigh_part_single_data = list(p[p['part_number']==df['part_single_data'].iloc[i]]['neighbors'].iloc[0])		
-		neigh_part_to_merge = list(p[p['part_number']==df['part_to_merge'].iloc[i]]['neighbors'].iloc[0])
-		neighbors = neigh_part_single_data + neigh_part_to_merge
-		#neighbors.remove(df['part_single_data'].iloc[i])
-		if df['part_to_merge'].iloc[i] in neighbors:
-			neighbors.remove(df['part_to_merge'].iloc[i])
-		p_i_index = p[p['part_number']==df['part_to_merge'].iloc[i]].index
-		#p.loc[p_i_index,'neighbors'] = neighbors 
-		#p[p['part_number']==df['part_to_merge'].iloc[i]]['neighbors'] = 0
-		list_neigh[p_i_index[0]] = neighbors
-	'''
-	
-	neigh = list(p['neighbors'])
-	neigh_new = []
-	for i in range(len(neigh)):
-		neigh_new.append(list(set(neigh[i])))
-	p = p.drop('neighbors',axis=1)
-	p['neighbors'] = neigh_new
+
+	#neigh = list(p['neighbors'])
+	#neigh_new = []
+	#for i in range(len(neigh)):
+	#	neigh_new.append(list(set(neigh[i])))
+	#p = p.drop('neighbors',axis=1)
+	#p['neighbors'] = neigh_new
 	p = p.drop(merged_part['index'])
 	p.index = np.arange(len(p))
-	#m_reduced = np.delete(m_reduced, list(part.query('leaf==False')['part_number'])).tolist()
 	m_leaf = np.delete(m_leaf, list(merged_part['index'])).tolist()
+	'''
 	
+	#merged_part = {'part_single_data':list_part_with_single_data,'part_to_merge':list_part_to_merge}#'index':index,
+	#merged_part = pd.DataFrame(merged_part)
 	
-	return merged_part,p,m_leaf
+		
+	return m_leaf,p #merged_part,
 
 
 
@@ -303,7 +328,7 @@ def MergePart(m,part):
 #print
 # score = 'var','centroid','min'
 #tagli_paralleli = True,False
-def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
+def PartLinkScore(m_leaf,p,score):#X,,tagli_paralleli
 	
 	# è utile tener conto del numero di punti contenuti in una partizione? ()
 	#merged_partitions,p,m_red = MergePart(m,part)
@@ -312,11 +337,12 @@ def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
 	#p = part.query('leaf==True').copy()
 	#p.index = np.arange(len(p))
 	# tagli paralleli
+	'''
 	if tagli_paralleli ==  True:
 		df = trova_part_vicine(part)
 		p = pd.merge(p,df,right_on='part_number',left_on='part_number')
 		a = AssignPartition(X,part)
-		
+	'''	
 	v_unica = []
 	v_sep = []
 	ratio_centroid = []
@@ -333,14 +359,16 @@ def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
 		#print('i = ',i)
 		for j in p.iloc[i]['neighbors']:
 			#print(j)
-			if type(j)!=int:
-				continue
+			#if type(j)!=int: #se uso MondrianPolygon è pieno di nan
+			#	continue
+			'''
 			if tagli_paralleli == True:
 				data1 = a.query('part_number=='+str(p.iloc[i]['part_number']))
 				data2 = a.query('part_number=='+str(j))
 			else:
-				data1 = pd.DataFrame(m_leaf[i])#pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
-				data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])#pd.DataFrame(m[j]) #m[j][2]
+			'''	
+			data1 = pd.DataFrame(m_leaf[i])#pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
+			data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])#pd.DataFrame(m[j]) #m[j][2]
 				
  
 			part1.append(p.iloc[i]['part_number'])
@@ -361,7 +389,7 @@ def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
 					difference_centroid.append(difference)
  
 			if score == 'min':
-				media_i,min_dist_i,min_data1,min_data2,mean1,mean2 = MinDistBetweenPart(data1,data2,tagli_paralleli)
+				media_i,min_dist_i,min_data1,min_data2,mean1,mean2 = MinDistBetweenPart(data1,data2)
 				differenza_minimi = abs(min_dist_i - media_i) + min_data1 + min_data2
 				diff_minimi.append(differenza_minimi)
 				#differenza_minimi = abs(min_dist_i*(min_data1/mean1)*(min_data2/mean2) - media_i)
@@ -398,6 +426,10 @@ def PartLinkScore(X,p,m_leaf,score,tagli_paralleli):
 	#df_var['diff_pesata'] = df_var['mean_dist_centr12']/(df_var['#points_1']+df_var['#points_2']) - (df_var['mean_dist_centr1']/df_var['#points_1'] + df_var['mean_dist_centr2']/df_var['#points_2'])/2
 	#df_var['mean_difference_neighbors'] = 
 	#df_var['diff_pesata'] = df_var['mean_dist_centr12']*(df_var['#points_1']+df_var['#points_2']) - (df_var['mean_dist_centr1']*df_var['#points_1'] + df_var['mean_dist_centr2']*df_var['#points_2'])/2
+	part_links = part_links.sort_values(by='diff_min',ascending=True)
+	part_links.index = np.arange(len(part_links))
+	#part_links = part_links.drop(part_links[0:int(len(part_links)/2)].index*2)
+	#part_links.index = np.arange(len(part_links))
 	
 	return part_links
 
@@ -470,11 +502,11 @@ def Percolation(X,G,edgelist,tagli_paralleli,merged_part,p,m_leaf):
 	return edgelist_percolation,list_class_fin,conn_comp_fin
 
 
-print
 
 
 
-def Classification(part,m,X,namefile,score,weight,tagli_paralleli):	
+
+def Classification_TD(part,m,X,namefile,score,weight,tagli_paralleli):	
 	
 	#part_copy = part.copy()
 	#m_copy = m.copy()	
@@ -495,6 +527,72 @@ def Classification(part,m,X,namefile,score,weight,tagli_paralleli):
 
 	return
 
+
+
+
+def Classification_BU(m,part,weight,score):#,namefile):
+	
+	m_leaf,p =  MergePart_SingleData(m,part)
+	print(p)
+	G = nx.Graph()
+	for i in range(len(p)):
+		G.add_node(p['part_number'].iloc[i])
+	
+	list_p = []
+	list_m = []
+	list_p.append(p)
+	list_m.append(m_leaf)
+	while nx.number_connected_components(G) > 1:
+		part_links = PartLinkScore(m_leaf,p,score)
+		G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links[weight].iloc[0])
+		m_leaf,p = MergePart(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
+		list_p.append(p)
+		list_m.append(m_leaf)
+		print(p)
+	
+	#list_p.reverse()
+	#list_m.reverse()
+		
+#	with open(namefile+'_p.json', 'w') as f:
+#	    f.write(json.dumps([df.to_dict() for df in list_p]))
+	
+#	with open(namefile+'_m_leaf.json', 'w') as f:
+#	    f.write(json.dumps([df for df in list_m]))
+
+		
+	return list_m,list_p
+
+
+
+	 	
+
+def Plot2D(part,list_m,list_p,number_of_clusters):
+
+	p = list_p[number_of_clusters-1]
+	for i in range(len(p)):
+		p['merged_part'].iloc[i].append(p['part_number'].iloc[i])
+
+	#sns.set_style('whitegrid')
+	fig,ax = plt.subplots()
+		
+	color=cm.rainbow(np.linspace(0,1,len(p)))
+	for i in range(len(p)):
+		for j in p['merged_part'].iloc[i]:
+			box = part[part['part_number']==j]['box'][0]
+			pol = Polygon(box, facecolor=color[i], alpha=0.5, edgecolor='black')
+			ax.add_patch(pol)
+			
+			b = pd.DataFrame(box)
+			x_avg = np.mean(b[0])
+			y_avg = np.mean(b[1])
+			ax.text(x_avg,y_avg,j)
+		
+		data = pd.DataFrame(list_m[0][0])
+		ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+		
+	plt.show()
+	return
+	
 
 
 

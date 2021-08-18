@@ -195,6 +195,9 @@ def MinDistBetweenPart_SUM(data1,data2):
 		min_tot = list(min_tot)
 		min_tot.remove(np.inf)
 	media = np.mean(min_tot)
+	
+	mean1 = np.mean(min1)
+	mean2 = np.mean(min2)	
 		
 	dist = cdist(data1,data2)
 	#data1 = righe
@@ -217,7 +220,7 @@ def MinDistBetweenPart_SUM(data1,data2):
 	dist2 = dist[:,ind2]
 	min_dist2 = np.min(dist2)
 		
-	return media,min_dist_fra_partizioni,min_dist1,min_dist2  
+	return media,min_dist_fra_partizioni,min_dist1,min_dist2 ,mean1,mean2 
 
 
 
@@ -329,8 +332,10 @@ def MergePart_SingleData(m,part):
 				data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])
 				if len(data2) > 1:
 					#media,min_dist_fra_partizioni,min_data2,mean2 = MinDistBetweenPart(data1,data2)	
-					media,min_dist_fra_partizioni,min_dist1,min_dist2 = MinDistBetweenPart_SUM(data1,data2)
+					media,min_dist_fra_partizioni,min_dist1,min_dist2,mean1,mean2 = MinDistBetweenPart_SUM(data1,data2)
 					min_dist.append(min_dist_fra_partizioni + min_dist2)
+					# la prossima riga non è stata provata, forse è meglio di no
+					#min_dist.append(abs(min_dist_fra_partizioni - media) + abs(min_dist1 - mean1) + abs(min_dist2 - mean2))
 				else:
 					min_dist.append(np.inf)
 			minimo_fra_minimi = min(min_dist)
@@ -413,9 +418,12 @@ def PartLinkScore(m_leaf,p,score):#X,,tagli_paralleli
  
 			if score == 'min':
 				#media_i,min_dist_i,min_data1,min_data2,mean1,mean2 = MinDistBetweenPart(data1,data2)
-				media_i,min_dist_i,min_dist1,min_dist2 = MinDistBetweenPart_SUM(data1,data2)
+				media_i,min_dist_i,min_dist1,min_dist2,mean1,mean2 = MinDistBetweenPart_SUM(data1,data2)
+				#quella ufficiale è la seguente
 				differenza_minimi = abs(min_dist_i - media_i) + min_dist1 + min_dist2
+				#differenza_minimi = abs(min_dist_fra_partizioni - media) + abs(min_dist1 - mean1) + abs(min_dist2 - mean2)
 				diff_minimi.append(differenza_minimi)
+				'''
 				#differenza_minimi = abs(min_dist_i*(min_data1/mean1)*(min_data2/mean2) - media_i)
 				#3differenza_minimi = (min_dist_i - media_i)*(min_data1/mean1)*(min_data2/mean2)
 				#4differenza_minimi = (min_dist_i - media_i)*(min_data1/mean1 + min_data2/mean2)
@@ -431,7 +439,7 @@ def PartLinkScore(m_leaf,p,score):#X,,tagli_paralleli
 				#list_min_data2.append(min_data2)
 				#list_mean1.append(mean1)
 				#list_mean2.append(mean2)
-				
+				'''
 				
 	if score == 'var':
 		part_links = {'part1':part1,'part2':part2,'var_part_unica':v_unica,'var_sep':v_sep}
@@ -569,9 +577,10 @@ def Classification_BU(m,part,weight,score,namefile):
 	G = nx.Graph()
 	for i in range(len(p)):
 		G.add_node(p['part_number'].iloc[i])
-		
+	
+	c=0
 	while nx.number_connected_components(G) > 1:
-		
+		c+=1
 		part_links = PartLinkScore(m_leaf,p,score)
 		G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links[weight].iloc[0])
 		m_leaf,p = MergePart(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
@@ -658,7 +667,7 @@ def AssignClass_BU(list_m_leaf):
 
 def ClassificationScore_BU(class_data_tot,name_file):
 	
-	pair = list(combinations(np.arange(len(list_m_leaf_tot)),2))
+	pair = list(combinations(np.arange(len(class_data_tot)),2))
 	
 	coeff_tot = []
 	for k in range(len(pair)):
@@ -668,8 +677,12 @@ def ClassificationScore_BU(class_data_tot,name_file):
 		index2 = pair[k][1]
 		for i in range(min(len(class_data_tot[index1]),len(class_data_tot[index2]))):
 			cl1 = class_data_tot[index1][i]
+			cl1.columns = ['index','class1']
 			cl2 = class_data_tot[index2][i]
-			coeff.append(adjusted_mutual_info_score(cl1['class'],cl2['class']))
+			cl2.columns = ['index','class2']
+			df = pd.merge(cl1,cl2,left_on='index',right_on='index',how='inner')
+			#coeff.append(adjusted_mutual_info_score(cl1['class'],cl2['class']))
+			coeff.append(adjusted_mutual_info_score(df['class1'],df['class2']))
 			
 		coeff_tot.append(coeff)
 	
@@ -698,3 +711,22 @@ def ClassificationScore_BU(class_data_tot,name_file):
 	
 	
 
+
+from sklearn.metrics.cluster import fowlkes_mallows_score
+#from sklearn.metrics import accuracy_score
+
+def ConfrontoClasseVera(class_data_tot,y,number_of_clusters):
+	
+	y = pd.DataFrame(y)
+	y['index'] = y.index
+	y.columns = ['class_y','index']
+	
+	coeff = []
+	for i in range(len(class_data_tot)):
+		df = class_data_tot[i][number_of_clusters-1]
+		df = pd.merge(df,y,left_on='index',right_on='index',how='inner')
+		#coeff.append(accuracy_score(df['class_y'],df['class']))
+		coeff.append(fowlkes_mallows_score(df['class_y'],df['class']))
+
+	return coeff
+	

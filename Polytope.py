@@ -10,6 +10,233 @@ import math
 
 
 
+def CutMinDist_SUM_ULTIMAVERSIONE(dist_matrix,data):
+	
+	data_pair = list(combinations(data['index'], 2))
+	data_pair = pd.DataFrame(data_pair)
+	data_pair.columns = ['index2','index1']
+
+
+	n_d = len(data.columns)-1   #forse puoi fare una classe
+	names = []
+	for i in range(n_d):
+		names.append('point_'+str(i))
+	
+	diff_min_dist = []
+	for i in range(len(data_pair)):
+		#print(i)
+		
+		matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[i]) & (dist_matrix['index2']==data_pair['index2'].iloc[i])].copy()
+
+		data1 = np.array(matrix.query('dist_point_cut>=0')[names].copy())
+		data2 = np.array(matrix.query('dist_point_cut<0')[names].copy())
+		
+		#if (len(data1)==1) or (len(data2)==1):
+		#	diff_min_dist.append('nan')
+			
+		#else:
+			
+		pd1 = cdist(data1,data1)
+		pd2 = cdist(data2,data2)
+			
+		min1 = np.min(np.where(pd1!= 0, pd1, np.inf),axis=0)
+		min2 = np.min(np.where(pd2!= 0, pd2, np.inf),axis=0)
+			
+		min_tot = np.hstack([min1,min2])
+		if np.inf in min_tot:
+			min_tot = list(min_tot)
+			min_tot.remove(np.inf)
+		media = np.mean(min_tot)
+		
+		mean1 = np.mean(min1)
+		mean2 = np.mean(min2)
+		
+		dist = cdist(data1,data2)
+		min_dist_fra_partizioni = dist.min()
+		ind = np.unravel_index(np.argmin(dist, axis=None), dist.shape)
+		#da ind ricavo A e B
+		
+		dist_point1 = pd1[ind[0]]
+		dist_point1 = np.where(dist_point1!= 0, dist_point1, np.inf)
+		ind1 = np.unravel_index(np.argmin(dist_point1, axis=None), dist_point1.shape)
+		ind1 = ind1[0] 
+		dist1 = dist[ind1,:]
+		min_dist1 = np.min(dist1)
+		
+		dist_point2 = pd2[ind[1]]
+		dist_point2 = np.where(dist_point2!= 0, dist_point2, np.inf)
+		ind2 = np.unravel_index(np.argmin(dist_point2, axis=None), dist_point2.shape)
+		ind2 = ind2[0] #nuovo punto in data2
+		dist2 = dist[:,ind2]
+		min_dist2 = np.min(dist2)
+		
+		if len(data1) == 1:
+			diff = abs(min_dist_fra_partizioni - media) + abs(min_dist2 - mean2)
+		if len(data2) == 1:
+			diff = abs(min_dist_fra_partizioni - media) + abs(min_dist1 - mean1)
+		else:
+			diff = abs(min_dist_fra_partizioni - media) + abs(min_dist1 - mean1) + abs(min_dist2 - mean2)
+	
+		
+		#diff = abs(min_dist_fra_partizioni - media) + min_dist1 + min_dist2
+		diff_min_dist.append(diff)
+		
+	data_pair['diff_min_dist'] = diff_min_dist
+	
+
+	if (len(data_pair['diff_min_dist'].unique()) == 1) and (data_pair['diff_min_dist'].unique()[0]=='nan'):
+		return 
+
+	data_pair = data_pair.drop(data_pair[data_pair['diff_min_dist']=='nan'].index)
+	data_pair = data_pair.drop(data_pair[data_pair['diff_min_dist']==np.inf].index)
+	
+	data_pair.index = np.arange(len(data_pair))
+
+	q=data_pair['diff_min_dist']**50
+	weight = q/q.sum()
+	try:
+		index_cut = choice(data_pair.index,p=weight)
+	except ValueError:
+		q=data_pair['diff_min_dist']
+		weight = q/q.sum()
+		index_cut = choice(data_pair.index,p=weight)
+
+	matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[index_cut]) & (dist_matrix['index2']==data_pair['index2'].iloc[index_cut])].copy()
+	matrix.index = np.arange(len(matrix))
+	
+	names_norm_vect = []
+	for i in range(n_d):
+		names_norm_vect.append('norm_vect_'+str(i))
+	A_hyperplane_1 = list(matrix[names_norm_vect].iloc[0]) 
+	b_hyperplane_1 = matrix['magnitude_norm_vect'].iloc[0]  
+	A_hyperplane_2 = list(-matrix[names_norm_vect].iloc[0]) 
+	b_hyperplane_2 = -matrix['magnitude_norm_vect'].iloc[0]
+
+
+	names.append('point_index')
+	names.append('dist_point_cut')
+
+	matrix = matrix[names]
+
+
+
+	return A_hyperplane_1,b_hyperplane_1,A_hyperplane_2,b_hyperplane_2,matrix 
+
+
+
+
+
+def CutMinDist_SUM(dist_matrix,data):
+	
+	data_pair = list(combinations(data['index'], 2))
+	data_pair = pd.DataFrame(data_pair)
+	data_pair.columns = ['index2','index1']
+
+
+	n_d = len(data.columns)-1   #forse puoi fare una classe
+	names = []
+	for i in range(n_d):
+		names.append('point_'+str(i))
+	
+	diff_min_dist = []
+	for i in range(len(data_pair)):
+		#print(i)
+		
+		matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[i]) & (dist_matrix['index2']==data_pair['index2'].iloc[i])].copy()
+
+		data1 = np.array(matrix.query('dist_point_cut>=0')[names].copy())
+		data2 = np.array(matrix.query('dist_point_cut<0')[names].copy())
+		
+		#if (len(data1)==1) and (len(data2)==1):
+		#	diff_min_dist.append('nan')
+			
+		#else:
+			
+		pd1 = cdist(data1,data1)
+		pd2 = cdist(data2,data2)
+			
+		min1 = np.min(np.where(pd1!= 0, pd1, np.inf),axis=0)
+		min2 = np.min(np.where(pd2!= 0, pd2, np.inf),axis=0)
+			
+		min_tot = np.hstack([min1,min2])
+		if np.inf in min_tot:
+			min_tot = list(min_tot)
+			min_tot.remove(np.inf)
+		media = np.mean(min_tot)
+		
+		dist = cdist(data1,data2)
+		min_dist_fra_partizioni = dist.min()
+		ind = np.unravel_index(np.argmin(dist, axis=None), dist.shape)
+		#da ind ricavo A e B
+		
+		dist_point1 = pd1[ind[0]]
+		dist_point1 = np.where(dist_point1!= 0, dist_point1, np.inf)
+		ind1 = np.unravel_index(np.argmin(dist_point1, axis=None), dist_point1.shape)
+		ind1 = ind1[0] 
+		dist1 = dist[ind1,:]
+		min_dist1 = np.min(dist1)
+		
+		dist_point2 = pd2[ind[1]]
+		dist_point2 = np.where(dist_point2!= 0, dist_point2, np.inf)
+		ind2 = np.unravel_index(np.argmin(dist_point2, axis=None), dist_point2.shape)
+		ind2 = ind2[0] #nuovo punto in data2
+		dist2 = dist[:,ind2]
+		min_dist2 = np.min(dist2)
+	
+		
+		diff = abs(min_dist_fra_partizioni - media) + min_dist1 + min_dist2
+		diff_min_dist.append(diff)
+		
+	data_pair['diff_min_dist'] = diff_min_dist
+	
+
+	if (len(data_pair['diff_min_dist'].unique()) == 1) and (data_pair['diff_min_dist'].unique()[0]=='nan'):
+		return 
+
+	data_pair = data_pair.drop(data_pair[data_pair['diff_min_dist']=='nan'].index)
+	data_pair = data_pair.drop(data_pair[data_pair['diff_min_dist']==np.inf].index)
+	
+	data_pair.index = np.arange(len(data_pair))
+
+	q=data_pair['diff_min_dist']**50
+	weight = q/q.sum()
+	try:
+		index_cut = choice(data_pair.index,p=weight)
+	except ValueError:
+		q=data_pair['diff_min_dist']
+		weight = q/q.sum()
+		index_cut = choice(data_pair.index,p=weight)
+
+	matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[index_cut]) & (dist_matrix['index2']==data_pair['index2'].iloc[index_cut])].copy()
+	matrix.index = np.arange(len(matrix))
+	
+	names_norm_vect = []
+	for i in range(n_d):
+		names_norm_vect.append('norm_vect_'+str(i))
+	A_hyperplane_1 = list(matrix[names_norm_vect].iloc[0]) 
+	b_hyperplane_1 = matrix['magnitude_norm_vect'].iloc[0]  
+	A_hyperplane_2 = list(-matrix[names_norm_vect].iloc[0]) 
+	b_hyperplane_2 = -matrix['magnitude_norm_vect'].iloc[0]
+
+
+	names.append('point_index')
+	names.append('dist_point_cut')
+
+	matrix = matrix[names]
+
+
+
+	return A_hyperplane_1,b_hyperplane_1,A_hyperplane_2,b_hyperplane_2,matrix 
+
+
+
+
+
+
+
+
+
+
 def CutMinDist(dist_matrix,data):
 	
 	data_pair = list(combinations(data['index'], 2))
@@ -28,7 +255,7 @@ def CutMinDist(dist_matrix,data):
 		
 		matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[i]) & (dist_matrix['index2']==data_pair['index2'].iloc[i])].copy()
 
-		data1 = np.array(matrix.query('dist_point_cut>0')[names].copy())
+		data1 = np.array(matrix.query('dist_point_cut>=0')[names].copy())
 		data2 = np.array(matrix.query('dist_point_cut<0')[names].copy())
 		
 		#if (len(data1)==1) and (len(data2)==1):
@@ -64,14 +291,19 @@ def CutMinDist(dist_matrix,data):
 		return 
 
 	data_pair = data_pair.drop(data_pair[data_pair['diff_min_dist']=='nan'].index)
+	data_pair = data_pair.drop(data_pair[data_pair['diff_min_dist']==np.inf].index)
 	
 	data_pair.index = np.arange(len(data_pair))
 
 	q=data_pair['diff_min_dist']**50
 	weight = q/q.sum()
-	index_cut = choice(data_pair.index,p=weight)
-	
-	
+	try:
+		index_cut = choice(data_pair.index,p=weight)
+	except ValueError:
+		q=data_pair['diff_min_dist']
+		weight = q/q.sum()
+		index_cut = choice(data_pair.index,p=weight)
+
 	matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[index_cut]) & (dist_matrix['index2']==data_pair['index2'].iloc[index_cut])].copy()
 	matrix.index = np.arange(len(matrix))
 	
@@ -132,9 +364,8 @@ def FindDataPartition(p1,p2,matrix):
 def Cut_with_data(data,p,dist_matrix):
 	
 	
-	
 	try:
-		A_hyperplane_1,b_hyperplane_1,A_hyperplane_2,b_hyperplane_2,matrix  = CutMinDist(dist_matrix,data)
+		A_hyperplane_1,b_hyperplane_1,A_hyperplane_2,b_hyperplane_2,matrix  = CutMinDist_SUM(dist_matrix,data)#_SUM
 	except TypeError:
 		return
 	
@@ -220,7 +451,7 @@ def Mondrian_SingleCut(t0,lifetime,p,data,dist_matrix,father,neighbors):
 
 
 
-
+#b1
 
 
 

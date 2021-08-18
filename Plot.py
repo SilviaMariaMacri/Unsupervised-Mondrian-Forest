@@ -474,9 +474,45 @@ def PlotClass_binario(list_part_tot,list_conn_comp,number_of_clusters):
 
 
 
+def Plot2D_binario(n,list_part,list_p_tot,number_of_clusters,name_file):
 
-#import cv2
+	I=[0,1,0,0,0,0,0,1,0,0]
+	fig,ax = plt.subplots()
+	#n=[]	
+	for l in range(len(list_part)):
+		
+		part = list_part[l]
+		list_p = list_p_tot[l]
+		
+		p = list_p[number_of_clusters-1]
+		alpha = 1/len(list_part)
+		
+		i=I[l]
+		box = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
+		pol = Polygon(box, facecolor='black', alpha=alpha, edgecolor=None,linewidth=0.00001)
+		ax.add_patch(pol)
 
+		for j in p['merged_part'].iloc[i]:
+			box = part[part['part_number']==j]['box'][0]
+			pol = Polygon(box, facecolor='black', alpha=alpha, edgecolor=None,linewidth=0.00001)
+			ax.add_patch(pol)
+				
+		xmin = part['box'].iloc[0][0][0]-0.05
+		ymin = part['box'].iloc[0][0][1]-0.05
+		xmax = part['box'].iloc[0][2][0]+0.05
+		ymax = part['box'].iloc[0][2][1]+0.05
+	
+		ax.set_xlim(xmin,xmax)
+		ax.set_ylim(ymin,ymax)	
+
+	data = pd.DataFrame(list_m[0][0])
+	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+		
+		
+	plt.show()
+	if name_file != False:
+		plt.savefig(name_file)	
+	return
 
 
 
@@ -532,6 +568,17 @@ def Plot3D(part,list_m,list_p,number_of_clusters):
 	ax = plt.axes(projection='3d')
 	color=cm.rainbow(np.linspace(0,1,len(p)))
 	for i in range(len(p)):
+		verts = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
+		hull = ConvexHull(verts)
+		faces = hull.simplices
+		for s in faces:
+			sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
+				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+			f = Poly3DCollection([sq],linewidths=0.01)
+			f.set_color(color[i])
+			f.set_alpha(0.1)
+			ax.add_collection3d(f)
 		for j in p['merged_part'].iloc[i]:
 			verts = part[part['part_number']==j]['box'][0]
 			hull = ConvexHull(verts)
@@ -554,6 +601,17 @@ def Plot3D(part,list_m,list_p,number_of_clusters):
 	for i in range(len(p)):
 		fig = plt.figure()
 		ax = plt.axes(projection='3d')
+		verts = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
+		hull = ConvexHull(verts)
+		faces = hull.simplices
+		for s in faces:
+			sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
+				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+			f = Poly3DCollection([sq],linewidths=0.01)
+			f.set_color(color[i])
+			f.set_alpha(0.1)
+			ax.add_collection3d(f)
 		for j in p['merged_part'].iloc[i]:
 			verts = part[part['part_number']==j]['box'][0]
 			hull = ConvexHull(verts)

@@ -316,7 +316,7 @@ def AssignClass(X,y,part_with_counts):
 	
 	accuracy = accuracy_score(list(X_bis['cl_true']), list(X_bis['cl']))
 	
-	
+	# non va bene accuracy score perchè i label devono esattamente coincidere
 
 	
 	return accuracy,X

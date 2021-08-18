@@ -26,12 +26,14 @@ def SaveMondrianOutput(namefile,part,m):
 #%% Polytope dimensione generica + classificazione 
 
 t0 = 0
-lifetime = 5
+lifetime = 60
 dist_matrix = DistanceMatrix(X)
-number_of_iterations = 1
+number_of_iterations = 7
 name = 'iris_'
 
 for i in range(number_of_iterations):
+
+	#i=1
 	m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
 	namefile = name+str(i+1)
 	SaveMondrianOutput(namefile,part_i,m_i)
@@ -39,7 +41,7 @@ for i in range(number_of_iterations):
 	part = json.load(open(namefile+'_part.json','r'))
 	part = pd.DataFrame(part)
 	m = json.load(open(namefile+'_m.json','r'))
-	#PlotPolygon(m,part)
+	PlotPolygon(m,part)
 	
 	#tagli_paralleli = False #True#,False
 	score = 'min' #'var','centroid'
@@ -52,9 +54,9 @@ for i in range(number_of_iterations):
 #%% leggo file .json
 
 
-number_of_iterations = 16
+number_of_iterations = 5
 
-name = 'makemoons_2_'
+#name = 'iris_'
 
 list_part = []
 list_m = []
@@ -67,6 +69,7 @@ list_m_leaf_tot = []
 
 
 for i in range(number_of_iterations):
+
 	namefile = name+str(i+1)
 	
 	part = json.load(open(namefile+'_part.json','r'))
@@ -102,7 +105,7 @@ for i in range(number_of_iterations):
 
 #%%  grafico compatibilità classificazioni
 
-name_file = 'makemoons_2_'
+#name_file = 'makemoons_2_'
 #coeff_medio = ClassificationScore(list_class,name_file)
 
 
@@ -112,16 +115,35 @@ for i in range(len(list_m_leaf_tot)):
 	classified_data = AssignClass_BU(list_m_leaf)
 	class_data_tot.append(classified_data)
 
-ClassificationScore_BU(class_data_tot,name_file)
+#ClassificationScore_BU(class_data_tot,name)
+
+
+#%% confronto classificazione vera
+
+coeff_tot = []
+max_number = 7
+number_of_clusters_true = 3
+for number_of_clusters in range(1,max_number):
+	print(number_of_clusters)
+	coeff = ConfrontoClasseVera(class_data_tot,y,number_of_clusters)
+	if number_of_clusters == number_of_clusters_true:
+		print(coeff)
+	#print('min: ',np.min(coeff))
+	#print('max: ',np.max(coeff))
+	coeff_medio = np.mean(coeff)
+	coeff_tot.append(coeff_medio)
+	
+fig,ax = plt.subplots()
+ax.plot(np.arange(1,max_number),coeff_tot)
+ax.scatter(np.arange(1,max_number),coeff_tot)
 
 
 #%% grafici
 
 #name = 'makeblobs_3D_'
-number_of_iterations = 16
+number_of_iterations = 10
 for i in range(number_of_iterations):
 	print(i)
-
 
 	part = list_part[i]
 	m = list_m[i]
@@ -133,7 +155,7 @@ for i in range(number_of_iterations):
 	#Classification_BU(m,part,weight,score,namefile)
 
 	number_of_clusters = 2
-	namefile = name+str(i)
+	namefile = name+str(i+1)
 	#for number_of_clusters in range(len(list_p)):
 	Plot2D(part,list_m_leaf,list_p,number_of_clusters,namefile)
 	#Plot3D(part,list_m,list_p,number_of_clusters)

@@ -22,19 +22,19 @@ ax = plt.axes(projection='3d')
 ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
 
 #%% make circles 2D
-dat = datasets.make_circles(n_samples=10,noise=0.05,random_state=0,factor=0.5)
+dat = datasets.make_circles(n_samples=100,noise=0.05,random_state=170,factor=0.5)
 X = dat[0]
 y = dat[1]
 
 #%% make moons 2D
-dat = datasets.make_moons(n_samples=100,noise=0.07,random_state=3)
+dat = datasets.make_moons(n_samples=100,noise=0.08,random_state=350)
 X = dat[0]
 y = dat[1]
-
+plt.scatter(X[:,0],X[:,1])
 #%% make moons 3D
 dat = datasets.make_moons(n_samples=100,noise=0.07,random_state=0)
 X = dat[0]
-dim3 = np.random.normal(0, 1, len(X))
+dim3 = np.random.normal(0, 0.2, len(X))
 X = np.hstack((X[:,0].reshape((len(X),1)),X[:,1].reshape((len(X),1)),dim3.reshape((len(X),1))))
 y = dat[1]
 
@@ -42,6 +42,22 @@ y = dat[1]
 iris = datasets.load_iris() 
 X = iris.data
 y = iris.target
+
+data = pd.DataFrame(X)
+data = data.drop_duplicates()
+X = np.array(data)
+
+y = list(y)
+y.remove(2)
+y=np.array(y)
+
+
+
+#%% wine 
+
+wine = datasets.load_wine()
+X = wine.data
+y= wine.target
 
 #%% dati ruotati
 
@@ -166,3 +182,45 @@ dim3_2 = np.random.normal(0, 1, len(x2))
 X1 = np.hstack((x1[:,0].reshape((len(x1),1)),x1[:,1].reshape((len(x1),1)),dim3_1.reshape((len(x1),1))))
 X2 = np.hstack((x2[:,0].reshape((len(x2),1)),x2[:,1].reshape((len(x2),1)),dim3_2.reshape((len(x2),1))))
 X = np.vstack([X1,X2])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#%% copiato da https://scikit-learn.org/stable/auto_examples/cluster/plot_linkage_comparison.html#sphx-glr-auto-examples-cluster-plot-linkage-comparison-py
+
+np.random.seed(0)
+
+n_samples = 150
+#noisy_circles = datasets.make_circles(n_samples=n_samples, factor=.5,
+#                                      noise=.05)
+#noisy_moons = datasets.make_moons(n_samples=n_samples, noise=.05)
+#blobs = datasets.make_blobs(n_samples=n_samples, random_state=8)
+#no_structure = np.random.rand(n_samples, 2), None
+
+# Anisotropicly distributed data
+random_state = 170
+X, y = datasets.make_blobs(n_samples=n_samples, random_state=random_state)
+transformation = [[0.6, -0.6], [-0.4, 0.8]]
+X_aniso = np.dot(X, transformation)
+aniso = (X_aniso, y)
+
+# blobs with varied variances
+varied = datasets.make_blobs(n_samples=n_samples,
+                             cluster_std=[1.0, 2.5, 0.5],
+                             random_state=random_state)
+
+

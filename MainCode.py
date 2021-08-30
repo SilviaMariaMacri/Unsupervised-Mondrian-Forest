@@ -5,6 +5,49 @@ start = time.time()
 end = time.time()
 print(end - start)
 
+#%% confronto altri metodi di clustering
+
+from sklearn.cluster import KMeans,AgglomerativeClustering,Birch,SpectralClustering
+from sklearn.metrics.cluster import fowlkes_mallows_score
+
+n_clusters = 3
+title = ['KMeans','AgglomerativeClustering','Birch','SpectralClustering']
+labels = []
+kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(X)
+labels.append(kmeans.labels_)
+print('kmeans: ',fowlkes_mallows_score(y,kmeans.labels_))
+
+AC = AgglomerativeClustering(n_clusters=n_clusters).fit(X)
+labels.append(AC.labels_)
+print('AgglomerativeClustering: ',fowlkes_mallows_score(y,AC.labels_))
+
+B = Birch(n_clusters=n_clusters).fit(X)
+labels.append(B.labels_)
+print('Birch: ',fowlkes_mallows_score(y,B.labels_))
+
+#FA = FeatureAgglomeration(n_clusters=n_clusters).fit(X)
+#labels.append(FA.labels_)
+#print(fowlkes_mallows_score(y,FA.labels_))
+
+SC = SpectralClustering(n_clusters=n_clusters,random_state=0).fit(X)#,assign_labels='discretize'
+labels.append(SC.labels_)
+print('SpectralClustering: ',fowlkes_mallows_score(y,SC.labels_))
+
+
+for i in range(len(labels)):
+	
+	data = {'X0':X[:,0],'X1':X[:,1],'X2':X[:,2],'y':list(labels[i])}
+	
+	data=pd.DataFrame(data)
+	
+	fig = plt.figure()
+	ax = plt.axes(projection='3d')
+	ax.scatter3D(np.array(data.query('y==0'))[:,0],np.array(data.query('y==0'))[:,1],np.array(data.query('y==0'))[:,2],alpha=0.5,color='b')
+	ax.scatter3D(np.array(data.query('y==1'))[:,0],np.array(data.query('y==1'))[:,1],np.array(data.query('y==1'))[:,2],alpha=0.5,color='orange')
+	ax.scatter3D(np.array(data.query('y==2'))[:,0],np.array(data.query('y==2'))[:,1],np.array(data.query('y==2'))[:,2],alpha=0.5,color='g')
+	ax.set_title(title[i])
+
+
 #%% salvo dati
 
 import json
@@ -23,14 +66,15 @@ def SaveMondrianOutput(namefile,part,m):
 	
 
 
-#%% Polytope dimensione generica + classificazione 
+# Polytope dimensione generica + classificazione 
 
 t0 = 0
-lifetime = 60
+lifetime = 25
 dist_matrix = DistanceMatrix(X)
-number_of_iterations = 7
-name = 'iris_'
-
+number_of_iterations = 10
+name = 'circles3D_lambda25_'
+#prova a diminuire esponenteeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 for i in range(number_of_iterations):
 
 	#i=1
@@ -41,13 +85,22 @@ for i in range(number_of_iterations):
 	part = json.load(open(namefile+'_part.json','r'))
 	part = pd.DataFrame(part)
 	m = json.load(open(namefile+'_m.json','r'))
-	PlotPolygon(m,part)
-	
+	#PlotPolygon(m,part)
+
 	#tagli_paralleli = False #True#,False
 	score = 'min' #'var','centroid'
 	weight = 'diff_min' #'var_ratio','ratio_centroid','diff_centroid',
 	#Classification(part,m,X,namefile,score,weight,tagli_paralleli)
-	Classification_BU(m,part,weight,score,namefile)
+	#Classification_BU(m,part,weight,score,namefile)
+	list_m_leaf,list_p = Classification_BU(m,part,weight)
+	list_p.reverse()
+	list_m_leaf.reverse()
+	
+	with open(namefile+'_p.json', 'w') as f:
+		f.write(json.dumps([df.to_dict() for df in list_p]))
+	with open(namefile+'_m_leaf.json', 'w') as f:
+		f.write(json.dumps([df for df in list_m_leaf]))
+	
 #togli X da classification
 
 
@@ -56,7 +109,7 @@ for i in range(number_of_iterations):
 
 number_of_iterations = 5
 
-#name = 'iris_'
+name = 'wine_'
 
 list_part = []
 list_m = []
@@ -77,7 +130,15 @@ for i in range(number_of_iterations):
 	m = json.load(open(namefile+'_m.json','r'))
 	list_part.append(part)
 	list_m.append(m)
+	'''
+	list_p = json.load(open(namefile+'_p.json','r'))
+	list_m_leaf = json.load(open(namefile+'_m_leaf.json','r'))
+	list_p_tot.append(list_p)
+	list_m_leaf_tot.append(list_m_leaf)	
 	
+	
+	'''
+	#namefile = name+'stesso_criterio_ritento_'+str(i+1)
 	list_p = []
 	list_m_leaf = []
 	for l in range(1000):
@@ -94,12 +155,12 @@ for i in range(number_of_iterations):
 	list_m_leaf.reverse()
 	list_p_tot.append(list_p)
 	list_m_leaf_tot.append(list_m_leaf)
-
+	
 	#classified_data = json.load(open(namefile+'_list_class.json','r'))
 	#conn_comp = json.load(open(namefile+'_conn_comp.json','r'))
 	#list_class.append(classified_data)
 	#list_conn_comp.append(conn_comp)
-
+	
 
 
 
@@ -121,21 +182,26 @@ for i in range(len(list_m_leaf_tot)):
 #%% confronto classificazione vera
 
 coeff_tot = []
-max_number = 7
-number_of_clusters_true = 3
+coeff_medio_tot = []
+max_number = 6
+number_of_clusters_true = 2
 for number_of_clusters in range(1,max_number):
 	print(number_of_clusters)
 	coeff = ConfrontoClasseVera(class_data_tot,y,number_of_clusters)
-	if number_of_clusters == number_of_clusters_true:
-		print(coeff)
+	#if number_of_clusters == number_of_clusters_true:
+	print(coeff)
 	#print('min: ',np.min(coeff))
 	#print('max: ',np.max(coeff))
 	coeff_medio = np.mean(coeff)
-	coeff_tot.append(coeff_medio)
+	coeff_medio_tot.append(coeff_medio)
+	coeff_tot.append(coeff)
 	
 fig,ax = plt.subplots()
-ax.plot(np.arange(1,max_number),coeff_tot)
-ax.scatter(np.arange(1,max_number),coeff_tot)
+ax.plot(np.arange(1,max_number),coeff_medio_tot)
+ax.scatter(np.arange(1,max_number),coeff_medio_tot)
+for i in range(len(np.array(coeff_tot).T)):
+	#fig,ax = plt.subplots()
+	ax.plot(np.arange(1,max_number),np.array(coeff_tot).T[i],alpha=0.2)
 
 
 #%% grafici
@@ -144,21 +210,22 @@ ax.scatter(np.arange(1,max_number),coeff_tot)
 number_of_iterations = 10
 for i in range(number_of_iterations):
 	print(i)
-
+	
+	#i=2
 	part = list_part[i]
 	m = list_m[i]
 	list_m_leaf = list_m_leaf_tot[i]
 	list_p = list_p_tot[i]
 	#PlotPolygon(m,part)
 	
-	#namefile = name+str(i+1)
+	#namefile = name+'stesso_criterio_ritento_'+str(i+1)
 	#Classification_BU(m,part,weight,score,namefile)
 
 	number_of_clusters = 2
-	namefile = name+str(i+1)
+	#namefile = False#name+str(i+1)
 	#for number_of_clusters in range(len(list_p)):
-	Plot2D(part,list_m_leaf,list_p,number_of_clusters,namefile)
-	#Plot3D(part,list_m,list_p,number_of_clusters)
+	#Plot2D(part,list_m_leaf,list_p,number_of_clusters,namefile)
+	Plot3D(part,list_m_leaf,list_p,number_of_clusters)
 	
 	#classified_data = list_class[i]
 	#conn_comp = list_conn_comp[i]
@@ -166,7 +233,6 @@ for i in range(number_of_iterations):
 	#name_file = False#'plot_3clusters_MP_'+str(i+1)	
 	#PlotClass_2D(m,part,conn_comp,number_of_clusters,name_file)
 	#PlotClass_3D(m,part,conn_comp,number_of_clusters)
-
 
 
 

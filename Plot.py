@@ -435,6 +435,7 @@ def PlotClass_3D(m,part,conn_comp,number_of_clusters):
 
 def PlotClass_binario(list_part_tot,list_conn_comp,number_of_clusters):
 
+	
 	fig,ax = plt.subplots()
 	for i in range(len(list_part_tot)):
 		
@@ -474,54 +475,11 @@ def PlotClass_binario(list_part_tot,list_conn_comp,number_of_clusters):
 
 
 
-def Plot2D_binario(n,list_part,list_p_tot,number_of_clusters,name_file):
-
-	I=[0,1,0,0,0,0,0,1,0,0]
-	fig,ax = plt.subplots()
-	#n=[]	
-	for l in range(len(list_part)):
-		
-		part = list_part[l]
-		list_p = list_p_tot[l]
-		
-		p = list_p[number_of_clusters-1]
-		alpha = 1/len(list_part)
-		
-		i=I[l]
-		box = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
-		pol = Polygon(box, facecolor='black', alpha=alpha, edgecolor=None,linewidth=0.00001)
-		ax.add_patch(pol)
-
-		for j in p['merged_part'].iloc[i]:
-			box = part[part['part_number']==j]['box'][0]
-			pol = Polygon(box, facecolor='black', alpha=alpha, edgecolor=None,linewidth=0.00001)
-			ax.add_patch(pol)
-				
-		xmin = part['box'].iloc[0][0][0]-0.05
-		ymin = part['box'].iloc[0][0][1]-0.05
-		xmax = part['box'].iloc[0][2][0]+0.05
-		ymax = part['box'].iloc[0][2][1]+0.05
-	
-		ax.set_xlim(xmin,xmax)
-		ax.set_ylim(ymin,ymax)	
-
-	data = pd.DataFrame(list_m[0][0])
-	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
-		
-		
-	plt.show()
-	if name_file != False:
-		plt.savefig(name_file)	
-	return
-
-
-
-
 # nuovo metodo
 
 def Plot2D(part,list_m,list_p,number_of_clusters,name_file):
 
-	p = list_p[number_of_clusters-1]
+	p = pd.DataFrame(list_p[number_of_clusters-1])
 	
 	#for i in range(len(p)):
 	#	p['merged_part'].iloc[i].append(p['part_number'].iloc[i])
@@ -560,10 +518,10 @@ def Plot2D(part,list_m,list_p,number_of_clusters,name_file):
 
 	
 
-def Plot3D(part,list_m,list_p,number_of_clusters):
+def Plot3D(part,list_m_leaf,list_p,number_of_clusters):
 
-	p = list_p[number_of_clusters-1]
-	
+	p = pd.DataFrame(list_p[number_of_clusters-1])
+	'''
 	fig = plt.figure()
 	ax = plt.axes(projection='3d')
 	color=cm.rainbow(np.linspace(0,1,len(p)))
@@ -591,12 +549,16 @@ def Plot3D(part,list_m,list_p,number_of_clusters):
 				f.set_color(color[i])
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)
-	data = pd.DataFrame(list_m[0][0])
-	ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
+				
+		data = pd.DataFrame(list_m_leaf[number_of_clusters-1][i])
+		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
+
+	#data = pd.DataFrame(list_m[0][0])
+	#ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
 
 	plt.show()
 	
-
+	
 	color=cm.rainbow(np.linspace(0,1,len(p)))
 	for i in range(len(p)):
 		fig = plt.figure()
@@ -624,14 +586,97 @@ def Plot3D(part,list_m,list_p,number_of_clusters):
 				f.set_color(color[i])
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)
+		for l in range(len(p)):
+			data = pd.DataFrame(list_m_leaf[number_of_clusters-1][l])
+			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
+	
+		plt.show()
+	'''
+	
+	fig = plt.figure()
+	ax = plt.axes(projection='3d')
+	color=cm.rainbow(np.linspace(0,1,len(p)))
+	for i in range(len(p)):
+		data = pd.DataFrame(list_m_leaf[number_of_clusters-1][i])
+		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color=color[i])
+		
+		plt.show()
+	
+	return
+#%%
+	color=cm.rainbow(np.linspace(0,1,len(p)))
+	for i in range(len(p)):
+		fig = plt.figure()
+		ax = plt.axes(projection='3d')
+		Ai = part[part['part_number']==p['part_number'].iloc[i]]['polytope'][0]['A']
+		bi = part[part['part_number']==p['part_number'].iloc[i]]['polytope'][0]['b']
+		pi = pc.Polytope(np.array(Ai), np.array(bi))
+		for j in p['merged_part'].iloc[i]:
+			Aj = part[part['part_number']==j]['polytope'][0]['A']
+			bj =  part[part['part_number']==j]['polytope'][0]['b']
+			pj = pc.Polytope(np.array(Aj), np.array(bj))
+			pi = pi.union(pj)
+			verts = pypoman.compute_polytope_vertices(pi.A,pi.b)
+		hull = ConvexHull(verts)
+		faces = hull.simplices
+		for s in faces:
+			sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
+				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+			f = Poly3DCollection([sq],linewidths=0.01)
+			f.set_color(color[i])
+			f.set_alpha(0.1)
+			ax.add_collection3d(f)
 		data = pd.DataFrame(list_m[0][0])
 		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
 
-		plt.show()
 	
-	
-	return
 
+#%%
+
+def Plot2D_binario(n,list_part,list_p_tot,number_of_clusters,name_file):
+
+#%%	
+	I=[0,0,0,1,0,0,0,1,1,1]
+
+	fig,ax = plt.subplots()
+	n=[0,1,2,4,5,6]	
+	for l in range(len(list_part)):#n
+		if l==50:
+	
+			
+			part = list_part[l]
+			list_p = list_p_tot[l]
+			
+			p = list_p[number_of_clusters-1]
+			alpha = 1/len(list_part)
+			
+			i=I[l] #0
+			box = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
+			pol = Polygon(box, facecolor='black', alpha=alpha, edgecolor=None,linewidth=0.00001)
+			ax.add_patch(pol)
+	
+			for j in p['merged_part'].iloc[i]:
+				box = part[part['part_number']==j]['box'][0]
+				pol = Polygon(box, facecolor='black', alpha=alpha, edgecolor=None,linewidth=0.00001)
+				ax.add_patch(pol)
+					
+			xmin = part['box'].iloc[0][0][0]-0.05
+			ymin = part['box'].iloc[0][0][1]-0.05
+			xmax = part['box'].iloc[0][2][0]+0.05
+			ymax = part['box'].iloc[0][2][1]+0.05
+		
+			ax.set_xlim(xmin,xmax)
+			ax.set_ylim(ymin,ymax)	
+
+	data = pd.DataFrame(list_m[0][0])
+	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+		
+#%%		
+	plt.show()
+	if name_file != False:
+		plt.savefig(name_file)	
+	return
 
 
 	

@@ -182,9 +182,14 @@ def CutMinDist_SUM(dist_matrix,data):
 		ind2 = ind2[0] #nuovo punto in data2
 		dist2 = dist[:,ind2]
 		min_dist2 = np.min(dist2)
-	
 		
-		diff = abs(min_dist_fra_partizioni - media) + min_dist1 + min_dist2
+		#21 agosto modifica: distinguo i casi
+		if len(data1) == 1:
+			diff = abs(min_dist_fra_partizioni - media) + min_dist2
+		if len(data2) == 1:
+			diff = abs(min_dist_fra_partizioni - media) + min_dist1 
+		else:
+			diff = abs(min_dist_fra_partizioni - media) + min_dist1 + min_dist2
 		diff_min_dist.append(diff)
 		
 	data_pair['diff_min_dist'] = diff_min_dist
@@ -255,8 +260,8 @@ def CutMinDist(dist_matrix,data):
 		
 		matrix = dist_matrix[(dist_matrix['index1']==data_pair['index1'].iloc[i]) & (dist_matrix['index2']==data_pair['index2'].iloc[i])].copy()
 
-		data1 = np.array(matrix.query('dist_point_cut>=0')[names].copy())
-		data2 = np.array(matrix.query('dist_point_cut<0')[names].copy())
+		data1 = np.array(matrix.query('dist_point_cut>0')[names].copy())
+		data2 = np.array(matrix.query('dist_point_cut<=0')[names].copy())
 		
 		#if (len(data1)==1) and (len(data2)==1):
 		#	diff_min_dist.append('nan')
@@ -340,10 +345,10 @@ def FindDataPartition(p1,p2,matrix):
 	
 	if (point in p1) == True:
 		data1 = matrix.query('dist_point_cut>0').copy()
-		data2 = matrix.query('dist_point_cut<0').copy()
+		data2 = matrix.query('dist_point_cut<=0').copy()
 	else:
 		data2 = matrix.query('dist_point_cut>0').copy()
-		data1 = matrix.query('dist_point_cut<0').copy()
+		data1 = matrix.query('dist_point_cut<=0').copy()
 			
 	
 	
@@ -387,8 +392,8 @@ def Cut_with_data(data,p,dist_matrix):
 	
 	data1,data2 = FindDataPartition(p1,p2,matrix)
 
-	
-	
+
+
 	return p1,p2,data1,data2
 
 

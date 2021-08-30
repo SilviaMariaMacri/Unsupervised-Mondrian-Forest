@@ -1,3 +1,16 @@
+data = {'X0':X[:,0],'X1':X[:,1],'X2':X[:,2],'y':y}
+
+data=pd.DataFrame(data)
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.scatter3D(np.array(data.query('y==0'))[:,0],np.array(data.query('y==0'))[:,1],np.array(data.query('y==0'))[:,2],alpha=0.5,color='b')
+ax.scatter3D(np.array(data.query('y==1'))[:,0],np.array(data.query('y==1'))[:,1],np.array(data.query('y==1'))[:,2],alpha=0.5,color='orange')
+#ax.scatter3D(np.array(data.query('y==2'))[:,0],np.array(data.query('y==2'))[:,1],np.array(data.query('y==2'))[:,2],alpha=0.5,color='g')
+
+
+#%%
+
 # make circles in 3D
 #make_s_curve(n_samples=100, *, noise=0.0, random_state=None)[source]
 
@@ -5,6 +18,7 @@
 import numpy as np
 import pandas as pd
 from sklearn import datasets
+
 
 #from sklearn.model_selection import train_test_split
 #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=1)
@@ -22,12 +36,12 @@ ax = plt.axes(projection='3d')
 ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
 
 #%% make circles 2D
-dat = datasets.make_circles(n_samples=100,noise=0.05,random_state=170,factor=0.5)
+dat = datasets.make_circles(n_samples=100,noise=0.05,random_state=500,factor=0.5)
 X = dat[0]
 y = dat[1]
 
 #%% make moons 2D
-dat = datasets.make_moons(n_samples=100,noise=0.08,random_state=350)
+dat = datasets.make_moons(n_samples=20,noise=0.08,random_state=500)
 X = dat[0]
 y = dat[1]
 plt.scatter(X[:,0],X[:,1])
@@ -38,7 +52,223 @@ dim3 = np.random.normal(0, 0.2, len(X))
 X = np.hstack((X[:,0].reshape((len(X),1)),X[:,1].reshape((len(X),1)),dim3.reshape((len(X),1))))
 y = dat[1]
 
+
+
+
+
+
+#%% makecircles 3D
+
+dat1 = datasets.make_circles(n_samples=70,noise=0.1,random_state=500,factor=0.9)
+X1 = dat1[0]
+
+
+dat2 = datasets.make_circles(n_samples=70,noise=0.1,random_state=550,factor=0.9)
+X2 = dat2[0]
+
+
+cerchio1=np.hstack((X1[:,0].reshape((len(X1),1)),X1[:,1].reshape((len(X1),1))-1,np.random.normal(0,0.1,len(X1)).reshape((len(X1),1))))
+cerchio2=np.hstack((np.random.normal(0,0.1,len(X2)).reshape((len(X2),1)),X2[:,0].reshape((len(X2),1)),X2[:,1].reshape((len(X2),1))))
+
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.scatter3D(cerchio1[:,0],cerchio1[:,1],cerchio1[:,2],alpha=0.5)
+ax.scatter3D(cerchio2[:,0],cerchio2[:,1],cerchio2[:,2],alpha=0.5)
+
+X = np.vstack([cerchio1,cerchio2])
+y = np.hstack([np.zeros(len(cerchio1)),np.ones(len(cerchio2))])#.reshape(len(X1)+len(X2),)
+
+
+
+
+#%% cilindro
+
+rotation_axis = np.array([0, 0, 1])
+angle = np.linspace(0,360,20)
+Xinit=[1,1,0]
+X = []
+Xb = [0,0,0]
+
+for i in range(len(angle)-1):
+	rotation_degrees = angle[i]
+	rotation_radians = np.radians(rotation_degrees)
+	rotation_vector = rotation_radians * rotation_axis
+	rotation = R.from_rotvec(rotation_vector)
+	X_rot = rotation.apply(Xinit)
+	X.append(list(X_rot))
+X = np.array(X) #+ np.random.normal(0,0.1,(len(X),3))
+y =  np.zeros(len(X))
+
+for i in range(3):
+	np.random.seed(0)
+	Xt = np.array(X) + np.random.normal(0,0.1,(len(X),3)) +i*0.3#np.array([0,0,0.3])
+	X = np.vstack([X,Xt])
+	y = np.hstack([y,np.zeros(len(Xt))])
+	np.random.seed(1)
+	Xbt = np.array(Xb) + np.random.normal(0,0.1,(10,3)) +i*0.3#np.array([0,0,0.3])
+	X = np.vstack([X,Xbt])
+	y = np.hstack([y,np.ones(len(Xbt))])
+	
+	
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
+
+
+
+
+#%% semisfere
+
+
+rotation_axis = np.array([0, 0, 1])
+angle = np.linspace(0,180,10)
+Xinit=[1,0,0]
+X = []
+Xb = [0,0,0]
+
+for i in range(len(angle)):
+	rotation_degrees = angle[i]
+	rotation_radians = np.radians(rotation_degrees)
+	rotation_vector = rotation_radians * rotation_axis
+	rotation = R.from_rotvec(rotation_vector)
+	X_rot = rotation.apply(Xinit)
+	X.append(list(X_rot))
+X = np.array(X) #+ np.random.normal(0,0.1,(len(X),3))
+Xinit = X.copy()
+
+for i in range(len(angle)):
+	rotation_axis = np.array([1, 0, 0])
+	rotation_degrees = angle[i]
+	rotation_radians = np.radians(rotation_degrees)
+	rotation_vector = rotation_radians * rotation_axis
+	rotation = R.from_rotvec(rotation_vector)
+	X_rot = rotation.apply(Xinit + np.random.normal(0,0.05,(len(Xinit),3)))
+	X = np.vstack([X,X_rot])
+y = np.zeros(len(X))
+	
+blob = datasets.make_blobs(n_samples=30,n_features=3,centers=[(0,0,0.4)],cluster_std=0.1,random_state=18)
+Xb = blob[0]
+yb = np.ones(len(Xb))
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
+ax.scatter3D(Xb[:,0],Xb[:,1],Xb[:,2],alpha=0.5)
+
+
+X = np.vstack([X,Xb])
+y = np.hstack([y,yb])
+#%%3D makemmons+blob
+
+from scipy.spatial.transform import Rotation as R
+rotation_axis = np.array([0, 1, 0])
+angle = np.linspace(0,360,50)
+n_samples=20
+dat = datasets.make_moons(n_samples=n_samples,noise=0.05,random_state=len(angle)
+						  ,shuffle=False)
+len_dat = int(len(dat[0])/2)
+X = dat[0][0:len_dat]
+y = dat[1][0:len_dat]
+X=np.hstack((X[:,0].reshape((len(X),1)),X[:,1].reshape((len(X),1)),np.zeros(len(X)).reshape((len(X),1))))
+
+for i in range(len(angle)):
+	rotation_degrees = angle[i]
+	rotation_radians = np.radians(rotation_degrees)
+	rotation_vector = rotation_radians * rotation_axis
+	rotation = R.from_rotvec(rotation_vector)
+	#if i%2==0:
+	#	n_samples_i=20
+	#else:
+	n_samples_i=n_samples
+	dat = datasets.make_moons(n_samples=n_samples_i,noise=0.05,random_state=i
+						   ,shuffle=False)
+	X_rot = dat[0][0:len_dat]
+	y_rot = dat[1][0:len_dat]
+	X_rot=np.hstack((X_rot[:,0].reshape((len(X_rot),1)),X_rot[:,1].reshape((len(X_rot),1)),np.zeros(len(X_rot)).reshape((len(X_rot),1))))
+
+	X_rot = rotation.apply(X_rot)
+	X = np.vstack([X,X_rot])
+
+	#fig = plt.figure()
+	#ax = plt.axes(projection='3d')
+	#ax.scatter3D(X_rot[:,0],X_rot[:,1],X_rot[:,2],alpha=0.5)
+	y = np.hstack([y,y_rot])#.reshape(len(y)+len(y_rot),)
+
+df_X =pd.DataFrame(X)
+X = np.array(df_X[(df_X[1]>0.2) & (df_X[1]<0.8)])
+y = np.zeros(len(X))
+
+blob = datasets.make_blobs(n_samples=30,n_features=3,centers=[(0,0.4,0)],cluster_std=0.1,random_state=18)
+Xb = blob[0]
+yb = np.ones(len(Xb))
+
+
+'''
+circle = datasets.make_circles(n_samples=70,noise=0.05,random_state=550,factor=.99)
+X_circle = circle[0]
+y_circle = circle[1]
+
+
+cerchio=np.hstack((X_circle[:,0].reshape((len(X_circle),1)),np.random.normal(-0.2,0.05,len(X_circle)).reshape((len(X_circle),1))				   ,X_circle[:,1].reshape((len(X_circle),1))))
+'''
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
+ax.scatter3D(Xb[:,0],Xb[:,1],Xb[:,2],alpha=0.5)
+#ax.scatter3D(cerchio[:,0],cerchio[:,1],cerchio[:,2],alpha=0.5)
+
+X = np.vstack([X,Xb])
+y = np.hstack([y,yb])
+
+
+
+
+
+
+
+#%%  makemoons3D
+from scipy.spatial.transform import Rotation as R
+rotation_axis = np.array([0, 1, 0])
+angle = np.linspace(0,90,10)
+n_samples=20
+dat = datasets.make_moons(n_samples=n_samples,noise=0,random_state=len(angle)
+						  ,shuffle=False)
+X = dat[0]
+y = dat[1]
+X=np.hstack((X[:,0].reshape((len(X),1))-0.5,X[:,1].reshape((len(X),1)),np.zeros(len(X)).reshape((len(X),1))))
+
+for i in range(len(angle)):
+	rotation_degrees = angle[i]
+	rotation_radians = np.radians(rotation_degrees)
+	rotation_vector = rotation_radians * rotation_axis
+	rotation = R.from_rotvec(rotation_vector)
+	#if i%2==0:
+	#	n_samples_i=20
+	#else:
+	n_samples_i=n_samples
+	dat = datasets.make_moons(n_samples=n_samples_i,noise=0,random_state=i
+						   ,shuffle=False)
+	X_rot = dat[0]
+	y_rot = dat[1]
+	X_rot=np.hstack((X_rot[:,0].reshape((len(X_rot),1))-0.5,X_rot[:,1].reshape((len(X_rot),1)),np.zeros(len(X_rot)).reshape((len(X_rot),1))))
+
+	X_rot = rotation.apply(X_rot)
+	X = np.vstack([X,X_rot])
+	y = np.hstack([y,y_rot])#.reshape(len(y)+len(y_rot),)
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
+#ax.scatter3D(Xb[:,0],Xb[:,1],Xb[:,2],alpha=0.5)
+#ax.scatter3D(cerchio[:,0],cerchio[:,1],cerchio[:,2],alpha=0.5)
+
+#X = np.vstack([X,Xb])
+#y = np.hstack([y,yb])
 #%% iris 4D
+
 iris = datasets.load_iris() 
 X = iris.data
 y = iris.target

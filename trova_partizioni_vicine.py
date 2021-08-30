@@ -1,4 +1,4 @@
-
+'''
 data_classification = pd.DataFrame(list_class[0][number_of_clusters-1])
 data_classification.columns = ['index','class0']
 number_of_clusters = 4
@@ -12,14 +12,15 @@ for i in range(1,len(list_class)):
 
 
 #%%
-
+'''
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist,pdist
 import networkx as nx
 from sklearn.metrics.cluster import adjusted_mutual_info_score
 from itertools import combinations
-
+import copy
+import pylab as plt
 
 
 
@@ -259,19 +260,20 @@ def AssignClass(G,X,p,m_leaf,tagli_paralleli):
 def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
 	
 	p = p_true.copy()
-	m_leaf = m_leaf_true.copy()
+	m_leaf = copy.deepcopy(m_leaf_true)#m_leaf_true.copy()#
+
 	index1 = p[p['part_number']==part_to_remove].index[0]
 	index2 = p[p['part_number']==part_to_merge].index[0]
 	#unisco i dati in m_leaf
-	data1 = pd.DataFrame(m_leaf[index1])
+	data1 = pd.DataFrame(m_leaf[index1]).copy()
 	
-	data2 = pd.DataFrame(m_leaf[index2])
+	data2 = pd.DataFrame(m_leaf[index2]).copy()
 	data2 = pd.concat([data2,data1])
 	data2.index = np.arange(len(data2))
-	m_leaf[index2] = data2.to_dict()
+	m_leaf[index2] = copy.deepcopy(data2.to_dict())
 	
-	neigh = list(p['neighbors'])
-	merged_part = list(p['merged_part'])
+	neigh = copy.deepcopy(list(p['neighbors']))
+	merged_part = copy.deepcopy(list(p['merged_part']))
 			
 	#sostituisco vicini in tutte le partizioni di p e aggiungo vicini di single_part a part unita
 	neigh[index1].remove(part_to_merge)
@@ -281,10 +283,10 @@ def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
 			neigh[index2].append(j)
 		neigh[p[p['part_number']==j].index[0]].remove(part_to_remove)
 		if part_to_merge not in neigh[p[p['part_number']==j].index[0]]:
-			neigh[p[p['part_number']==j].index[0]].append(part_to_merge)
+			neigh[p[p['part_number']==j].index[0]].append(float(part_to_merge))
 	
 	for j in merged_part[index1]:
-		merged_part[index2].append(j)
+		merged_part[index2].append(float(j))
 	merged_part[index2].append(part_to_remove)
 	
 	p['neighbors'] = neigh
@@ -292,7 +294,7 @@ def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
 	
 	p = p.drop(index1)
 	p.index = np.arange(len(p))
-	m_leaf = np.delete(m_leaf, index1).tolist()
+	m_leaf = copy.deepcopy(np.delete(m_leaf, index1).tolist())
 	
 	return m_leaf,p
 	
@@ -308,6 +310,7 @@ def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
 def MergePart_SingleData(m,part): 
 	
 	p = part.copy(deep=True)
+	p['part_number'] = p['part_number'].astype(float)
 	p = p.query('leaf==True')
 	p = p[['part_number','neighbors']]
 	merged_part = []
@@ -315,21 +318,22 @@ def MergePart_SingleData(m,part):
 		merged_part.append([])
 	p['merged_part'] = merged_part
 	p.index = np.arange(len(p))
-	m_leaf = m.copy()
-	m_leaf = np.delete(m, list(part.query('leaf==False')['part_number'])).tolist()
+	m_leaf = copy.deepcopy(m)#m.copy()#
+
+	m_leaf = np.delete(m_leaf, list(part.query('leaf==False')['part_number'])).tolist()
 	
 	#list_part_with_single_data = []
 	#list_part_to_merge = []
-	list_part = list(p['part_number'])
+	list_part = list(p['part_number']).copy()
 	for i in list_part:
-		index1 = p[p['part_number']==i].index[0]
-		data1 = pd.DataFrame(m_leaf[index1])
+		index1 = p[p['part_number']==i].index[0].copy()
+		data1 = pd.DataFrame(m_leaf[index1]).copy()
 		#consdidero solo partizioni con unico dato all'interno
 		if len(data1) == 1: 
 			#cerco minima distanza con part vicine
 			min_dist = []
 			for j in p['neighbors'].iloc[index1]:
-				data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])
+				data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]]).copy()
 				if len(data2) > 1:
 					#media,min_dist_fra_partizioni,min_data2,mean2 = MinDistBetweenPart(data1,data2)	
 					media,min_dist_fra_partizioni,min_dist1,min_dist2,mean1,mean2 = MinDistBetweenPart_SUM(data1,data2)
@@ -344,7 +348,7 @@ def MergePart_SingleData(m,part):
 			#list_part_with_single_data.append(i)
 			#list_part_to_merge.append(part_to_merge)
 			
-			
+			print(i)
 			m_leaf,p = MergePart(m_leaf,p,i,part_to_merge)
 			
 		
@@ -421,7 +425,7 @@ def PartLinkScore(m_leaf,p,score):#X,,tagli_paralleli
 				media_i,min_dist_i,min_dist1,min_dist2,mean1,mean2 = MinDistBetweenPart_SUM(data1,data2)
 				#quella ufficiale è la seguente
 				differenza_minimi = abs(min_dist_i - media_i) + min_dist1 + min_dist2
-				#differenza_minimi = abs(min_dist_fra_partizioni - media) + abs(min_dist1 - mean1) + abs(min_dist2 - mean2)
+				#differenza_minimi = abs(min_dist_i - media_i) + abs(min_dist1 - mean1) + abs(min_dist2 - mean2)
 				diff_minimi.append(differenza_minimi)
 				'''
 				#differenza_minimi = abs(min_dist_i*(min_data1/mean1)*(min_data2/mean2) - media_i)
@@ -565,32 +569,36 @@ def Classification_TD(part,m,X,namefile,score,weight,tagli_paralleli):
 
 
 
-def Classification_BU(m,part,weight,score,namefile):
+def Classification_BU(m,part,weight):#,score,namefile):
 	
 	m_leaf,p =  MergePart_SingleData(m,part)
 	print(p)
-	
-	p.to_json(namefile+'_p_0.json')	
-	with open(namefile+'_m_leaf_0.json', 'w') as f:
-	    f.write(json.dumps([df for df in m_leaf]))
-	
+	list_p = []
+	list_m_leaf = []
+	list_p.append(p)
+	list_m_leaf.append(m_leaf)
+	#p.to_json(namefile+'_p_0.json')	
+	#with open(namefile+'_m_leaf_0.json', 'w') as f:
+	 #   f.write(json.dumps([df for df in m_leaf]))
 	G = nx.Graph()
 	for i in range(len(p)):
 		G.add_node(p['part_number'].iloc[i])
 	
-	c=0
+	#c=0
 	while nx.number_connected_components(G) > 1:
-		c+=1
+		#c+=1
 		part_links = PartLinkScore(m_leaf,p,score)
 		G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links[weight].iloc[0])
 		m_leaf,p = MergePart(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
 		
-		p.to_json(namefile+'_p_'+str(c)+'.json')	
-		with open(namefile+'_m_leaf_'+str(c)+'.json', 'w') as f:
-		    f.write(json.dumps([df for df in m_leaf]))
+		list_p.append(p)
+		list_m_leaf.append(m_leaf)
+		#p.to_json(namefile+'_p_'+str(c)+'.json')	
+		#with open(namefile+'_m_leaf_'+str(c)+'.json', 'w') as f:
+		 #   f.write(json.dumps([df for df in m_leaf]))
 		print(p)	
 	
-	return 
+	return list_m_leaf,list_p
 
 
 
@@ -665,7 +673,9 @@ def AssignClass_BU(list_m_leaf):
 
 
 
-def ClassificationScore_BU(class_data_tot,name_file):
+def ClassificationScore_BU(class_data_tot_true,name_file):
+	
+	class_data_tot = copy.deepcopy(class_data_tot_true)
 	
 	pair = list(combinations(np.arange(len(class_data_tot)),2))
 	

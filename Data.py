@@ -1,3 +1,5 @@
+
+
 data = {'X0':X[:,0],'X1':X[:,1],'X2':X[:,2],'y':y}
 
 data=pd.DataFrame(data)
@@ -97,12 +99,12 @@ for i in range(len(angle)-1):
 	rotation = R.from_rotvec(rotation_vector)
 	X_rot = rotation.apply(Xinit)
 	X.append(list(X_rot))
-X = np.array(X) #+ np.random.normal(0,0.1,(len(X),3))
-y =  np.zeros(len(X))
+Xinit = np.array(X) #+ np.random.normal(0,0.1,(len(X),3))
+y =  np.zeros(len(Xinit))
 
 for i in range(3):
 	np.random.seed(0)
-	Xt = np.array(X) + np.random.normal(0,0.1,(len(X),3)) +i*0.3#np.array([0,0,0.3])
+	Xt = np.array(Xinit) + np.random.normal(0,0.1,(len(Xinit),3)) +i*0.3#np.array([0,0,0.3])
 	X = np.vstack([X,Xt])
 	y = np.hstack([y,np.zeros(len(Xt))])
 	np.random.seed(1)
@@ -110,6 +112,33 @@ for i in range(3):
 	X = np.vstack([X,Xbt])
 	y = np.hstack([y,np.ones(len(Xbt))])
 	
+	
+
+fig = plt.figure()
+ax = plt.axes(projection='3d')
+ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
+
+
+#%% makemoons 3D
+
+
+dat = datasets.make_moons(n_samples=20,noise=0.05,random_state=500,shuffle=False)
+X = dat[0] #+ np.vstack([np.zeros(len(dat[0])),np.hstack([np.zeros(int(len(dat[0])/2)),-np.ones(int(len(dat[0])/2))])]).T
+y = dat[1]
+np.random.seed(500)
+dim3 = np.random.normal(0, 0.01, len(X))#np.zeros(len(Xdat))#
+X = np.hstack((X[:,0].reshape((len(X),1)),X[:,1].reshape((len(X),1)),dim3.reshape((len(X),1))))
+
+for i in range(5):
+	dat = datasets.make_moons(n_samples=20,noise=0.05,random_state=i,shuffle=False)
+	Xdat = dat[0]
+	ydat = dat[1]
+	np.random.seed(i)
+	dim3 = np.random.normal(0, 0.01, len(Xdat)) #np.zeros(len(Xdat))#
+	Xdat = np.hstack((Xdat[:,0].reshape((len(Xdat),1)),Xdat[:,1].reshape((len(Xdat),1)),dim3.reshape((len(Xdat),1))))
+	Xdat = Xdat +i*np.array([0,0.2,0.2])
+	X = np.vstack([X,Xdat])
+	y = np.hstack([y,ydat])	
 	
 
 fig = plt.figure()

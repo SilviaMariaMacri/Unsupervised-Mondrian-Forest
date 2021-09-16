@@ -1,6 +1,0 @@
-prova: lo score è diff_min + distanze minime dei due punti coinvolti
-
-prova1: score è diff_min
-
-
-nella cartella prova_vottom_up è il contrario

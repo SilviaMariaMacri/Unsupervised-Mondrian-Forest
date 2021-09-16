@@ -1,3 +1,0 @@
-makemoons1:
-dat =dat = datasets.make_moons(n_samples=100,noise=0.07,random_state=20)
-

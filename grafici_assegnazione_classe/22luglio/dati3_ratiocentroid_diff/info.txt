@@ -1,2 +1,0 @@
-partizione è stata fatto con ratio_centroid (elevata alla 100)
-mentre assegnazione classe con difference centroid

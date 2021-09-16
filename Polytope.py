@@ -674,3 +674,17 @@ r = pc.Region(list(part_leaf['polytope']))
 pc.Partition(pc.union(p1,p2))
 pc.find_adjacent_regions(partition)
 '''
+
+#%%
+
+# modifica spazio iniziale
+
+from scipy.spatial import ConvexHull#,convex_hull_plot_2d
+hull = ConvexHull(X)
+A = hull.equations[:,:-1]
+b = hull.equations[:,-1:]
+p = pc.Polytope(A,b)
+
+#forming the hyperplane equation of the facet
+# ma non è detto che il minore o uguale sia dalla parte giusta se vogliamo 
+#considerare il politopo

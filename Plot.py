@@ -496,7 +496,7 @@ def Plot2D(part,list_m,list_p,number_of_clusters,name_file):
 		b = pd.DataFrame(box)
 		x_avg = np.mean(b[0])
 		y_avg = np.mean(b[1])
-		ax.text(x_avg,y_avg,p['part_number'].iloc[i])
+		ax.text(x_avg,y_avg,int(p['part_number'].iloc[i]))
 		for j in p['merged_part'].iloc[i]:
 			box = part[part['part_number']==j]['box'][0]
 			pol = Polygon(box, facecolor=color[i], alpha=0.3, edgecolor='black')
@@ -505,7 +505,7 @@ def Plot2D(part,list_m,list_p,number_of_clusters,name_file):
 			b = pd.DataFrame(box)
 			x_avg = np.mean(b[0])
 			y_avg = np.mean(b[1])
-			ax.text(x_avg,y_avg,j)
+			ax.text(x_avg,y_avg,int(j))
 		
 	data = pd.DataFrame(list_m[0][0])
 	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
@@ -637,12 +637,12 @@ def Plot3D(part,list_m_leaf,list_p,number_of_clusters):
 def Plot2D_binario(n,list_part,list_p_tot,number_of_clusters,name_file):
 
 #%%	
-	I=[0,0,0,1,0,0,0,1,1,1]
+	I=[0,1,0,1,1,1,0,1,0,1,1,0]
 
 	fig,ax = plt.subplots()
-	n=[0,1,2,4,5,6]	
+	#n=[0,1,2,4,5,6]	
 	for l in range(len(list_part)):#n
-		if l==50:
+		if l!=50:
 	
 			
 			part = list_part[l]

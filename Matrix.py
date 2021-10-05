@@ -4,7 +4,6 @@ from scipy.spatial.distance import cdist
 
 
 
-
 def DistanceMatrix(X):
 	
 	 
@@ -93,6 +92,8 @@ def DistanceMatrix(X):
 	return matrix
 
 
+
+print('ciao')
 
 
 

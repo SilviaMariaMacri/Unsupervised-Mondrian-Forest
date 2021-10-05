@@ -27,10 +27,10 @@ def SaveMondrianOutput(namefile,part,m):
 # Polytope dimensione generica + classificazione 
 
 t0 = 0
-lifetime = 10
-dist_matrix = DistanceMatrix(X)
-number_of_iterations = 10
-#name = 'makemoons3D2_lambda10_'
+lifetime = 1.5
+#dist_matrix = DistanceMatrix(X)
+number_of_iterations = 1
+name = 'moons1_METRIC_'
 #prova a diminuire esponenteeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 #eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 for i in range(number_of_iterations):
@@ -43,7 +43,7 @@ for i in range(number_of_iterations):
 	part = json.load(open(namefile+'_part.json','r'))
 	part = pd.DataFrame(part)
 	m = json.load(open(namefile+'_m.json','r'))
-	#PlotPolygon(m,part)
+	PlotPolygon(m,part)
 
 	#tagli_paralleli = False #True#,False
 	score = 'min' #'var','centroid'
@@ -98,7 +98,7 @@ list_m_leaf_tot = []
 #list_conn_comp = []
 
 
-for i in range(number_of_iterations):
+for i in range(1,number_of_iterations):
 
 	namefile = name+str(i+1)
 	
@@ -108,12 +108,12 @@ for i in range(number_of_iterations):
 	list_part.append(part)
 	list_m.append(m)
 	
+
 	list_p = json.load(open(namefile+'_p.json','r'))
 	list_m_leaf = json.load(open(namefile+'_m_leaf.json','r'))
 	list_p_tot.append(list_p)
 	list_m_leaf_tot.append(list_m_leaf)	
-	
-	
+		
 	'''
 	#namefile = name+'stesso_criterio_ritento_'+str(i+1)
 	list_p = []
@@ -132,11 +132,13 @@ for i in range(number_of_iterations):
 	list_m_leaf.reverse()
 	list_p_tot.append(list_p)
 	list_m_leaf_tot.append(list_m_leaf)
+	'''
 	
-	#classified_data = json.load(open(namefile+'_list_class.json','r'))
-	#conn_comp = json.load(open(namefile+'_conn_comp.json','r'))
-	#list_class.append(classified_data)
-	#list_conn_comp.append(conn_comp)
+	'''
+	classified_data = json.load(open(namefile+'_list_class.json','r'))
+	conn_comp = json.load(open(namefile+'_conn_comp.json','r'))
+	list_class.append(classified_data)
+	list_conn_comp.append(conn_comp)
 	'''
 
 
@@ -153,7 +155,7 @@ for i in range(len(list_m_leaf_tot)):
 	classified_data = AssignClass_BU(list_m_leaf)
 	class_data_tot.append(classified_data)
 
-ClassificationScore_BU(class_data_tot,name)
+#ClassificationScore_BU(class_data_tot,name)
 
 
 #%% confronto classificazione vera
@@ -192,16 +194,16 @@ for i in range(number_of_iterations):
 	m = list_m[i]
 	list_m_leaf = list_m_leaf_tot[i]
 	list_p = list_p_tot[i]
-	#PlotPolygon(m,part)
+	PlotPolygon(m,part)
 	
 	#namefile = name+'stesso_criterio_ritento_'+str(i+1)
 	#Classification_BU(m,part,weight,score,namefile)
 
-	number_of_clusters = 2
-	#namefile = False#name+str(i+1)
-	#for number_of_clusters in range(len(list_p)):
-	#Plot2D(part,list_m_leaf,list_p,number_of_clusters,namefile)
-	Plot3D(part,list_m_leaf,list_p,number_of_clusters)
+	#number_of_clusters = 2
+	namefile = False#name+str(i+1)
+	for number_of_clusters in range(len(list_p)):
+		Plot2D(part,list_m_leaf,list_p,number_of_clusters,namefile)
+	#Plot3D(part,list_m_leaf,list_p,number_of_clusters)
 	
 	#classified_data = list_class[i]
 	#conn_comp = list_conn_comp[i]
@@ -293,8 +295,8 @@ PlotPolygon(X,part)
 #%% Unsupervised
 
 t0=0
-lifetime=2.5
-part = MondrianUnsupervised(X,t0,lifetime)
+lifetime=6
+m,part = MondrianUnsupervised(X,t0,lifetime)
 #number_iterations = 10
 #X_part = AssignPartition(X,part)
 #df =trova_part_vicine(part)

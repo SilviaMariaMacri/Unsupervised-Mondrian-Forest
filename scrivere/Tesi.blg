@@ -1,0 +1,17 @@
+[0] Config.pm:311> INFO - This is Biber 2.16
+[0] Config.pm:314> INFO - Logfile is 'Tesi.blg'
+[245] biber-MSWIN64:340> INFO - === 
+[313] Biber.pm:415> INFO - Reading 'Tesi.bcf'
+[602] Biber.pm:949> INFO - Using all citekeys in bib section 0
+[635] Biber.pm:4340> INFO - Processing section 0
+[656] Biber.pm:4531> INFO - Looking for bibtex format file 'bib.bib' for section 0
+[747] bibtex.pm:1689> INFO - LaTeX decoding ...
+[789] bibtex.pm:1494> INFO - Found BibTeX data source 'bib.bib'
+[887] Utils.pm:395> WARN - legacy year field 'Spring 2011' in entry 'mitpoisson' is not an integer - this will probably not sort properly.
+[978] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[978] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[978] Biber.pm:4168> INFO - Sorting list 'nty/global//global/global' of type 'entry' with template 'nty' and locale 'en-US'
+[979] Biber.pm:4174> INFO - No sort tailoring available for locale 'en-US'
+[1011] bbl.pm:654> INFO - Writing 'Tesi.bbl' with encoding 'UTF-8'
+[1028] bbl.pm:757> INFO - Output to Tesi.bbl
+[1031] Biber.pm:128> INFO - WARNINGS: 1

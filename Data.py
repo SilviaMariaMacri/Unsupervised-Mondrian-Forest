@@ -38,12 +38,12 @@ ax = plt.axes(projection='3d')
 ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
 
 #%% make circles 2D
-dat = datasets.make_circles(n_samples=100,noise=0.05,random_state=500,factor=0.5)
+dat = datasets.make_circles(n_samples=500,noise=0.05,random_state=500,factor=0.5)
 X = dat[0]
 y = dat[1]
 
 #%% make moons 2D
-dat = datasets.make_moons(n_samples=20,noise=0.08,random_state=500)
+dat = datasets.make_moons(n_samples=100,noise=0.08,random_state=500)
 X = dat[0]
 y = dat[1]
 plt.scatter(X[:,0],X[:,1])

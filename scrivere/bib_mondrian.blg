@@ -1,0 +1,5 @@
+[0] Config.pm:311> INFO - This is Biber 2.16
+[0] Config.pm:314> INFO - Logfile is 'bib_mondrian.blg'
+[232] biber-MSWIN64:340> INFO - === 
+[1174] Utils.pm:411> ERROR - Cannot find 'bib_mondrian.bcf'!
+[1174] Biber.pm:132> INFO - ERRORS: 1

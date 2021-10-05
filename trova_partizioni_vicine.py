@@ -466,6 +466,8 @@ def PartLinkScore(m_leaf,p,score):#X,,tagli_paralleli
 	part_links.index = np.arange(len(part_links))
 	#part_links = part_links.drop(part_links[0:int(len(part_links)/2)].index*2)
 	#part_links.index = np.arange(len(part_links))
+	#part_links['part1']=part_links['part1'].astype(int)
+	#part_links['part2']=part_links['part2'].astype(int)
 	
 	return part_links
 
@@ -580,6 +582,7 @@ def Classification_BU(m,part,weight):#,score,namefile):
 	#p.to_json(namefile+'_p_0.json')	
 	#with open(namefile+'_m_leaf_0.json', 'w') as f:
 	 #   f.write(json.dumps([df for df in m_leaf]))
+	#p['part_number']=p['part_number'].astype(int)
 	G = nx.Graph()
 	for i in range(len(p)):
 		G.add_node(p['part_number'].iloc[i])
@@ -740,3 +743,4 @@ def ConfrontoClasseVera(class_data_tot,y,number_of_clusters):
 
 	return coeff
 	
+

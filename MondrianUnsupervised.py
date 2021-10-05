@@ -185,7 +185,7 @@ def Cut_confronto_split_intervalli(data,d):
 	# cancella righe con var_ratio=nan
 	intervals = intervals.drop(intervals[intervals['diff_min']=='nan'].index)
 	intervals.index = np.arange(len(intervals))
-	q=intervals['diff_min']**50	
+	q=intervals['diff_min']**30	
 	
 	p = q/q.sum()
 	index_cut = choice(intervals.index,p=p)

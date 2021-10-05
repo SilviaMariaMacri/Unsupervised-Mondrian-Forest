@@ -1,0 +1,48 @@
+\boolfalse {citerequest}\boolfalse {citetracker}\boolfalse {pagetracker}\boolfalse {backtracker}\relax 
+\babel@toc {english}{}\relax 
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {1}Clustering}{2}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Decision tree}{2}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {2}The Mondrian Process}{2}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subsection}{\numberline {2.1}Definition}{2}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subsection}{\numberline {2.2}Properties of the Mondrian process}{4}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Definition 1}{4}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Definition 2}{4}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Mondrian slices}{4}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Extension on $\math@bb {R}^D$}{4}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {3}Datasets}{5}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {4}Clustering algorithm based on the Mondrian Process}{6}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subsection}{\numberline {4.1}Partitioning}{6}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Algorithm 1}{7}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Algorithm 2}{7}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Algorithm 3}{8}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Hyperplane}{8}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {paragraph}{Polytope}{8}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subsection}{\numberline {4.2}Merging}{9}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {5}Mondrian clustering forest}{11}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {6}Examples in 2D}{12}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subsection}{\numberline {6.1}Algorithm 1 vs Algorithm 2: evaluation of \emph {partitioning} phase}{12}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {subsection}{\numberline {6.2}Algorithm 2 vs Algorithm 3: evaluation of \emph {merging} phase}{13}{}%
+\defcounter {refsection}{0}\relax 
+\contentsline {section}{\numberline {7}Conclusions}{14}{}%

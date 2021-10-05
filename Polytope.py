@@ -1,3 +1,6 @@
+print('b')
+
+'''
 import numpy as np
 import polytope as pc
 import pypoman
@@ -611,9 +614,9 @@ def Mondrian(X,t0,lifetime,dist_matrix):
 	
 	return m,part
 
+'''
 
-
-
+#print('b')
 
 
 '''
@@ -673,7 +676,7 @@ ax.set_ylim(ymin,ymax)
 r = pc.Region(list(part_leaf['polytope']))
 pc.Partition(pc.union(p1,p2))
 pc.find_adjacent_regions(partition)
-'''
+
 
 #%%
 
@@ -688,3 +691,4 @@ p = pc.Polytope(A,b)
 #forming the hyperplane equation of the facet
 # ma non è detto che il minore o uguale sia dalla parte giusta se vogliamo 
 #considerare il politopo
+'''

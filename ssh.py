@@ -23,26 +23,32 @@ ssh.connect(host, port, username, password)
 #	scp.put('Matrix.py', 'Matrix.py')
 
 #%%
-command = "rm prova1.py" #rimuovere file
+command = "rm trova_partizioni_vicine.py" #rimuovere file
 stdin, stdout, stderr = ssh.exec_command(command)
 lines = stdout.readlines()
 print(lines)
 
 with SCPClient(ssh.get_transport()) as scp:
-	scp.put('prova1.py','prova1.py')
+	scp.put('trova_partizioni_vicine.py','trova_partizioni_vicine.py')
 
-command = "python prova1.py"
+command = "python3 trova_partizioni_vicine.py"
 stdin, stdout, stderr = ssh.exec_command(command)
-lines = stdout.readlines()
-print(lines)
+lines1 = stdout.readlines()
+print(lines1)
+lines2 = stderr.readlines()
+print(lines2)
 
+#%% aggiungere box 
 
+vertices = []
+for i in range(len(part)):
+    poly = part['polytope'][i]
+    vert = pypoman.compute_polytope_vertices(np.array(poly['A']),np.array(poly['b']))
+    # ordino vertici: (per più dimensioni da errore?)
+    # compute centroid
+    cent=(sum([v[0] for v in vert])/len(vert),sum([v[1] for v in vert])/len(vert))
+    # sort by polar angle
+    vert.sort(key=lambda v: math.atan2(v[1]-cent[1],v[0]-cent[0]))
+    vertices.append(vert)
+part['box'] = vertices
 
-#%%
-from fabric.api import env, run
-
-env.host_string = '137.204.48.15'
-env.user = 'silviamaria.macri@studio.unibo.it'
-env.password = 'd(PF66gn'
-
-run('ls -l')

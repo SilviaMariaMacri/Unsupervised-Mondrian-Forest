@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
@@ -51,8 +52,11 @@ def DistanceMatrix(X):
 					
 	versori_iperpiani = np.array(versori_iperpiani_df)
 	
-	magnitude_norm_vect = versori_iperpiani@(np.array(coord_cut).T)
-	magnitude_norm_vect = np.diag(magnitude_norm_vect)
+	
+	magnitude_norm_vect = versori_iperpiani*np.array(coord_cut)
+	magnitude_norm_vect = np.sum(magnitude_norm_vect,axis=1)
+	#magnitude_norm_vect = np.diag(versori_iperpiani@(np.array(coord_cut).T))
+
 	
 	matrix = np.stack([i1.astype(int), i2.astype(int), dist[i1, i2],magnitude_norm_vect]).T
 	matrix = pd.DataFrame(matrix)
@@ -93,7 +97,7 @@ def DistanceMatrix(X):
 
 
 
-print('ciao')
+
 
 
 

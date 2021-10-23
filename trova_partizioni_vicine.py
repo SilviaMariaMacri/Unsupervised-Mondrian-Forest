@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 data_classification = pd.DataFrame(list_class[0][number_of_clusters-1])
 data_classification.columns = ['index','class0']
@@ -20,8 +21,8 @@ import networkx as nx
 from sklearn.metrics.cluster import adjusted_mutual_info_score
 from itertools import combinations
 import copy
-import pylab as plt
-
+import matplotlib.pylab as plt
+from Metrics import Variance,Centroid,MinDist
 
 
 #Mondrian tagli paralleli
@@ -29,7 +30,7 @@ def trova_part_vicine(part):
 
 
 	neighbors = []
-	
+
 	for i in range(len(part.query('leaf==True'))):
 		
 		p = part.query('leaf==True').copy()
@@ -198,7 +199,7 @@ def MinDistBetweenPart_SUM(data1,data2):
 	media = np.mean(min_tot)
 	
 	mean1 = np.mean(min1)
-	mean2 = np.mean(min2)	
+	mean2 = np.mean(min2)
 		
 	dist = cdist(data1,data2)
 	#data1 = righe
@@ -297,8 +298,8 @@ def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
 	m_leaf = copy.deepcopy(np.delete(m_leaf, index1).tolist())
 	
 	return m_leaf,p
-	
-	
+
+
 
 
 
@@ -352,15 +353,15 @@ def MergePart_SingleData(m,part):
 			m_leaf,p = MergePart(m_leaf,p,i,part_to_merge)
 			
 		
-	return m_leaf,p
+	return m_leaf,p 
 
 
 
 
-#print
+#prindt
 # score = 'var','centroid','min'
 #tagli_paralleli = True,False
-def PartLinkScore(m_leaf,p,score):#X,,tagli_paralleli
+def PartLinkScore_FinoA9Ottobre(m_leaf,p,score):#X,,tagli_paralleli
 	
 	# è utile tener conto del numero di punti contenuti in una partizione? ()
 	#merged_partitions,p,m_red = MergePart(m,part)
@@ -473,6 +474,115 @@ def PartLinkScore(m_leaf,p,score):#X,,tagli_paralleli
 
 
 
+
+def PartLinkScore(m_leaf,p,metric):
+	
+	
+	
+	part1 = []
+	part2 = []
+	score = []
+	for i in range(len(p)):
+		for j in p.iloc[i]['neighbors']:
+			
+			data1 = pd.DataFrame(m_leaf[i])#pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
+			data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])#pd.DataFrame(m[j]) #m[j][2]
+			data1 = np.array(data1.drop('index',axis=1))
+			data2 = np.array(data2.drop('index',axis=1))
+				
+			part1.append(p.iloc[i]['part_number'])
+			part2.append(j)
+			
+			if metric == 'variance':
+				var_ratio = Variance(data1,data2)
+				score.append(var_ratio)
+		
+			if metric == 'centroid_ratio':
+				ratio,difference  = Centroid(data1,data2)
+				score.append(ratio)
+ 
+			if metric == 'centroid_diff':
+				ratio,difference  = Centroid(data1,data2)
+				score.append(difference)
+				
+				
+			if metric == 'min':
+				min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
+				diff = abs(min_dist_fra_partizioni - media)
+				score.append(diff)
+				
+			if metric == 'min_corr':
+				min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
+				diff = abs(min_dist_fra_partizioni - media) + min_dist1 + min_dist2	
+				score.append(diff)
+				
+	part_links = {'part1':part1,'part2':part2,'score':score}
+	part_links = pd.DataFrame(part_links)
+	part_links = part_links.sort_values(by='score',ascending=True)
+	
+	
+	return part_links
+
+
+
+def PartLinkScore_tagli_paralleli(part,metric):
+	
+	p = part.query('leaf==True').copy()
+	p.index = np.arange(len(p))
+	
+	df = trova_part_vicine(part)
+	p = pd.merge(p,df,right_on='part_number',left_on='part_number')
+	a = AssignPartition(X,part)
+	
+	part1 = []
+	part2 = []
+	score = []
+	for i in range(len(p)):
+		for j in p.iloc[i]['neighbors']:
+			data1 = a.query('part_number=='+str(p.iloc[i]['part_number']))
+			data2 = a.query('part_number=='+str(j))
+
+			#data1 = pd.DataFrame(m_leaf[i])#pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
+			#data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])#pd.DataFrame(m[j]) #m[j][2]
+			data1 = np.array(data1.drop('index',axis=1))
+			data2 = np.array(data2.drop('index',axis=1))
+				
+			part1.append(p.iloc[i]['part_number'])
+			part2.append(j)
+			
+			if metric == 'variance':
+				var_ratio = Variance(data1,data2)
+				score.append(var_ratio)
+		
+			if metric == 'centroid_ratio':
+				ratio,difference  = Centroid(data1,data2)
+				score.append(ratio)
+ 
+			if metric == 'centroid_diff':
+				ratio,difference  = Centroid(data1,data2)
+				score.append(difference)
+				
+				
+			if metric == 'min':
+				min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
+				diff = abs(min_dist_fra_partizioni - media)
+				score.append(diff)
+				
+			if metric == 'min_corr':
+				min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
+				diff = abs(min_dist_fra_partizioni - media) + min_dist1 + min_dist2	
+				score.append(diff)
+				
+	part_links = {'part1':part1,'part2':part2,'score':score}
+	part_links = pd.DataFrame(part_links)
+	part_links = part_links.sort_values(by='score',ascending=True)
+	
+	
+	return part_links
+
+
+
+
 # weight = 'var_ratio','ratio_centroid','diff_centroid','diff_min'
 def Network(part_links,weight):
 	
@@ -565,13 +675,13 @@ def Classification_TD(part,m,X,namefile,score,weight,tagli_paralleli):
 
 	return
 
-	
 
 
 
 
 
-def Classification_BU(m,part,weight):#,score,namefile):
+
+def Classification_BU(m,part,metric):#,score,namefile):
 	
 	m_leaf,p =  MergePart_SingleData(m,part)
 	print(p)
@@ -579,10 +689,6 @@ def Classification_BU(m,part,weight):#,score,namefile):
 	list_m_leaf = []
 	list_p.append(p)
 	list_m_leaf.append(m_leaf)
-	#p.to_json(namefile+'_p_0.json')	
-	#with open(namefile+'_m_leaf_0.json', 'w') as f:
-	 #   f.write(json.dumps([df for df in m_leaf]))
-	#p['part_number']=p['part_number'].astype(int)
 	G = nx.Graph()
 	for i in range(len(p)):
 		G.add_node(p['part_number'].iloc[i])
@@ -590,22 +696,20 @@ def Classification_BU(m,part,weight):#,score,namefile):
 	#c=0
 	while nx.number_connected_components(G) > 1:
 		#c+=1
-		part_links = PartLinkScore(m_leaf,p,score)
-		G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links[weight].iloc[0])
+		part_links = PartLinkScore(m_leaf,p,metric)
+		#part_links = PartLinkScore_FinoA9Ottobre(m_leaf,p,'min')
+		G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links['score'].iloc[0])#'diff_min'
 		m_leaf,p = MergePart(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
 		
 		list_p.append(p)
 		list_m_leaf.append(m_leaf)
-		#p.to_json(namefile+'_p_'+str(c)+'.json')	
-		#with open(namefile+'_m_leaf_'+str(c)+'.json', 'w') as f:
-		 #   f.write(json.dumps([df for df in m_leaf]))
 		print(p)	
 	
 	return list_m_leaf,list_p
 
 
 
-	 	
+
 
 
 
@@ -700,7 +804,8 @@ def ClassificationScore_BU(class_data_tot_true,name_file):
 		coeff_tot.append(coeff)
 	
 	coeff_medio = pd.DataFrame(coeff_tot).mean()
-	
+	coeff_std = pd.DataFrame(coeff_tot).std()
+	'''
 	fig,ax = plt.subplots()
 	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 	ax.scatter(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
@@ -710,17 +815,24 @@ def ClassificationScore_BU(class_data_tot_true,name_file):
 	
 	if name_file != False:
 		plt.savefig(name_file)
-	
+	'''
 	fig,ax = plt.subplots()
 	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 	ax.scatter(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 	plt.show()
-	#linestyle = '-', '--', '-.', ':', 'None', ' ', '', 'solid', 'dashed', 'dashdot', 'dotted'
 	
 	if name_file != False:
 		plt.savefig(name_file+'_medio')
 	
-	return coeff_medio
+	
+	fig,ax = plt.subplots()
+	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])	
+	ax.vlines(np.arange(2,len(coeff_medio)+1), coeff_medio[1:]-coeff_std[1:]/2, coeff_medio[1:]+coeff_std[1:]/2)
+	
+	if name_file != False:
+		plt.savefig(name_file+'_std')	
+	
+	return coeff_medio,coeff_std
 	
 	
 

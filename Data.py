@@ -38,15 +38,16 @@ ax = plt.axes(projection='3d')
 ax.scatter3D(X[:,0],X[:,1],X[:,2],alpha=0.5)
 
 #%% make circles 2D
-dat = datasets.make_circles(n_samples=500,noise=0.05,random_state=500,factor=0.5)
+dat = datasets.make_circles(n_samples=200,noise=0.05,random_state=500,factor=0.5)
+X = dat[0]
+y = dat[1]
+fig,ax=plt.subplots()
+ax.scatter(X[:,0],X[:,1])
+#%% make moons 2D
+dat = datasets.make_moons(n_samples=200,noise=0.08,random_state=500)
 X = dat[0]
 y = dat[1]
 
-#%% make moons 2D
-dat = datasets.make_moons(n_samples=100,noise=0.08,random_state=500)
-X = dat[0]
-y = dat[1]
-plt.scatter(X[:,0],X[:,1])
 #%% make moons 3D
 dat = datasets.make_moons(n_samples=100,noise=0.07,random_state=0)
 X = dat[0]
@@ -476,10 +477,11 @@ X, y = datasets.make_blobs(n_samples=n_samples, random_state=random_state)
 transformation = [[0.6, -0.6], [-0.4, 0.8]]
 X_aniso = np.dot(X, transformation)
 aniso = (X_aniso, y)
-
+#%%
 # blobs with varied variances
 varied = datasets.make_blobs(n_samples=n_samples,
                              cluster_std=[1.0, 2.5, 0.5],
-                             random_state=random_state)
-
-
+                             random_state=170)
+X=varied[0]
+fig,ax=plt.subplots()
+ax.scatter(X[:,0],X[:,1])

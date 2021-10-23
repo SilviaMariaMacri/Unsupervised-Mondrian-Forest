@@ -36,7 +36,8 @@ name = 'moons1_METRIC_'
 for i in range(number_of_iterations):
 
 	#i=1
-	m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix)
+	case = 'min corr' #'min','variance','centroid diff','centroid ratio'
+	m_i,part_i = Mondrian(X,t0,lifetime,dist_matrix,case,exp)
 	namefile = name+str(i+1)
 	SaveMondrianOutput(namefile,part_i,m_i)
 
@@ -50,7 +51,7 @@ for i in range(number_of_iterations):
 	weight = 'diff_min' #'var_ratio','ratio_centroid','diff_centroid',
 	#Classification(part,m,X,namefile,score,weight,tagli_paralleli)
 	#Classification_BU(m,part,weight,score,namefile)
-	list_m_leaf,list_p = Classification_BU(m,part,weight)
+	list_m_leaf,list_p = Classification_BU(m,part,metric)
 	list_p.reverse()
 	list_m_leaf.reverse()
 	
@@ -59,13 +60,14 @@ for i in range(number_of_iterations):
 	with open(namefile+'_m_leaf.json', 'w') as f:
 		f.write(json.dumps([df for df in list_m_leaf]))
 	
-#togli X da classification
+#togli X da classificationcd
 
 
 #%% leggo file .json
 
 
-number_of_iterations = 10
+number_of_iterations = 20
+name = 'semisfera_lambda500_exp5_min_corr_'
 
 #name = 'cerchi3D1_lambda6'
 #name = 'cerchi3D1_'
@@ -78,7 +80,7 @@ number_of_iterations = 10
 
 #name= 'semisfera_lambda25_'
 
-#name= 'cilindro_lambda25_'
+#name= 'semisfera_lambda25_'
 
 #name='circles3D_' # da 2 a 10
 #namefile='makemoons+blob3D_1'
@@ -98,7 +100,7 @@ list_m_leaf_tot = []
 #list_conn_comp = []
 
 
-for i in range(1,number_of_iterations):
+for i in range(number_of_iterations):
 
 	namefile = name+str(i+1)
 	
@@ -143,6 +145,104 @@ for i in range(1,number_of_iterations):
 
 
 
+#%% aggiunta per grafico score determinazione classi diverso esponente
+
+#moons2D
+#exp = ['_exp1_','_exp2_','_exp2.5_','_exp3_','_exp4_','_exp5_','_exp20_','_exp35_','_','_exp65_']#,'_exp80_','_exp100_','_exp120_']
+
+#cerchi3D2
+lifetime = ['_lambda50','_','_lambda50','_lambda200','_lambda200','_lambda200']
+exp = ['_exp5_','exp10_','_exp20_','_exp5_','_exp10_','_exp20_']
+
+
+FMS_medio_tot = []
+FMS_std_tot = []
+c_mean = []
+c_std = []
+for j in range(len(exp)):
+	print(j+1)
+   
+
+	number_of_iterations = 20
+	#name = 'moons2D'+exp[j]+'min_corr_'
+	name = 'cerchi3D2'+lifetime[j]+exp[j]+'min_corr_'
+	
+	list_part = []
+	list_m = []
+	list_p_tot = []
+	list_m_leaf_tot = []
+	
+	for i in range(number_of_iterations):
+	
+		namefile = name+str(i+1)
+		
+		#part = json.load(open(namefile+'_part.json','r'))
+		#part = pd.DataFrame(part)
+		#m = json.load(open(namefile+'_m.json','r'))
+		#list_part.append(part)
+		#list_m.append(m)
+		
+	
+		list_p = json.load(open(namefile+'_p.json','r'))
+		list_m_leaf = json.load(open(namefile+'_m_leaf.json','r'))
+		list_p_tot.append(list_p)
+		list_m_leaf_tot.append(list_m_leaf)	
+	
+
+	class_data_tot = []
+	for i in range(len(list_m_leaf_tot)):
+		list_m_leaf = list_m_leaf_tot[i].copy()
+		classified_data = AssignClass_BU(list_m_leaf)
+		class_data_tot.append(classified_data)
+	
+	c_mean_i,c_std_i = ClassificationScore_BU(class_data_tot,False)
+	c_mean.append(c_mean_i)
+	c_std.append(c_std_i)
+	
+	
+	
+	number_of_clusters = 3
+	FMS = ConfrontoClasseVera(class_data_tot,y,number_of_clusters)
+	FMS_medio = np.mean(FMS)
+	FMS_std = np.std(FMS)
+	FMS_medio_tot.append(FMS_medio)
+	FMS_std_tot.append(FMS_std)
+	
+	
+	
+	
+#%%
+color = ['b','orange','g','r','purple','cyan']
+#color = ['b','orange','g','b','orange','g']	
+#label = ['5','20','35','50','65']#,'80','100','120']'1','2','2.5','3','4',	
+label = ['lambda50_exp5','lambda50_exp10','lambda50_exp20','lambda200_exp5','lambda200_exp10','lambda200_exp20']
+fig,ax = plt.subplots()
+for i in range(len(label)):
+	ax.plot(np.arange(2,len(c_mean[i])+1),c_mean[i][1:],label=label[i],alpha=0.5,color=color[i])
+	ax.scatter(np.arange(2,len(c_mean[i])+1),c_mean[i][1:],s=10,alpha=0.7)
+	ax.legend()#title='Exp'
+	#plt.savefig('moons2D_coeff_exp'+label[i])
+	ax.set_xlabel('Number of Clusters')
+	ax.set_ylabel('Adjusted Mutual Information')
+	
+
+fig,ax = plt.subplots()
+for i in range(len(label)):
+	if (i==0) or (i==3):
+		ax.plot(np.arange(2,len(c_mean[i])+1),c_mean[i][1:],label=label[i],color=color[i],linewidth=0.7)
+		ax.scatter(np.arange(2,len(c_mean[i])+1),c_mean[i][1:],s=10,color=color[i])
+		ax.fill_between(np.arange(2,len(c_mean[i])+1), c_mean[i][1:]-c_std[i][1:]/2, c_mean[i][1:]+c_std[i][1:]/2,alpha=0.2,color=color[i])
+		ax.legend()#title='Exp'
+		#plt.savefig('moons2D_coeff_exp'+label[i])
+		ax.set_xlabel('Number of Clusters')
+		ax.set_ylabel('Adjusted Mutual Information')
+	
+
+#%%
+df = {'lambda50_exp5':c_mean[0],'lambda50_exp10':c_mean[1],'lambda50_exp20':c_mean[2],'lambda200_exp5':c_mean[3],'lambda200_exp10':c_mean[4],'lambda200_exp20':c_mean[5]}	
+df = pd.DataFrame(df)
+df.to_csv('cerchi3D2_AMImean.txt',sep='\t',index=False)
+
 #%%  grafico compatibilità classificazioni
 
 #name_file = 'makemoons_2_'
@@ -155,26 +255,33 @@ for i in range(len(list_m_leaf_tot)):
 	classified_data = AssignClass_BU(list_m_leaf)
 	class_data_tot.append(classified_data)
 
-#ClassificationScore_BU(class_data_tot,name)
+ClassificationScore_BU(class_data_tot,False)
+
+
+
 
 
 #%% confronto classificazione vera
 
 coeff_tot = []
 coeff_medio_tot = []
-max_number = 15
-number_of_clusters_true = 2
-for number_of_clusters in range(1,max_number):
-	print(number_of_clusters)
-	coeff = ConfrontoClasseVera(class_data_tot,y,number_of_clusters)
+#max_number = 15
+#number_of_clusters_true = 2
+number_of_clusters = 3
+#for number_of_clusters in range(1,max_number):
+#	print(number_of_clusters) 
+coeff = ConfrontoClasseVera(class_data_tot,y,number_of_clusters)
 	#if number_of_clusters == number_of_clusters_true:
-	print(coeff)
+print(coeff)
 	#print('min: ',np.min(coeff))
 	#print('max: ',np.max(coeff))
-	coeff_medio = np.mean(coeff)
-	coeff_medio_tot.append(coeff_medio)
-	coeff_tot.append(coeff)
-	
+coeff_medio = np.mean(coeff)
+print('coeff medio: ', coeff_medio)
+coeff_std = np.std(coeff)
+print('coeff std: ',coeff_std)
+	#coeff_medio_tot.append(coeff_medio)
+	#coeff_tot.append(coeff)
+#%%	
 fig,ax = plt.subplots()
 ax.plot(np.arange(1,max_number),coeff_medio_tot)
 ax.scatter(np.arange(1,max_number),coeff_medio_tot)
@@ -185,7 +292,7 @@ for i in range(len(np.array(coeff_tot).T)):
 #%% grafici
 
 #name = 'makeblobs_3D_'
-number_of_iterations = 10
+#number_of_iterations = 10
 for i in range(number_of_iterations):
 	print(i)
 	
@@ -194,16 +301,16 @@ for i in range(number_of_iterations):
 	m = list_m[i]
 	list_m_leaf = list_m_leaf_tot[i]
 	list_p = list_p_tot[i]
-	PlotPolygon(m,part)
+	#PlotPolygon(m,part)
 	
 	#namefile = name+'stesso_criterio_ritento_'+str(i+1)
 	#Classification_BU(m,part,weight,score,namefile)
 
-	#number_of_clusters = 2
-	namefile = False#name+str(i+1)
-	for number_of_clusters in range(len(list_p)):
-		Plot2D(part,list_m_leaf,list_p,number_of_clusters,namefile)
-	#Plot3D(part,list_m_leaf,list_p,number_of_clusters)
+	number_of_clusters = 2
+	#namefile = name+str(i+1)
+	#for number_of_clusters in range(len(list_p)):
+	#Plot2D(part,list_m_leaf,list_p,number_of_clusters,namefile)
+	Plot3D(part,list_m_leaf,list_p,number_of_clusters)
 	
 	#classified_data = list_class[i]
 	#conn_comp = list_conn_comp[i]
@@ -216,17 +323,19 @@ for i in range(number_of_iterations):
 
 #%% confronto altri metodi di clustering
 
-from sklearn.cluster import KMeans,AgglomerativeClustering,Birch,SpectralClustering,mean_shift
+from sklearn.cluster import KMeans,DBSCAN,SpectralClustering#,AgglomerativeClustering,Birch,mean_shift
 from sklearn.metrics.cluster import fowlkes_mallows_score
 
-n_clusters = 2
-title = ['KMeans','AgglomerativeClustering','Birch','SpectralClustering']#,'MeanShift']
+n_clusters = 3
+title = ['KMeans','DBSCAN','SpectralClustering']#,'MeanShift']'AgglomerativeClustering','Birch',
 labels = []
+
 
 kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(X)
 labels.append(kmeans.labels_)
 print('kmeans: ',fowlkes_mallows_score(y,kmeans.labels_))
 
+'''
 AC = AgglomerativeClustering(n_clusters=n_clusters).fit(X)
 labels.append(AC.labels_)
 print('AgglomerativeClustering: ',fowlkes_mallows_score(y,AC.labels_))
@@ -234,8 +343,13 @@ print('AgglomerativeClustering: ',fowlkes_mallows_score(y,AC.labels_))
 B = Birch(n_clusters=n_clusters).fit(X)
 labels.append(B.labels_)
 print('Birch: ',fowlkes_mallows_score(y,B.labels_))
+'''
 
-SC = SpectralClustering(n_clusters=n_clusters,random_state=0).fit(X)#,assign_labels='discretize'
+DBS = DBSCAN(eps=0.5).fit(X)
+labels.append(DBS.labels_)
+print('DBSCAN: ',fowlkes_mallows_score(y,DBS.labels_))
+#
+SC = SpectralClustering(n_clusters=n_clusters,affinity='nearest_neighbors',random_state=0).fit(X)#,assign_labels='discretize'
 labels.append(SC.labels_)
 print('SpectralClustering: ',fowlkes_mallows_score(y,SC.labels_))
 
@@ -243,17 +357,34 @@ print('SpectralClustering: ',fowlkes_mallows_score(y,SC.labels_))
 #labels.append(MS[1])
 #print('MeanShift: ',fowlkes_mallows_score(y,MS[1]))
 
+#%%
+for i in range(len(labels)):
+	
+	data = {'X0':X[:,0],'X1':X[:,1],'y':list(labels[i])}
+	
+	data=pd.DataFrame(data)
+	
+	fig,ax = plt.subplots()
+	ax.scatter(data.query('y==0')['X0'],data.query('y==0')['X1'],alpha=0.5,color='b')
+	ax.scatter(data.query('y==1')['X0'],data.query('y==1')['X1'],alpha=0.5,color='orange')
+	#ax.set_title(title[i])
+
+
+
+#%%
 for i in range(len(labels)):
 	
 	data = {'X0':X[:,0],'X1':X[:,1],'X2':X[:,2],'y':list(labels[i])}
 	
 	data=pd.DataFrame(data)
 	
+	cl = data['y'].unique()
+	
 	fig = plt.figure()
 	ax = plt.axes(projection='3d')
-	ax.scatter3D(np.array(data.query('y==0'))[:,0],np.array(data.query('y==0'))[:,1],np.array(data.query('y==0'))[:,2],alpha=0.5,color='b')
-	ax.scatter3D(np.array(data.query('y==1'))[:,0],np.array(data.query('y==1'))[:,1],np.array(data.query('y==1'))[:,2],alpha=0.5,color='orange')
-	ax.scatter3D(np.array(data.query('y==2'))[:,0],np.array(data.query('y==2'))[:,1],np.array(data.query('y==2'))[:,2],alpha=0.5,color='g')
+	ax.scatter3D(np.array(data[data['y']==cl[0]])[:,0],np.array(data[data['y']==cl[0]])[:,1],np.array(data[data['y']==cl[0]])[:,2],alpha=0.5,color='b')
+	ax.scatter3D(np.array(data[data['y']==cl[1]])[:,0],np.array(data[data['y']==cl[1]])[:,1],np.array(data[data['y']==cl[1]])[:,2],alpha=0.5,color='orange')
+	ax.scatter3D(np.array(data[data['y']==cl[2]])[:,0],np.array(data[data['y']==cl[2]])[:,1],np.array(data[data['y']==cl[2]])[:,2],alpha=0.5,color='g')
 	ax.set_title(title[i])
 
 
@@ -296,13 +427,15 @@ PlotPolygon(X,part)
 
 t0=0
 lifetime=6
-m,part = MondrianUnsupervised(X,t0,lifetime)
+for i in range(20):
+	m,part = MondrianUnsupervised(X,t0,lifetime)
+	part.to_json('circles_tagli_perpendicolari_'+str(i)+'_part.json')
 #number_iterations = 10
 #X_part = AssignPartition(X,part)
 #df =trova_part_vicine(part)
 #matrix,points_with_index,part_tot = MondrianIterator(number_iterations,X,t0,lifetime)
 #PartitionPlot(X,y,part_tot)
-PlotPolygon(X,part)
+	PlotPolygon(X,part)
 
 #%% Supervised
 

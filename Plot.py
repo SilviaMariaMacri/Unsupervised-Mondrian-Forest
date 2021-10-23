@@ -31,8 +31,8 @@ def PartitionPlot3D(X,y,part):
 		 .eval("max_r2 = max2 - (max2-min2)*0.05")
 		 )
 
-	
-	
+
+
 	h1 = [['min_r','max_r'],
 		  ['min_r','max_r'],
 	      ['min_r','max_r'],
@@ -197,7 +197,7 @@ def PlotPolygon(m,part):
 	if isinstance(part, pd.DataFrame):
 			
 
-		sns.set_style('whitegrid')
+		#sns.set_style('whitegrid')
 		fig,ax = plt.subplots()
 		
 	
@@ -603,6 +603,7 @@ def Plot3D(part,list_m_leaf,list_p,number_of_clusters):
 		plt.show()
 	
 	return
+
 #%%
 	color=cm.rainbow(np.linspace(0,1,len(p)))
 	for i in range(len(p)):
@@ -637,21 +638,21 @@ def Plot3D(part,list_m_leaf,list_p,number_of_clusters):
 def Plot2D_binario(n,list_part,list_p_tot,number_of_clusters,name_file):
 
 #%%	
-	I=[0,1,0,1,1,1,0,1,0,1,1,0]
+	I=[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
 	fig,ax = plt.subplots()
-	#n=[0,1,2,4,5,6]	
-	for l in range(len(list_part)):#n
+	n=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]	
+	for l in n:#range(len(list_part)):#n
 		if l!=50:
 	
 			
 			part = list_part[l]
 			list_p = list_p_tot[l]
 			
-			p = list_p[number_of_clusters-1]
+			p = pd.DataFrame(list_p[number_of_clusters-1])
 			alpha = 1/len(list_part)
 			
-			i=I[l] #0
+			i=0#I[l] #0
 			box = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
 			pol = Polygon(box, facecolor='black', alpha=alpha, edgecolor=None,linewidth=0.00001)
 			ax.add_patch(pol)

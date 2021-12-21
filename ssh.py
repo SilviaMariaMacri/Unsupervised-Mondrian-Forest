@@ -3,8 +3,8 @@ from scp import SCPClient
 
 # declare credentials   
 host = '137.204.48.15'   
-username = 'silviamaria.macri@studio.unibo.it'   
-password = 'd(PF66gn'   
+username =   
+password =   
 port = 22
 
 

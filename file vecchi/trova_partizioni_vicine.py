@@ -815,7 +815,7 @@ def ClassificationScore_BU(class_data_tot_true,name_file):
 	
 	if name_file != False:
 		plt.savefig(name_file)
-	'''
+	
 	fig,ax = plt.subplots()
 	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
 	ax.scatter(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])
@@ -823,17 +823,22 @@ def ClassificationScore_BU(class_data_tot_true,name_file):
 	
 	if name_file != False:
 		plt.savefig(name_file+'_medio')
-	
+	'''
 	
 	fig,ax = plt.subplots()
-	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:])	
-	ax.vlines(np.arange(2,len(coeff_medio)+1), coeff_medio[1:]-coeff_std[1:]/2, coeff_medio[1:]+coeff_std[1:]/2)
-	
+	ax.plot(np.arange(2,len(coeff_medio)+1),coeff_medio[1:],linewidth=0.7)	
+	ax.scatter(np.arange(2,len(coeff_medio)+1),coeff_medio[1:],s=10)
+	ax.fill_between(np.arange(2,len(coeff_medio)+1), coeff_medio[1:]-coeff_std[1:]/2, coeff_medio[1:]+coeff_std[1:]/2,alpha=0.2,color='b')
+	ax.set_xlabel('Number of Clusters')
+	ax.set_ylabel('Adjusted Mutual Information')
+
 	if name_file != False:
-		plt.savefig(name_file+'_std')	
+		plt.savefig(name_file)	
 	
-	return coeff_medio,coeff_std
+	return coeff_medio,coeff_std,coeff_tot
 	
+
+
 	
 
 

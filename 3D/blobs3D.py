@@ -5,8 +5,9 @@ import sys
 blobs3D,lifetime,exp,metric,number_of_iterations= sys.argv
 
 name = 'blobs3D_lambda'+lifetime+'_exp'+exp+'_'
-varied = datasets.make_blobs(n_samples=200,n_features=3,cluster_std=[1.0, 2.5, 0.5],random_state=150)
+varied = datasets.make_blobs(n_samples=200,n_features=3,cluster_std=[1.0, 2.5, 0.5],random_state=10)#random_state=150
 X=varied[0]
+y=varied[1]
 t0 = 0
 
 

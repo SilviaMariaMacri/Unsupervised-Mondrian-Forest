@@ -6,7 +6,7 @@ from scipy.spatial.distance import cdist,pdist
 
 
 
-def Variance(data1,data2):
+def variance_metric(data1,data2):
 	
 	if (len(data1)>1) & (len(data2)>1):	
 		pd1 = pdist(data1)
@@ -22,7 +22,7 @@ def Variance(data1,data2):
 
 
 
-def Centroid(data1,data2):
+def centroid_metric(data1,data2):
 
 	data12 = np.vstack([data1,data2])
 	data_tot = [data1,data2,data12]
@@ -41,7 +41,7 @@ def Centroid(data1,data2):
 
 
 
-def MinDist(data1,data2):
+def min_dist_metric(data1,data2):
 	
 	pd1 = cdist(data1,data1)
 	pd2 = cdist(data2,data2)

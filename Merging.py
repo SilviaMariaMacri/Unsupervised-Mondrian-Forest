@@ -4,7 +4,7 @@ import pandas as pd
 #import networkx as nx
 import copy
 from Metrics import Variance,Centroid,MinDist
-
+import polytope as pc 
 
 
 
@@ -154,11 +154,33 @@ def PartLinkScore(m_leaf,p,metric):
 
 
 
+def neighbors(part):
+		
+	neighbors_list = []
+	leaves = part.query('leaf==True').copy()
+	leaves.index = np.arange(len(leaves))
+	for i in range(len(leaves)):
+		poly_i = pc.Polytope(np.array(leaves['polytope'].iloc[i]['A']),np.array(leaves['polytope'].iloc[i]['b']))
+		neighbors = []
+		for j in range(len(leaves)):
+			poly_j = pc.Polytope(np.array(leaves['polytope'].iloc[j]['A']),np.array(leaves['polytope'].iloc[j]['b']))
+			if (pc.is_adjacent(poly_i,poly_j) == True) and (leaves['part_number'].iloc[i]!=leaves['part_number'].iloc[j]):
+				neighbors.append(int(leaves['part_number'].iloc[j]))
+		neighbors_list.append(neighbors)
+		
+	leaves['neighbors'] = neighbors_list			
+	part_neigh = pd.merge(part,leaves[['part_number','neighbors']],how='left',right_on='part_number',left_on='part_number')		
+	
+	return part_neigh			
+
+ 
 
 
 def Classification_BU(m,part,metric):#,score,namefile):
 	
-	m_leaf,p =  MergePart_SingleData(m,part)
+	part_neigh = neighbors(part)
+	
+	m_leaf,p =  MergePart_SingleData(m,part_neigh)
 	print(p)
 	list_p = []
 	list_m_leaf = []
@@ -174,14 +196,11 @@ def Classification_BU(m,part,metric):#,score,namefile):
 #	while nx.number_connected_components(G) > 1:
 		#c+=1
 		part_links = PartLinkScore(m_leaf,p,metric)
-		#G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],
-		#	       weight=part_links['score'].iloc[0])
-		m_leaf,p = MergePart(m_leaf,p,part_links['part1'].iloc[0],
-					         part_links['part2'].iloc[0])
+		#G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links['score'].iloc[0])
+		m_leaf,p = MergePart(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
 		
 		list_p.append(p)
 		list_m_leaf.append(m_leaf)
 		print(p)	
 	 
 	return list_m_leaf,list_p
-

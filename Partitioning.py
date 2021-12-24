@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import polytope as pc
 import pypoman
 from numpy.random import choice
 import pandas as pd	
 from itertools import combinations
-from Metrics import Variance,Centroid,MinDist
+from Metrics import variance_metric,centroid_metric,min_dist_metric
 import math
 
 
@@ -14,7 +13,7 @@ import math
 #metric = variance, centroid_diff,centroid_ratio, min, min_corr
 
 
-def Cut(dist_matrix,data,metric,exp):
+def cut_choice(dist_matrix,data,metric,exp):
 
 	data_pair = list(combinations(data['index'], 2))
 	data_pair = pd.DataFrame(data_pair)
@@ -44,24 +43,24 @@ def Cut(dist_matrix,data,metric,exp):
 			
 			
 		if metric == 'variance':	
-			var_ratio = Variance(data1,data2)
+			var_ratio = variance_metric(data1,data2)
 			metric_value.append(var_ratio)
 			
 		if metric == 'centroid_diff':	
-			ratio,difference = Centroid(data1, data2)
+			ratio,difference = centroid_metric(data1, data2)
 			metric_value.append(difference)
 
 		if metric == 'centroid_ratio':	
-			ratio,difference = Centroid(data1, data2)
+			ratio,difference = centroid_metric(data1, data2)
 			metric_value.append(ratio)
 			
 		if metric == 'min':
-			min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
+			min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
 			diff = abs(min_dist_fra_partizioni - media)
 			metric_value.append(diff)
 			
 		if metric == 'min_corr':	
-			min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
+			min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
 			if len(data1) == 1:
 				diff = abs(min_dist_fra_partizioni - media) + min_dist2
 			if len(data2) == 1:
@@ -120,7 +119,7 @@ def Cut(dist_matrix,data,metric,exp):
 
 
 
-def FindDataPartition(p1,p2,matrix):
+def data_assignment(p1,p2,matrix):
 	
 	columns = list(np.arange(len(matrix.columns)-2))
 	columns.append('index')
@@ -152,11 +151,11 @@ def FindDataPartition(p1,p2,matrix):
 
 
 
-def Cut_with_data(data,p,dist_matrix,metric,exp):
+def split(data,p,dist_matrix,metric,exp):
 	
 	
 	try:
-		A_hyperplane_1,b_hyperplane_1,A_hyperplane_2,b_hyperplane_2,matrix  = Cut(dist_matrix,data,metric,exp)#_SUM
+		A_hyperplane_1,b_hyperplane_1,A_hyperplane_2,b_hyperplane_2,matrix  = cut_choice(dist_matrix,data,metric,exp)#_SUM
 	except TypeError:
 		return
 	
@@ -176,7 +175,7 @@ def Cut_with_data(data,p,dist_matrix,metric,exp):
 	p2 = pc.reduce(p2)
 	
 	
-	data1,data2 = FindDataPartition(p1,p2,matrix)
+	data1,data2 = data_assignment(p1,p2,matrix) 
 
 
 
@@ -193,7 +192,7 @@ def Cut_with_data(data,p,dist_matrix,metric,exp):
 
 
 
-def Mondrian_SingleCut(t0,lifetime,dist_matrix,father,p,data,metric,exp):
+def recursive_process(t0,lifetime,dist_matrix,father,p,data,metric,exp):
 
 	
 	if len(data) <= 2: 
@@ -221,7 +220,7 @@ def Mondrian_SingleCut(t0,lifetime,dist_matrix,father,p,data,metric,exp):
 	dist_matrix = dist_matrix.drop(data.columns,axis=1)
 	
 	try:
-		p1,p2,data1,data2 = Cut_with_data(data,p,dist_matrix,metric,exp)
+		p1,p2,data1,data2 = split(data,p,dist_matrix,metric,exp)
 	except TypeError:
 		return		
 	
@@ -236,7 +235,7 @@ def Mondrian_SingleCut(t0,lifetime,dist_matrix,father,p,data,metric,exp):
 
 
 
-def Mondrian(X,t0,lifetime,dist_matrix,metric,exp):
+def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 
 
 	data = pd.DataFrame(X)
@@ -294,7 +293,7 @@ def Mondrian(X,t0,lifetime,dist_matrix,metric,exp):
 
 		try:
 
-			part12,t0,father = Mondrian_SingleCut(i[0],lifetime,dist_matrix,i[1],i[2],i[3],metric,exp)
+			part12,t0,father = recursive_process(i[0],lifetime,dist_matrix,i[1],i[2],i[3],metric,exp)
 			
 			count_part_number += 1
 			m.append([t0,count_part_number,part12[0][0],part12[0][1]])

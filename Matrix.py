@@ -1,18 +1,17 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
  
 
-def DistanceMatrix(X):
+def distance_matrix(X):
 	
 	 
 	
 	if isinstance(X,pd.DataFrame):
 		X = np.array(X)
 	
-	n_d = len(X[0]) # numero dimensioni
+	n_d = len(X[0]) # numero dimensioni 
 	
 	
 	dist = cdist(X,X)

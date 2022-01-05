@@ -2,12 +2,12 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
- 
+
 
 def distance_matrix(X):
-	
-	 
-	
+
+
+
 	if isinstance(X,pd.DataFrame):
 		X = np.array(X)
 	
@@ -72,7 +72,7 @@ def distance_matrix(X):
 
 	matrix_copy = pd.DataFrame()
 	for i in range(len(X)):
-		print(i)
+		#print(i)
 		
 		for j in range(len(X[i])):
 			matrix['point_'+str(j)] = X[i,j]

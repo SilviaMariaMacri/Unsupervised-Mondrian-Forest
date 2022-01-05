@@ -59,7 +59,7 @@ def min_dist_metric(data1,data2):
 	media = np.mean(min_tot)
 			
 	dist = cdist(data1,data2)
-	min_dist_fra_partizioni = dist.min()
+	min_dist_between_subspaces = dist.min()
 	ind = np.unravel_index(np.argmin(dist, axis=None), dist.shape)
 	#da ind ricavo A e B
 			
@@ -77,6 +77,6 @@ def min_dist_metric(data1,data2):
 	dist2 = dist[:,ind2]
 	min_dist2 = np.min(dist2)
 
-	return min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2
+	return min_dist_between_subspaces,media,min_dist1,min_dist2,mean1,mean2
 
 

@@ -4,9 +4,9 @@ import pypoman
 from numpy.random import choice
 import pandas as pd	
 from itertools import combinations
-from Metrics import variance_metric,centroid_metric,min_dist_metric
 import math
 
+from Metrics import variance_metric,centroid_metric,min_dist_metric
 
 
 
@@ -20,7 +20,7 @@ def cut_choice(dist_matrix,data,metric,exp):
 	data_pair.columns = ['index2','index1']
 
 
-	n_d = len(data.columns)-1   #forse puoi fare una classe
+	n_d = len(data.columns)-1   
 	names = []
 	for i in range(n_d):
 		names.append('point_'+str(i))
@@ -55,18 +55,18 @@ def cut_choice(dist_matrix,data,metric,exp):
 			metric_value.append(ratio)
 			
 		if metric == 'min':
-			min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
-			diff = abs(min_dist_fra_partizioni - media)
+			min_dist_between_subspaces,media,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
+			diff = abs(min_dist_between_subspaces - media)
 			metric_value.append(diff)
 			
 		if metric == 'min_corr':	
-			min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
+			min_dist_between_subspaces,media,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
 			if len(data1) == 1:
-				diff = abs(min_dist_fra_partizioni - media) + min_dist2
+				diff = abs(min_dist_between_subspaces - media) + min_dist2
 			if len(data2) == 1:
-				diff = abs(min_dist_fra_partizioni - media) + min_dist1 
+				diff = abs(min_dist_between_subspaces - media) + min_dist1 
 			else:
-				diff = abs(min_dist_fra_partizioni - media) + min_dist1 + min_dist2
+				diff = abs(min_dist_between_subspaces - media) + min_dist1 + min_dist2
 			metric_value.append(diff)
 		
 	data_pair['metric'] = metric_value
@@ -95,12 +95,9 @@ def cut_choice(dist_matrix,data,metric,exp):
 	names_norm_vect = []
 	for i in range(n_d):
 		names_norm_vect.append('norm_vect_'+str(i))
-	A_hyperplane_1 = list(matrix[names_norm_vect].iloc[0]) 
-	b_hyperplane_1 = matrix['magnitude_norm_vect'].iloc[0]  
-	A_hyperplane_2 = list(-matrix[names_norm_vect].iloc[0]) 
-	b_hyperplane_2 = -matrix['magnitude_norm_vect'].iloc[0]
-
-
+	hyperplane_direction = matrix[names_norm_vect].iloc[0] 
+	hyperplane_distance = matrix['magnitude_norm_vect'].iloc[0]
+	
 	names.append('point_index')
 	names.append('dist_point_cut')
 
@@ -108,10 +105,38 @@ def cut_choice(dist_matrix,data,metric,exp):
 
 
 
-	return A_hyperplane_1,b_hyperplane_1,A_hyperplane_2,b_hyperplane_2,matrix 
+	return hyperplane_direction,hyperplane_distance,matrix 
 
 
 
+
+def space_splitting(p,hyperplane_direction,hyperplane_distance):
+	
+	
+	A_hyperplane_1 = list(hyperplane_direction) 
+	b_hyperplane_1 = hyperplane_distance  
+	A_hyperplane_2 = list(-hyperplane_direction) 
+	b_hyperplane_2 = -hyperplane_distance
+
+
+		
+	A1 = list(p.A)
+	A1.append(A_hyperplane_1)
+	b1 = list(p.b)
+	b1.append(b_hyperplane_1)
+	p1 = pc.Polytope(np.array(A1), np.array(b1))
+	p1 = pc.reduce(p1)
+	
+	A2 = list(p.A)
+	A2.append(A_hyperplane_2)
+	b2 = list(p.b)
+	b2.append(b_hyperplane_2)
+	p2 = pc.Polytope(np.array(A2), np.array(b2))
+	p2 = pc.reduce(p2)
+	
+
+
+	return p1,p2
 
 
 
@@ -150,49 +175,7 @@ def data_assignment(p1,p2,matrix):
 
 
 
-
-def split(data,p,dist_matrix,metric,exp):
-	
-	
-	try:
-		A_hyperplane_1,b_hyperplane_1,A_hyperplane_2,b_hyperplane_2,matrix  = cut_choice(dist_matrix,data,metric,exp)#_SUM
-	except TypeError:
-		return
-	
-	
-	A1 = list(p.A)
-	A1.append(A_hyperplane_1)
-	b1 = list(p.b)
-	b1.append(b_hyperplane_1)
-	p1 = pc.Polytope(np.array(A1), np.array(b1))
-	p1 = pc.reduce(p1)
-	
-	A2 = list(p.A)
-	A2.append(A_hyperplane_2)
-	b2 = list(p.b)
-	b2.append(b_hyperplane_2)
-	p2 = pc.Polytope(np.array(A2), np.array(b2))
-	p2 = pc.reduce(p2)
-	
-	
-	data1,data2 = data_assignment(p1,p2,matrix) 
-
-
-
-	return p1,p2,data1,data2
-
-
-
-
-
-
-
-
-
-
-
-
-def recursive_process(t0,lifetime,dist_matrix,father,p,data,metric,exp):
+def recursive_process(t0,lifetime,dist_matrix,p,data,metric,exp):
 
 	
 	if len(data) <= 2: 
@@ -219,17 +202,23 @@ def recursive_process(t0,lifetime,dist_matrix,father,p,data,metric,exp):
 	dist_matrix = pd.merge(dist_matrix,data, how='right', left_on='point_index', right_on='index')
 	dist_matrix = dist_matrix.drop(data.columns,axis=1)
 	
+
 	try:
-		p1,p2,data1,data2 = split(data,p,dist_matrix,metric,exp)
+		hyperplane_direction,hyperplane_distance,matrix  = cut_choice(dist_matrix,data,metric,exp)
 	except TypeError:
-		return		
+		return
 	
+	p1,p2 = space_splitting(p,hyperplane_direction,hyperplane_distance)
+		
+	data1,data2 = data_assignment(p1,p2,matrix) 
+
+
 	
 	part1 = [p1, data1]
 	part2 = [p2, data2]
 	part12 = [part1,part2]
 	
-	return part12,t0,father
+	return part12,t0
 
 
 
@@ -278,9 +267,9 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 	father_list.append('nan')
 	part_number.append(count_part_number)
 	polytope.append(p)
-	if (n_d==2) or (n_d==3):
-		vert = pypoman.compute_polytope_vertices(np.array(A_init_space), np.array(b_init_space))
-		vertices.append(vert)
+	#if (n_d==2) or (n_d==3):
+	vert = pypoman.compute_polytope_vertices(np.array(A_init_space), np.array(b_init_space))
+	vertices.append(vert)
 	
 
 	
@@ -289,11 +278,12 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 		
 		
 		count += 1
-		print('iterazione: ',count)
+		#print('split ',count)
 
 		try:
 
-			part12,t0,father = recursive_process(i[0],lifetime,dist_matrix,i[1],i[2],i[3],metric,exp)
+			father = i[1]
+			part12,t0 = recursive_process(i[0],lifetime,dist_matrix,i[2],i[3],metric,exp)
 			
 			count_part_number += 1
 			m.append([t0,count_part_number,part12[0][0],part12[0][1]])
@@ -323,12 +313,15 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 			#	break
 			
 		except  TypeError:
+			count -= 1
 			continue
 	
+	print('total number of splits: '+str(count))
 	
 	part = {'time':time,'father':father_list,'part_number':part_number,'polytope':polytope,'box':vertices}
+		
 	part = pd.DataFrame(part)
-	
+
 
 	leaf = []
 	for i in range(len(part)):
@@ -341,7 +334,7 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 		
 	part['leaf'] = leaf
 
-	part = part[['time', 'father', 'part_number', 'polytope', 'leaf','box'	]]
+	part = part[['time', 'father', 'part_number', 'leaf', 'polytope','box'	]]
 	
 	
 	

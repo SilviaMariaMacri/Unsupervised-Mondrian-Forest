@@ -11,7 +11,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 # funziona anche con tagli paralleli
-def PlotPolygon(m,part):
+def plot2D_partitioning(m,part):
 	
 
 
@@ -89,7 +89,7 @@ def PlotPolygon(m,part):
 
 
 
-def Plot2D(part,list_m,list_p,number_of_clusters,name_file):
+def plot2D_merging(part,list_m,list_p,number_of_clusters):
 
 	p = pd.DataFrame(list_p[number_of_clusters-1])
 	
@@ -122,112 +122,110 @@ def Plot2D(part,list_m,list_p,number_of_clusters,name_file):
 	data = pd.DataFrame(list_m[0][0])
 	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
 		
-	plt.show()
-	if name_file != False:
-		plt.savefig(name_file)	
 	return
 
 
 
 
-def Plot3D(list_m_leaf,list_p,part,number_of_clusters):
+def plot3D(list_m_leaf,list_p,part,number_of_clusters,plot_space,plot_data):
 	
-
 	p = pd.DataFrame(list_p[number_of_clusters-1])
-	
-	fig = plt.figure()
-	ax = plt.axes(projection='3d')
-	color=cm.rainbow(np.linspace(0,1,len(p)))
-	for i in range(len(p)):
-		verts = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
-		hull = ConvexHull(verts)
-		faces = hull.simplices
-		for s in faces:
-			sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
-				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
-					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
-			f = Poly3DCollection([sq],linewidths=0.01)
-			f.set_color(color[i])
-			f.set_alpha(0.1)
-			ax.add_collection3d(f)
-		for j in p['merged_part'].iloc[i]:
-			verts = part[part['part_number']==j]['box'][0]
-			hull = ConvexHull(verts)
-			faces = hull.simplices
-			for s in faces:
-				sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
-				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
-					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
-				f = Poly3DCollection([sq],linewidths=0.01)
-				f.set_color(color[i])
-				f.set_alpha(0.1)
-				ax.add_collection3d(f)
-				
-		data = pd.DataFrame(list_m_leaf[number_of_clusters-1][i])
-		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
-	'''
-	ax.scatter3D(list(df.query('cl==0')['x']),list(df.query('cl==0')['y']),list(df.query('cl==0')['z']))
-	ax.scatter3D(list(df.query('cl==1')['x']),list(df.query('cl==1')['y']),list(df.query('cl==1')['z']))
-	ax.scatter3D(list(df.query('cl==2')['x']),list(df.query('cl==2')['y']),list(df.query('cl==2')['z']))
-	'''
-
-	#data = pd.DataFrame(list_m[0][0])
-	#ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
-
-	plt.show()
-	
-	
-	color=cm.rainbow(np.linspace(0,1,len(p)))
-	for i in range(len(p)):
+		
+	if plot_space == True:
+		
 		fig = plt.figure()
 		ax = plt.axes(projection='3d')
-		verts = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
-		hull = ConvexHull(verts)
-		faces = hull.simplices
-		for s in faces:
-			sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
-				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
-					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
-			f = Poly3DCollection([sq],linewidths=0.01)
-			f.set_color(color[i])
-			f.set_alpha(0.1)
-			ax.add_collection3d(f)
-		for j in p['merged_part'].iloc[i]:
-			verts = part[part['part_number']==j]['box'][0]
+		color=cm.rainbow(np.linspace(0,1,len(p)))
+		for i in range(len(p)):
+			verts = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
 			hull = ConvexHull(verts)
 			faces = hull.simplices
 			for s in faces:
 				sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
-				      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
-					  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+					      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+						  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
 				f = Poly3DCollection([sq],linewidths=0.01)
 				f.set_color(color[i])
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)
-		for l in range(len(p)):
-			data = pd.DataFrame(list_m_leaf[number_of_clusters-1][l])
-			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
-#		ax.scatter3D(list(df.query('cl==0')['x']),list(df.query('cl==0')['y']),list(df.query('cl==0')['z']))
-#		ax.scatter3D(list(df.query('cl==1')['x']),list(df.query('cl==1')['y']),list(df.query('cl==1')['z']))
-#		ax.scatter3D(list(df.query('cl==2')['x']),list(df.query('cl==2')['y']),list(df.query('cl==2')['z']))
+			for j in p['merged_part'].iloc[i]:
+				verts = part[part['part_number']==j]['box'][0]
+				hull = ConvexHull(verts)
+				faces = hull.simplices
+				for s in faces:
+					sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
+					      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+						  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+					f = Poly3DCollection([sq],linewidths=0.01)
+					f.set_color(color[i])
+					f.set_alpha(0.1)
+					ax.add_collection3d(f)
+					
+			data = pd.DataFrame(list_m_leaf[number_of_clusters-1][i])
+			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
+		'''
+		ax.scatter3D(list(df.query('cl==0')['x']),list(df.query('cl==0')['y']),list(df.query('cl==0')['z']))
+		ax.scatter3D(list(df.query('cl==1')['x']),list(df.query('cl==1')['y']),list(df.query('cl==1')['z']))
+		ax.scatter3D(list(df.query('cl==2')['x']),list(df.query('cl==2')['y']),list(df.query('cl==2')['z']))
+		'''
+	
+		#data = pd.DataFrame(list_m[0][0])
+		#ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
+	
 		plt.show()
-	
-	
-	fig = plt.figure()
-	ax = plt.axes(projection='3d')
-	color=cm.rainbow(np.linspace(0,1,len(p)))
-	for i in range(len(p)):
-		data = pd.DataFrame(list_m_leaf[number_of_clusters-1][i])
-		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color=color[i])
 		
-		plt.show()
+		
+		color=cm.rainbow(np.linspace(0,1,len(p)))
+		for i in range(len(p)):
+			fig = plt.figure()
+			ax = plt.axes(projection='3d')
+			verts = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
+			hull = ConvexHull(verts)
+			faces = hull.simplices
+			for s in faces:
+				sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
+					      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+						  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+				f = Poly3DCollection([sq],linewidths=0.01)
+				f.set_color(color[i])
+				f.set_alpha(0.1)
+				ax.add_collection3d(f)
+			for j in p['merged_part'].iloc[i]:
+				verts = part[part['part_number']==j]['box'][0]
+				hull = ConvexHull(verts)
+				faces = hull.simplices
+				for s in faces:
+					sq = [[verts[s[0]][0], verts[s[0]][1], verts[s[0]][2]],
+					      [verts[s[1]][0], verts[s[1]][1], verts[s[1]][2]],
+						  [verts[s[2]][0], verts[s[2]][1], verts[s[2]][2]]]
+					f = Poly3DCollection([sq],linewidths=0.01)
+					f.set_color(color[i])
+					f.set_alpha(0.1)
+					ax.add_collection3d(f)
+			for l in range(len(p)):
+				data = pd.DataFrame(list_m_leaf[number_of_clusters-1][l])
+				ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
+	#		ax.scatter3D(list(df.query('cl==0')['x']),list(df.query('cl==0')['y']),list(df.query('cl==0')['z']))
+	#		ax.scatter3D(list(df.query('cl==1')['x']),list(df.query('cl==1')['y']),list(df.query('cl==1')['z']))
+	#		ax.scatter3D(list(df.query('cl==2')['x']),list(df.query('cl==2')['y']),list(df.query('cl==2')['z']))
+			plt.show()
+		
+	if plot_data == True:
+		fig = plt.figure()
+		ax = plt.axes(projection='3d')
+		color=cm.rainbow(np.linspace(0,1,len(p)))
+		for i in range(len(p)):
+			data = pd.DataFrame(list_m_leaf[number_of_clusters-1][i])
+			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color=color[i])
+			
+			plt.show()
 	
 	return
 
 
 
 
-
+'''
 def Plot2D_binario(n,list_part,list_p_tot,number_of_clusters,name_file,list_m):
 
 	
@@ -271,4 +269,19 @@ def Plot2D_binario(n,list_part,list_p_tot,number_of_clusters,name_file,list_m):
 	if name_file != False:
 		plt.savefig(name_file)	
 	return
+'''
 
+
+def plot_AMI(name):
+	
+	AMI = pd.read_csv(name+'_AMI.txt',sep='\t')
+	
+	fig,ax = plt.subplots()
+	ax.plot(np.arange(2,len(AMI)+1),AMI['AMI_mean'].iloc[1:],linewidth=0.7)	
+	ax.scatter(np.arange(2,len(AMI)+1),AMI['AMI_mean'].iloc[1:],s=10)
+	ax.fill_between(np.arange(2,len(AMI)+1), AMI['AMI_mean'].iloc[1:]-AMI['AMI_std'].iloc[1:]/2, AMI['AMI_mean'].iloc[1:]+AMI['AMI_std'].iloc[1:]/2,alpha=0.2,color='b')
+	ax.set_xlabel('Number of Clusters')
+	ax.set_ylabel('Adjusted Mutual Information')
+	plt.show()
+	
+	return 

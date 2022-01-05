@@ -1,17 +1,40 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 #import networkx as nx
 import copy
-from Metrics import Variance,Centroid,MinDist
 import polytope as pc 
 
+from Metrics import variance_metric,centroid_metric,min_dist_metric
 
 
-def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
+
+
+def neighbors(part):
+		
+	neighbors_list = []
+	leaves = part.query('leaf==True').copy()
+	leaves.index = np.arange(len(leaves))
+	for i in range(len(leaves)):
+		poly_i = pc.Polytope(np.array(leaves['polytope'].iloc[i]['A']),np.array(leaves['polytope'].iloc[i]['b']))
+		neighbors = []
+		for j in range(len(leaves)):
+			poly_j = pc.Polytope(np.array(leaves['polytope'].iloc[j]['A']),np.array(leaves['polytope'].iloc[j]['b']))
+			if (pc.is_adjacent(poly_i,poly_j) == True) and (leaves['part_number'].iloc[i]!=leaves['part_number'].iloc[j]):
+				neighbors.append(int(leaves['part_number'].iloc[j]))
+		neighbors_list.append(neighbors)
+		
+	leaves['neighbors'] = neighbors_list			
+	part_neigh = pd.merge(part,leaves[['part_number','neighbors']],how='left',right_on='part_number',left_on='part_number')		
 	
-	p = p_true.copy()
-	m_leaf = copy.deepcopy(m_leaf_true)#m_leaf_true.copy()#
+	return part_neigh			
+
+
+
+
+def merge_two_polytopes(m_leaf_init,p_init,part_to_remove,part_to_merge):
+	
+	p = p_init.copy(deep=True)
+	m_leaf = copy.deepcopy(m_leaf_init)
 
 	index1 = p[p['part_number']==part_to_remove].index[0]
 	index2 = p[p['part_number']==part_to_merge].index[0]
@@ -58,21 +81,12 @@ def MergePart(m_leaf_true,p_true,part_to_remove,part_to_merge):
 
 
 #unisce partizione con solo un dato a quella più vicina
-def MergePart_SingleData(m,part): 
+def merge_single_data(m_leaf_init,p_init): 
 	
-	p = part.copy(deep=True)
-	p['part_number'] = p['part_number'].astype(float)#(float)
-	p = p.query('leaf==True')
-	p = p[['part_number','neighbors']]
-	merged_part = []
-	for i in range(len(p)):
-		merged_part.append([])
-	p['merged_part'] = merged_part
-	p.index = np.arange(len(p))
-	m_leaf = copy.deepcopy(m)#m.copy()#
+	p = p_init.copy(deep=True)
+	m_leaf = copy.deepcopy(m_leaf_init)#m.copy()#
 
-	m_leaf = np.delete(m_leaf, list(part.query('leaf==False')['part_number'])).tolist()
-	
+
 	list_part = list(p['part_number']).copy()
 	for i in list_part:
 		index1 = p[p['part_number']==i].index[0].copy()
@@ -89,16 +103,16 @@ def MergePart_SingleData(m,part):
 			if len(data2) > 1:
 				data2 = data2.drop('index',axis=1)
 				data2 = np.array(data2)
-				min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
-				metric.append(min_dist_fra_partizioni + min_dist2)
+				min_dist_between_subspaces,mean,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
+				metric.append(min_dist_between_subspaces + min_dist2)
 			else:
 				metric.append(np.inf)
 		min_metric = min(metric)
 		index_nearest_part = metric.index(min_metric)
 		part_to_merge = p['neighbors'].iloc[index1][index_nearest_part]
 			
-		#print(i)
-		m_leaf,p = MergePart(m_leaf,p,i,part_to_merge)
+		
+		m_leaf,p = merge_two_polytopes(m_leaf,p,i,part_to_merge)
 			
 	return m_leaf,p 
 
@@ -106,7 +120,7 @@ def MergePart_SingleData(m,part):
 
 
 
-def PartLinkScore(m_leaf,p,metric):
+def polytope_similarity(m_leaf,p,metric):
 	
 	part1 = []
 	part2 = []
@@ -123,26 +137,25 @@ def PartLinkScore(m_leaf,p,metric):
 			part2.append(j)
 			
 			if metric == 'variance':
-				var_ratio = Variance(data1,data2)
+				var_ratio = variance_metric(data1,data2)
 				score.append(var_ratio)
 		
 			if metric == 'centroid_ratio':
-				ratio,difference  = Centroid(data1,data2)
+				ratio,difference  = centroid_metric(data1,data2)
 				score.append(ratio)
  
 			if metric == 'centroid_diff':
-				ratio,difference  = Centroid(data1,data2)
+				ratio,difference  = centroid_metric(data1,data2)
 				score.append(difference)
 			
-				
 			if metric == 'min':
-				min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
-				diff = abs(min_dist_fra_partizioni - media)
+				min_dist_between_subspaces,mean,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
+				diff = abs(min_dist_between_subspaces - mean)
 				score.append(diff)
 				
 			if metric == 'min_corr':
-				min_dist_fra_partizioni,media,min_dist1,min_dist2,mean1,mean2 = MinDist(data1,data2)
-				diff = abs(min_dist_fra_partizioni - media) + min_dist1 + min_dist2	
+				min_dist_between_subspaces,mean,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
+				diff = abs(min_dist_between_subspaces - mean) + min_dist1 + min_dist2	
 				score.append(diff)
 				
 	part_links = {'part1':part1,'part2':part2,'score':score}
@@ -154,34 +167,28 @@ def PartLinkScore(m_leaf,p,metric):
 
 
 
-def neighbors(part):
-		
-	neighbors_list = []
-	leaves = part.query('leaf==True').copy()
-	leaves.index = np.arange(len(leaves))
-	for i in range(len(leaves)):
-		poly_i = pc.Polytope(np.array(leaves['polytope'].iloc[i]['A']),np.array(leaves['polytope'].iloc[i]['b']))
-		neighbors = []
-		for j in range(len(leaves)):
-			poly_j = pc.Polytope(np.array(leaves['polytope'].iloc[j]['A']),np.array(leaves['polytope'].iloc[j]['b']))
-			if (pc.is_adjacent(poly_i,poly_j) == True) and (leaves['part_number'].iloc[i]!=leaves['part_number'].iloc[j]):
-				neighbors.append(int(leaves['part_number'].iloc[j]))
-		neighbors_list.append(neighbors)
-		
-	leaves['neighbors'] = neighbors_list			
-	part_neigh = pd.merge(part,leaves[['part_number','neighbors']],how='left',right_on='part_number',left_on='part_number')		
-	
-	return part_neigh			
 
- 
-
-
-def Classification_BU(m,part,metric):#,score,namefile):
+def merging(m,part,metric):
 	
 	part_neigh = neighbors(part)
 	
-	m_leaf,p =  MergePart_SingleData(m,part_neigh)
-	print(p)
+	p = part_neigh.copy(deep=True)
+	p['part_number'] = p['part_number'].astype(float)
+	p = p.query('leaf==True')
+	p = p[['part_number','neighbors']]
+	merged_part = []
+	for i in range(len(p)):
+		merged_part.append([])
+	p['merged_part'] = merged_part
+	p.index = np.arange(len(p))
+	
+	m_leaf = copy.deepcopy(m)
+	m_leaf = np.delete(m_leaf, list(part_neigh.query('leaf==False')['part_number'])).tolist()
+
+	
+	m_leaf,p =  merge_single_data(m_leaf,p)
+	#print(p)
+	print('range of possible number of clusters: '+str(1)+'-'+str(len(p)))
 	list_p = []
 	list_m_leaf = []
 	list_p.append(p)
@@ -195,12 +202,12 @@ def Classification_BU(m,part,metric):#,score,namefile):
 	for i in range(l):
 #	while nx.number_connected_components(G) > 1:
 		#c+=1
-		part_links = PartLinkScore(m_leaf,p,metric)
+		part_links = polytope_similarity(m_leaf,p,metric)
 		#G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links['score'].iloc[0])
-		m_leaf,p = MergePart(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
+		m_leaf,p = merge_two_polytopes(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
 		
 		list_p.append(p)
 		list_m_leaf.append(m_leaf)
-		print(p)	
+		#print(p)	
 	 
 	return list_m_leaf,list_p

@@ -1,10 +1,8 @@
 import numpy as np
 import polytope as pc
-import pypoman
 from numpy.random import choice
 import pandas as pd	
 from itertools import combinations
-import math
 
 from Metrics import variance_metric,centroid_metric,min_dist_metric
 
@@ -147,6 +145,7 @@ def space_splitting(p,hyperplane_direction,hyperplane_distance):
 def data_assignment(p1,p2,matrix):
 	
 	columns = list(np.arange(len(matrix.columns)-2))
+	columns = [str(i) for i in columns]
 	columns.append('index')
 	columns.append('dist_point_cut')
 	matrix.columns = columns#['index' if x=='point_index' else x for x in matrix.columns]
@@ -169,7 +168,6 @@ def data_assignment(p1,p2,matrix):
 	
 	
 	return data1,data2
-
 
 
 
@@ -229,6 +227,7 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 
 	data = pd.DataFrame(X)
 	data['index'] = data.index
+	data.columns = [str(i) for i in data.columns]
 	
 	n_d = len(X[0])
 	
@@ -242,9 +241,9 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 		A_init_space.append(A_i1)
 		A_init_space.append(A_i2)
 
-		length_i = data[i].max() - data[i].min()
-		b_i1 = data[i].max()+length_i*0.05
-		b_i2 = -(data[i].min()-length_i*0.05)
+		length_i = data[str(i)].max() - data[str(i)].min()
+		b_i1 = data[str(i)].max()+length_i*0.05
+		b_i2 = -(data[str(i)].min()-length_i*0.05)
 		b_init_space.append(b_i1)		
 		b_init_space.append(b_i2)
 		
@@ -261,15 +260,11 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 	father_list = []
 	part_number = []
 	polytope = []
-	vertices = []
 	
 	time.append(t0)
 	father_list.append('nan')
 	part_number.append(count_part_number)
 	polytope.append(p)
-	#if (n_d==2) or (n_d==3):
-	vert = pypoman.compute_polytope_vertices(np.array(A_init_space), np.array(b_init_space))
-	vertices.append(vert)
 	
 
 	
@@ -294,31 +289,24 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 			part_number.append(count_part_number)
 			
 
-			
+
 			for j in range(2):
 				time.append(t0)
 				father_list.append(father)
 				poly = part12[j][0]
 				polytope.append(poly)
-				vert = pypoman.compute_polytope_vertices(poly.A,poly.b)
-				# ordino vertici: (per più dimensioni da errore?)
-				# compute centroid
-				cent=(sum([v[0] for v in vert])/len(vert),sum([v[1] for v in vert])/len(vert))
-				# sort by polar angle
-				vert.sort(key=lambda v: math.atan2(v[1]-cent[1],v[0]-cent[0]))
-				vertices.append(vert)
 				
 			# se voglio fermarmi al primo taglio
 			#if len(m)==3:
 			#	break
-			
+
 		except  TypeError:
 			count -= 1
 			continue
 	
 	print('total number of splits: '+str(count))
 	
-	part = {'time':time,'father':father_list,'part_number':part_number,'polytope':polytope,'box':vertices}
+	part = {'time':time,'father':father_list,'part_number':part_number,'polytope':polytope}
 		
 	part = pd.DataFrame(part)
 
@@ -334,9 +322,9 @@ def partitioning(X,t0,lifetime,dist_matrix,metric,exp):
 		
 	part['leaf'] = leaf
 
-	part = part[['time', 'father', 'part_number', 'leaf', 'polytope','box'	]]
+	part = part[['time', 'father', 'part_number', 'leaf', 'polytope'	]]
 	
-	
-	
+	m = list(np.array(m,dtype=object)[:,3])
+	#m = [dict(i) for i in m]
 	
 	return m,part

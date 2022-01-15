@@ -15,10 +15,10 @@ def neighbors(part):
 	leaves = part.query('leaf==True').copy()
 	leaves.index = np.arange(len(leaves))
 	for i in range(len(leaves)):
-		poly_i = pc.Polytope(np.array(leaves['polytope'].iloc[i]['A']),np.array(leaves['polytope'].iloc[i]['b']))
+		poly_i = leaves['polytope'].iloc[i]
 		neighbors = []
 		for j in range(len(leaves)):
-			poly_j = pc.Polytope(np.array(leaves['polytope'].iloc[j]['A']),np.array(leaves['polytope'].iloc[j]['b']))
+			poly_j = leaves['polytope'].iloc[j]
 			if (pc.is_adjacent(poly_i,poly_j) == True) and (leaves['part_number'].iloc[i]!=leaves['part_number'].iloc[j]):
 				neighbors.append(int(leaves['part_number'].iloc[j]))
 		neighbors_list.append(neighbors)
@@ -39,12 +39,12 @@ def merge_two_polytopes(m_leaf_init,p_init,part_to_remove,part_to_merge):
 	index1 = p[p['part_number']==part_to_remove].index[0]
 	index2 = p[p['part_number']==part_to_merge].index[0]
 	#unisco i dati in m_leaf
-	data1 = pd.DataFrame(m_leaf[index1]).copy()
+	data1 = m_leaf[index1].copy()
 	
-	data2 = pd.DataFrame(m_leaf[index2]).copy()
+	data2 = m_leaf[index2].copy()
 	data2 = pd.concat([data2,data1])
 	data2.index = np.arange(len(data2))
-	m_leaf[index2] = copy.deepcopy(data2.to_dict())
+	m_leaf[index2] = data2.copy()
 	
 	neigh = copy.deepcopy(list(p['neighbors']))
 	merged_part = copy.deepcopy(list(p['merged_part']))
@@ -68,7 +68,7 @@ def merge_two_polytopes(m_leaf_init,p_init,part_to_remove,part_to_merge):
 	
 	p = p.drop(index1)
 	p.index = np.arange(len(p))
-	m_leaf = copy.deepcopy(np.delete(m_leaf, index1).tolist())
+	m_leaf = copy.deepcopy(np.delete(np.array(m_leaf,dtype=object), index1).tolist())
 	
 	return m_leaf,p
 
@@ -90,7 +90,7 @@ def merge_single_data(m_leaf_init,p_init):
 	list_part = list(p['part_number']).copy()
 	for i in list_part:
 		index1 = p[p['part_number']==i].index[0].copy()
-		data1 = pd.DataFrame(m_leaf[index1]).copy()
+		data1 = m_leaf[index1].copy()
 		#considero solo partizioni con unico dato all'interno
 		if len(data1) > 1:
 			continue
@@ -99,7 +99,7 @@ def merge_single_data(m_leaf_init,p_init):
 		#cerco minima distanza con part vicine
 		metric = []
 		for j in p['neighbors'].iloc[index1]:
-			data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]]).copy()
+			data2 = m_leaf[p[p['part_number']==j].index[0]].copy()
 			if len(data2) > 1:
 				data2 = data2.drop('index',axis=1)
 				data2 = np.array(data2)
@@ -128,8 +128,8 @@ def polytope_similarity(m_leaf,p,metric):
 	for i in range(len(p)):
 		for j in p.iloc[i]['neighbors']:
 			
-			data1 = pd.DataFrame(m_leaf[i])#pd.DataFrame(m[p.iloc[i]['part_number']]) #m[p.iloc[i]['part_number']][2]
-			data2 = pd.DataFrame(m_leaf[p[p['part_number']==j].index[0]])#pd.DataFrame(m[j]) #m[j][2]
+			data1 = m_leaf[i]
+			data2 = m_leaf[p[p['part_number']==j].index[0]]
 			data1 = np.array(data1.drop('index',axis=1))
 			data2 = np.array(data2.drop('index',axis=1))
 				
@@ -183,7 +183,7 @@ def merging(m,part,metric):
 	p.index = np.arange(len(p))
 	
 	m_leaf = copy.deepcopy(m)
-	m_leaf = np.delete(m_leaf, list(part_neigh.query('leaf==False')['part_number'])).tolist()
+	m_leaf = np.delete(np.array(m_leaf,dtype=object), list(part_neigh.query('leaf==False')['part_number'])).tolist()
 
 	
 	m_leaf,p =  merge_single_data(m_leaf,p)

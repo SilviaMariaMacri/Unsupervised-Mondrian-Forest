@@ -10,14 +10,16 @@ import Matrix
 import Partitioning
 import Merging
 
+#import sys
+#sys.getsizeof()
 
 
 def mondrian_tree(X,t0,lifetime,exp,metric):
 
-	dist_matrix = Matrix.distance_matrix(X)
-
+	cut_ensemble = Matrix.cut_ensemble(X)
+	
 	print('PARTITIONING:')	 
-	m,part = Partitioning.partitioning(X,t0,lifetime,dist_matrix,metric,exp)
+	m,part = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
 	
 	print('MERGING:')
 	list_m_leaf,list_p = Merging.merging(m,part,metric)
@@ -36,6 +38,10 @@ def save_tree(namefile,part,m,list_p,list_m_leaf):
 	with open(namefile+'_m.json', 'w') as f:
 		f.write(json.dumps([df.to_dict() for df in m]))
 			
+	for k in range(len(list_p)):
+		list_p[k]['part_number'] = list_p[k]['part_number'].astype(float)
+		list_p[k]['neighbors'] = [list(map(float, i)) for i in list_p[k]['neighbors']]
+		list_p[k]['merged_part'] = [list(map(float, i)) for i in list_p[k]['merged_part']]
 	with open(namefile+'_p.json', 'w') as f:
 		f.write(json.dumps([df.to_dict() for df in list_p]))
 	
@@ -59,10 +65,15 @@ def read_tree(namefile):
 	
 	list_p = json.load(open(namefile+'_p.json','r'))
 	list_p = [pd.DataFrame(i) for i in list_p]
+	for k in range(len(list_p)):
+		list_p[k]['part_number'] = list_p[k]['part_number'].astype(int)
+		list_p[k]['neighbors'] = [list(map(int, i)) for i in list_p[k]['neighbors']]
+		list_p[k]['merged_part'] = [list(map(int, i)) for i in list_p[k]['merged_part']]	
 	
 	list_m_leaf = json.load(open(namefile+'_m_leaf.json','r'))
 	for k in range(len(list_m_leaf)):
 		list_m_leaf[k] = [pd.DataFrame(i) for i in list_m_leaf[k]]
+		list_m_leaf[k] = [i[i.columns[0:-1]].astype(int) for i in list_m_leaf[k]]
 		
 	return part,m,list_p,list_m_leaf
 
@@ -107,7 +118,6 @@ def ami(list_classified_data_input):
 			cl2 = list_classified_data[index2][i]
 			cl2.columns = ['index','class2']
 			df = pd.merge(cl1,cl2,left_on='index',right_on='index',how='inner')
-			#coeff.append(adjusted_mutual_info_score(cl1['class'],cl2['class']))
 			coeff.append(adjusted_mutual_info_score(df['class1'],df['class2']))
 			
 		coeff_tot.append(coeff)
@@ -119,9 +129,9 @@ def ami(list_classified_data_input):
 	
 
 
-
-
 def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
+
+	cut_ensemble = Matrix.cut_ensemble(X)
 	
 	list_part = []
 	list_m = []
@@ -131,8 +141,13 @@ def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
 	for k in range(number_of_iterations):
 		
 		print('Tree number '+str(k+1))
-		part,m,list_p,list_m_leaf = mondrian_tree(X,t0,lifetime,exp,metric)
-		
+		print('PARTITIONING:')	 
+		m,part = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
+		print('MERGING:')
+		list_m_leaf,list_p = Merging.merging(m,part,metric)
+		list_p.reverse()
+		list_m_leaf.reverse()
+
 		list_part.append(part)
 		list_m.append(m)
 		list_p_tot.append(list_p)
@@ -142,10 +157,10 @@ def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
 		classified_data = class_assignment(list_m_leaf)
 		class_data_tot.append(classified_data)	
 		
-	c_mean,c_std,c_tot = ami(class_data_tot)
+	ami_mean,ami_std,ami_tot = ami(class_data_tot)
 
 		
-	return list_part,list_m,list_p_tot,list_m_leaf_tot,c_mean,c_std,c_tot
+	return list_part,list_m,list_p_tot,list_m_leaf_tot,ami_mean,ami_std,ami_tot
 
 
 
@@ -183,12 +198,12 @@ def read_forest(namefile,number_of_iterations):
 		list_p_tot.append(list_p)
 		list_m_leaf_tot.append(list_m_leaf)
 	
-	c_tot = json.load(open(namefile+'_AMI.json','r'))
+	ami_tot = json.load(open(namefile+'_AMI.json','r'))
 	df = pd.read_csv(namefile+'_AMI.txt',sep='\t')
-	c_mean = list(df['AMI_mean'])
-	c_std = list(df['AMI_std'])
+	ami_mean = list(df['AMI_mean'])
+	ami_std = list(df['AMI_std'])
 	
-	return list_part,list_m,list_p_tot,list_m_leaf_tot,c_mean,c_std,c_tot
+	return list_part,list_m,list_p_tot,list_m_leaf_tot,ami_mean,ami_std,ami_tot
 
 #namefile = name+'_lambda'+str(lifetime)+'_exp'+str(exp)+'_'+metric+'_'+str(k+1)
 	

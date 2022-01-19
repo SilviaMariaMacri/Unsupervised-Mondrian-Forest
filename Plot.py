@@ -1,86 +1,51 @@
 import numpy as np
-import pandas as pd
 import matplotlib.pylab as plt
 from matplotlib.pyplot import cm
 from matplotlib.patches import Polygon
 from scipy.spatial import ConvexHull
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import pypoman
+import math
+
+
+
+
+def compute_vertices(poly):
+	
+	A = poly.A
+	b = poly.b
+	vert = pypoman.compute_polytope_vertices(A,b)
+	# ordino vertici:
+	# compute centroid
+	cent=(sum([v[0] for v in vert])/len(vert),sum([v[1] for v in vert])/len(vert))
+	# sort by polar angle
+	vert.sort(key=lambda v: math.atan2(v[1]-cent[1],v[0]-cent[0]))
+	
+	return vert			
 
 
 
 
 
-# funziona anche con tagli paralleli
 def plot2D_partitioning(m,part):
 	
-
-
-	if isinstance(part, pd.DataFrame):
-			
-
-		#sns.set_style('whitegrid')
-		fig,ax = plt.subplots()
-		
+	p = part.query('leaf==True').copy()
 	
-		for i in range(len(part.query('leaf==True'))):
-			box_new = part.query('leaf==True')['box'].iloc[i]
-			p = Polygon(box_new, facecolor = 'none', edgecolor='b')
-			ax.add_patch(p)
+	fig,ax = plt.subplots()
+	for i in range(len(p)):
+		poly = p['polytope'].iloc[i]
+		vert = compute_vertices(poly)
+		poly_for_plot = Polygon(vert, facecolor = 'none', edgecolor='b')
+		ax.add_patch(poly_for_plot)
 			
-			b = pd.DataFrame(box_new)
-			x_avg = np.mean(b[0])
-			y_avg = np.mean(b[1])
-			ax.text(x_avg,y_avg,part.query('leaf==True')['part_number'].iloc[i])
+		x_avg = np.mean(np.array(vert)[:,0])
+		y_avg = np.mean(np.array(vert)[:,1])
+		ax.text(x_avg,y_avg,p['part_number'].iloc[i])
 			
-			if isinstance(m, list):
-				data = pd.DataFrame(m[part.query('leaf==True')['part_number'].iloc[i]])
-				ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
-		if isinstance(m, np.ndarray):
-			X = m.copy()
-			ax.scatter(X[:,0],X[:,1],color='b',s=10,alpha=0.5)
-			
-		#xmin = box_new[0][0][0]-0.05
-		#ymin = box_new[0][0][1]-0.05
-		#xmax = box_new[0][2][0]+0.05
-		#ymax = box_new[0][2][1]+0.05
-			
-		#ax.set_xlim(xmin,xmax)
-		#ax.set_ylim(ymin,ymax)
-		
-		
-		plt.show()
-		
-		
-		
-	if isinstance(part, list):
-		
-		
-		color=cm.rainbow(np.linspace(0,1,len(part)))
-		
-		fig, ax = plt.subplots()
-		
-		for j,c in zip(part,color):
-			
-			for i in range(len(j.query('leaf==True'))):
-				box_new = j.query('leaf==True')['box'].iloc[i]
-				p = Polygon(box_new, facecolor = 'none', edgecolor='b',alpha=0.05)
-				ax.add_patch(p)
-				
-				data = pd.DataFrame(m[part.query('leaf==True')['part_number'].iloc[i]])
-				ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
-		#ax.scatter(X[:,0],X[:,1],s=10,alpha=0.5)
-
-		#xmin = box_new[0][0][0]-0.05
-		#ymin = box_new[0][0][1]-0.05
-		#xmax = box_new[0][2][0]+0.05
-		#ymax = box_new[0][2][1]+0.05
-			
-		#ax.set_xlim(xmin,xmax)
-		#ax.set_ylim(ymin,ymax)
-		
-		
-		plt.show()
-		
+	data = m[0].copy()
+	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+	
+	plt.show()
 	
 	return
 
@@ -89,37 +54,34 @@ def plot2D_partitioning(m,part):
 
 
 
-def plot2D_merging(part,list_m,list_p,number_of_clusters):
+def plot2D_merging(m,part,list_p,number_of_clusters):
 
-	p = pd.DataFrame(list_p[number_of_clusters-1])
+	p = list_p[number_of_clusters-1].copy()
 	
-	#for i in range(len(p)):
-	#	p['merged_part'].iloc[i].append(p['part_number'].iloc[i])
-
-	#sns.set_style('whitegrid')
+	color = cm.rainbow(np.linspace(0,1,len(p)))
 	fig,ax = plt.subplots()
-		
-	color=cm.rainbow(np.linspace(0,1,len(p)))
 	for i in range(len(p)):
-		box = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
-		pol = Polygon(box, facecolor=color[i], alpha=0.3, edgecolor='black')
-		ax.add_patch(pol)
-			
-		b = pd.DataFrame(box)
-		x_avg = np.mean(b[0])
-		y_avg = np.mean(b[1])
-		ax.text(x_avg,y_avg,int(p['part_number'].iloc[i]))
-		for j in p['merged_part'].iloc[i]:
-			box = part[part['part_number']==j]['box'][0]
-			pol = Polygon(box, facecolor=color[i], alpha=0.3, edgecolor='black')
-			ax.add_patch(pol)
-			
-			b = pd.DataFrame(box)
-			x_avg = np.mean(b[0])
-			y_avg = np.mean(b[1])
-			ax.text(x_avg,y_avg,int(j))
+		part_number = p['part_number'].iloc[i]
+		poly = list(part[part['part_number']==part_number]['polytope'])[0]
+		vert = compute_vertices(poly)
+		poly_for_plot = Polygon(vert, facecolor=color[i], alpha=0.3, edgecolor='black')
+		ax.add_patch(poly_for_plot)
 		
-	data = pd.DataFrame(list_m[0][0])
+		x_avg = np.mean(np.array(vert)[:,0])
+		y_avg = np.mean(np.array(vert)[:,1])
+		ax.text(x_avg,y_avg,part_number)
+
+		for j in p['merged_part'].iloc[i]:
+			poly = list(part[part['part_number']==j]['polytope'])[0]
+			vert = compute_vertices(poly)
+			poly_for_plot = Polygon(vert, facecolor=color[i], alpha=0.3, edgecolor='black')
+			ax.add_patch(poly_for_plot)
+
+			x_avg = np.mean(np.array(vert)[:,0])
+			y_avg = np.mean(np.array(vert)[:,1])
+			ax.text(x_avg,y_avg,j)
+
+	data = m[0].copy()
 	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
 		
 	return
@@ -127,17 +89,31 @@ def plot2D_merging(part,list_m,list_p,number_of_clusters):
 
 
 
-def plot3D(list_m_leaf,list_p,part,number_of_clusters,plot_space,plot_data):
+def plot3D(part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space):
 	
-	p = pd.DataFrame(list_p[number_of_clusters-1])
+	p = list_p[number_of_clusters-1].copy()
+	
+	
+	if plot_data == True:
 		
+		fig = plt.figure()
+		ax = plt.axes(projection='3d')
+		color=cm.rainbow(np.linspace(0,1,len(p)))
+		for i in range(len(p)):
+			data = list_m_leaf[number_of_clusters-1][i]
+			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color=color[i])
+		plt.show()	
+
+
 	if plot_space == True:
 		
 		fig = plt.figure()
 		ax = plt.axes(projection='3d')
 		color=cm.rainbow(np.linspace(0,1,len(p)))
 		for i in range(len(p)):
-			verts = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
+			part_number = p['part_number'].iloc[i]
+			poly = list(part[part['part_number']==part_number]['polytope'])[0]
+			verts = compute_vertices(poly)
 			hull = ConvexHull(verts)
 			faces = hull.simplices
 			for s in faces:
@@ -148,8 +124,10 @@ def plot3D(list_m_leaf,list_p,part,number_of_clusters,plot_space,plot_data):
 				f.set_color(color[i])
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)
+			
 			for j in p['merged_part'].iloc[i]:
-				verts = part[part['part_number']==j]['box'][0]
+				poly = list(part[part['part_number']==j]['polytope'])[0]
+				verts = compute_vertices(poly)
 				hull = ConvexHull(verts)
 				faces = hull.simplices
 				for s in faces:
@@ -161,17 +139,9 @@ def plot3D(list_m_leaf,list_p,part,number_of_clusters,plot_space,plot_data):
 					f.set_alpha(0.1)
 					ax.add_collection3d(f)
 					
-			data = pd.DataFrame(list_m_leaf[number_of_clusters-1][i])
-			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
-		'''
-		ax.scatter3D(list(df.query('cl==0')['x']),list(df.query('cl==0')['y']),list(df.query('cl==0')['z']))
-		ax.scatter3D(list(df.query('cl==1')['x']),list(df.query('cl==1')['y']),list(df.query('cl==1')['z']))
-		ax.scatter3D(list(df.query('cl==2')['x']),list(df.query('cl==2')['y']),list(df.query('cl==2')['z']))
-		'''
-	
-		#data = pd.DataFrame(list_m[0][0])
-		#ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
-	
+		data = list_m_leaf[0][0].copy()
+		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
+		
 		plt.show()
 		
 		
@@ -179,7 +149,9 @@ def plot3D(list_m_leaf,list_p,part,number_of_clusters,plot_space,plot_data):
 		for i in range(len(p)):
 			fig = plt.figure()
 			ax = plt.axes(projection='3d')
-			verts = part[part['part_number']==p['part_number'].iloc[i]]['box'][0]
+			part_number = p['part_number'].iloc[i]
+			poly = list(part[part['part_number']==part_number]['polytope'])[0]
+			verts = compute_vertices(poly)
 			hull = ConvexHull(verts)
 			faces = hull.simplices
 			for s in faces:
@@ -191,7 +163,8 @@ def plot3D(list_m_leaf,list_p,part,number_of_clusters,plot_space,plot_data):
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)
 			for j in p['merged_part'].iloc[i]:
-				verts = part[part['part_number']==j]['box'][0]
+				poly = list(part[part['part_number']==j]['polytope'])[0]
+				verts = compute_vertices(poly)
 				hull = ConvexHull(verts)
 				faces = hull.simplices
 				for s in faces:
@@ -202,25 +175,28 @@ def plot3D(list_m_leaf,list_p,part,number_of_clusters,plot_space,plot_data):
 					f.set_color(color[i])
 					f.set_alpha(0.1)
 					ax.add_collection3d(f)
-			for l in range(len(p)):
-				data = pd.DataFrame(list_m_leaf[number_of_clusters-1][l])
-				ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.5,color='b')
-	#		ax.scatter3D(list(df.query('cl==0')['x']),list(df.query('cl==0')['y']),list(df.query('cl==0')['z']))
-	#		ax.scatter3D(list(df.query('cl==1')['x']),list(df.query('cl==1')['y']),list(df.query('cl==1')['z']))
-	#		ax.scatter3D(list(df.query('cl==2')['x']),list(df.query('cl==2')['y']),list(df.query('cl==2')['z']))
-			plt.show()
+					
+			data = list_m_leaf[0][0].copy()
+			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
 		
-	if plot_data == True:
-		fig = plt.figure()
-		ax = plt.axes(projection='3d')
-		color=cm.rainbow(np.linspace(0,1,len(p)))
-		for i in range(len(p)):
-			data = pd.DataFrame(list_m_leaf[number_of_clusters-1][i])
-			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color=color[i])
-			
-			plt.show()
+		plt.show()
+
 	
 	return
+
+
+
+def plot_AMI(ami_mean,ami_std):
+	
+	fig,ax = plt.subplots()
+	ax.plot(np.arange(2,len(ami_mean)+1),ami_mean[1:],linewidth=0.7)
+	ax.scatter(np.arange(2,len(ami_mean)+1),ami_mean[1:],s=10)
+	ax.fill_between(np.arange(2,len(ami_mean)+1), ami_mean[1:]-np.array(ami_std[1:])/2, ami_mean[1:]+np.array(ami_std[1:])/2,alpha=0.2,color='b')
+	ax.set_xlabel('Number of Clusters')
+	ax.set_ylabel('Adjusted Mutual Information')
+	plt.show()
+	
+	return 
 
 
 
@@ -270,18 +246,3 @@ def Plot2D_binario(n,list_part,list_p_tot,number_of_clusters,name_file,list_m):
 		plt.savefig(name_file)	
 	return
 '''
-
-
-def plot_AMI(name):
-	
-	AMI = pd.read_csv(name+'_AMI.txt',sep='\t')
-	
-	fig,ax = plt.subplots()
-	ax.plot(np.arange(2,len(AMI)+1),AMI['AMI_mean'].iloc[1:],linewidth=0.7)	
-	ax.scatter(np.arange(2,len(AMI)+1),AMI['AMI_mean'].iloc[1:],s=10)
-	ax.fill_between(np.arange(2,len(AMI)+1), AMI['AMI_mean'].iloc[1:]-AMI['AMI_std'].iloc[1:]/2, AMI['AMI_mean'].iloc[1:]+AMI['AMI_std'].iloc[1:]/2,alpha=0.2,color='b')
-	ax.set_xlabel('Number of Clusters')
-	ax.set_ylabel('Adjusted Mutual Information')
-	plt.show()
-	
-	return 

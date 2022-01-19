@@ -1,33 +1,30 @@
 import numpy as np
 import pandas as pd
-#import networkx as nx
 import copy
 import polytope as pc 
 
-from Metrics import variance_metric,centroid_metric,min_dist_metric
+from Metrics import compute_metric,min_dist_metric
 
 
 
 
-def neighbors(part):
-		
+def neighbors(p):
+	
 	neighbors_list = []
-	leaves = part.query('leaf==True').copy()
-	leaves.index = np.arange(len(leaves))
-	for i in range(len(leaves)):
-		poly_i = leaves['polytope'].iloc[i]
+	for i in range(len(p)):
+		poly_i = p['polytope'].iloc[i]
 		neighbors = []
-		for j in range(len(leaves)):
-			poly_j = leaves['polytope'].iloc[j]
-			if (pc.is_adjacent(poly_i,poly_j) == True) and (leaves['part_number'].iloc[i]!=leaves['part_number'].iloc[j]):
-				neighbors.append(int(leaves['part_number'].iloc[j]))
+		for j in range(len(p)):
+			if j == i:
+				continue
+			poly_j = p['polytope'].iloc[j]
+			if (pc.is_adjacent(poly_i,poly_j) == True):
+				neighbors.append(int(p['part_number'].iloc[j]))
 		neighbors_list.append(neighbors)
 		
-	leaves['neighbors'] = neighbors_list			
-	part_neigh = pd.merge(part,leaves[['part_number','neighbors']],how='left',right_on='part_number',left_on='part_number')		
+	p['neighbors'] = neighbors_list			
 	
-	return part_neigh			
-
+	return p			
 
 
 
@@ -38,9 +35,9 @@ def merge_two_polytopes(m_leaf_init,p_init,part_to_remove,part_to_merge):
 
 	index1 = p[p['part_number']==part_to_remove].index[0]
 	index2 = p[p['part_number']==part_to_merge].index[0]
+	
 	#unisco i dati in m_leaf
 	data1 = m_leaf[index1].copy()
-	
 	data2 = m_leaf[index2].copy()
 	data2 = pd.concat([data2,data1])
 	data2.index = np.arange(len(data2))
@@ -55,12 +52,13 @@ def merge_two_polytopes(m_leaf_init,p_init,part_to_remove,part_to_merge):
 	for j in neigh[index1]:
 		if j not in neigh[index2]:
 			neigh[index2].append(j)
-		neigh[p[p['part_number']==j].index[0]].remove(part_to_remove)
-		if part_to_merge not in neigh[p[p['part_number']==j].index[0]]:
-			neigh[p[p['part_number']==j].index[0]].append(float(part_to_merge))#float(part_to_merge)
-
+		index_j = p[p['part_number']==j].index[0]
+		neigh[index_j].remove(part_to_remove)
+		if part_to_merge not in neigh[index_j]:
+			neigh[index_j].append(part_to_merge)
+			
 	for j in merged_part[index1]:
-		merged_part[index2].append(float(j))#float(j)
+		merged_part[index2].append(j)
 	merged_part[index2].append(part_to_remove)
 	
 	p['neighbors'] = neigh
@@ -68,7 +66,7 @@ def merge_two_polytopes(m_leaf_init,p_init,part_to_remove,part_to_merge):
 	
 	p = p.drop(index1)
 	p.index = np.arange(len(p))
-	m_leaf = copy.deepcopy(np.delete(np.array(m_leaf,dtype=object), index1).tolist())
+	m_leaf = np.delete(np.array(m_leaf,dtype=object), index1).tolist()
 	
 	return m_leaf,p
 
@@ -84,8 +82,7 @@ def merge_two_polytopes(m_leaf_init,p_init,part_to_remove,part_to_merge):
 def merge_single_data(m_leaf_init,p_init): 
 	
 	p = p_init.copy(deep=True)
-	m_leaf = copy.deepcopy(m_leaf_init)#m.copy()#
-
+	m_leaf = copy.deepcopy(m_leaf_init)
 
 	list_part = list(p['part_number']).copy()
 	for i in list_part:
@@ -130,84 +127,87 @@ def polytope_similarity(m_leaf,p,metric):
 			
 			data1 = m_leaf[i]
 			data2 = m_leaf[p[p['part_number']==j].index[0]]
-			data1 = np.array(data1.drop('index',axis=1))
-			data2 = np.array(data2.drop('index',axis=1))
-				
+			metric_value = compute_metric(metric,data1,data2)
+			score.append(metric_value)
+			
 			part1.append(p.iloc[i]['part_number'])
 			part2.append(j)
-			
-			if metric == 'variance':
-				var_ratio = variance_metric(data1,data2)
-				score.append(var_ratio)
-		
-			if metric == 'centroid_ratio':
-				ratio,difference  = centroid_metric(data1,data2)
-				score.append(ratio)
- 
-			if metric == 'centroid_diff':
-				ratio,difference  = centroid_metric(data1,data2)
-				score.append(difference)
-			
-			if metric == 'min':
-				min_dist_between_subspaces,mean,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
-				diff = abs(min_dist_between_subspaces - mean)
-				score.append(diff)
-				
-			if metric == 'min_corr':
-				min_dist_between_subspaces,mean,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
-				diff = abs(min_dist_between_subspaces - mean) + min_dist1 + min_dist2	
-				score.append(diff)
-				
+
 	part_links = {'part1':part1,'part2':part2,'score':score}
 	part_links = pd.DataFrame(part_links)
 	part_links = part_links.sort_values(by='score',ascending=True)
+	part_links.index = np.arange(len(part_links))
+	part_links = part_links[part_links.index %2 == 0]
+	part_links.index = np.arange(len(part_links))
 	
+	return part_links 
+
+
+
+
+def polytope_similarity_update(m_leaf,p,metric,removed_part,merged_part,part_links):
 	
-	return part_links
+	part_links = part_links.drop(part_links[part_links['part1']==removed_part].index)
+	part_links = part_links.drop(part_links[part_links['part2']==removed_part].index)
+	part_links = part_links.drop(part_links[part_links['part1']==merged_part].index)
+	part_links = part_links.drop(part_links[part_links['part2']==merged_part].index)
+	
+	new_neighbors = list(p[p['part_number']==merged_part]['neighbors'])[0]
+	merged_part_list = []
+	score = []
+	data1 = m_leaf[p[p['part_number']==merged_part].index[0]]
+	for i in new_neighbors:
+		data2 = m_leaf[p[p['part_number']==i].index[0]]
+		metric_value = compute_metric(metric,data1,data2)
+		score.append(metric_value)
+		merged_part_list.append(merged_part)
+	
+	new_part_links = {'part1':merged_part_list,'part2':new_neighbors,'score':score}
+	new_part_links = pd.DataFrame(new_part_links)
+	
+	part_links_updated = pd.merge(part_links,new_part_links, how='outer')
+	part_links_updated = part_links_updated.sort_values(by='score',ascending=True)
+	part_links_updated.index = np.arange(len(part_links_updated))
+	
+	return part_links_updated
+
 
 
 
 
 def merging(m,part,metric):
 	
-	part_neigh = neighbors(part)
-	
-	p = part_neigh.copy(deep=True)
-	p['part_number'] = p['part_number'].astype(float)
-	p = p.query('leaf==True')
-	p = p[['part_number','neighbors']]
+	# riduco a partizione finale
+	p = part.query('leaf==True').copy()
+	p.index = np.arange(len(p))
+	p = neighbors(p)
 	merged_part = []
 	for i in range(len(p)):
 		merged_part.append([])
 	p['merged_part'] = merged_part
-	p.index = np.arange(len(p))
+	p = p[['part_number','neighbors','merged_part']].copy()
 	
 	m_leaf = copy.deepcopy(m)
-	m_leaf = np.delete(np.array(m_leaf,dtype=object), list(part_neigh.query('leaf==False')['part_number'])).tolist()
+	m_leaf = np.delete(np.array(m_leaf,dtype=object), list(part.query('leaf==False')['part_number'])).tolist()
 
-	
+
 	m_leaf,p =  merge_single_data(m_leaf,p)
-	#print(p)
+	part_links = polytope_similarity(m_leaf,p,metric)
+		
 	print('range of possible number of clusters: '+str(1)+'-'+str(len(p)))
 	list_p = []
 	list_m_leaf = []
 	list_p.append(p)
 	list_m_leaf.append(m_leaf)
-	#G = nx.Graph()
-	#for i in range(len(p)):
-	#	G.add_node(p['part_number'].iloc[i])
 	
-	#c=0
 	l = len(p)-1
 	for i in range(l):
-#	while nx.number_connected_components(G) > 1:
-		#c+=1
-		part_links = polytope_similarity(m_leaf,p,metric)
-		#G.add_edge(part_links['part1'].iloc[0],part_links['part2'].iloc[0],weight=part_links['score'].iloc[0])
-		m_leaf,p = merge_two_polytopes(m_leaf,p,part_links['part1'].iloc[0],part_links['part2'].iloc[0])
-		
+		part1 = part_links['part1'].iloc[0]
+		part2 = part_links['part2'].iloc[0]
+		m_leaf,p = merge_two_polytopes(m_leaf,p,part1,part2)
 		list_p.append(p)
 		list_m_leaf.append(m_leaf)
-		#print(p)	
-	 
+		
+		part_links = polytope_similarity_update(m_leaf,p,metric,part1,part2,part_links)
+		 
 	return list_m_leaf,list_p

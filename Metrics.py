@@ -17,7 +17,7 @@ def variance_metric(data1,data2):
 		var_ratio = np.var(pd)/np.var(pd12) 
 		return var_ratio 
 	else:
-		s='nan'
+		s=np.nan
 		return s
 
 
@@ -79,4 +79,43 @@ def min_dist_metric(data1,data2):
 
 	return min_dist_between_subspaces,media,min_dist1,min_dist2,mean1,mean2
 
+
+
+
+
+def compute_metric(metric,data1,data2):
+	
+	data1 = data1.drop('index',axis=1)
+	data2 = data2.drop('index',axis=1)
+	data1 = np.array(data1)
+	data2 = np.array(data2)
+	
+	if metric == 'variance':	
+		var_ratio = variance_metric(data1,data2)
+		metric_value = var_ratio
+			
+	if metric == 'centroid_diff':	
+		ratio,difference = centroid_metric(data1, data2)
+		metric_value = difference
+
+	if metric == 'centroid_ratio':	
+		ratio,difference = centroid_metric(data1, data2)
+		metric_value = ratio
+			
+	if metric == 'min':
+		min_dist_between_subspaces,media,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
+		diff = abs(min_dist_between_subspaces - media)
+		metric_value = diff
+			
+	if metric == 'min_corr':	
+		min_dist_between_subspaces,media,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
+		if len(data1) == 1:
+			diff = abs(min_dist_between_subspaces - media) + min_dist2
+		if len(data2) == 1:
+			diff = abs(min_dist_between_subspaces - media) + min_dist1 
+		else:
+			diff = abs(min_dist_between_subspaces - media) + min_dist1 + min_dist2
+		metric_value = diff
+
+	return metric_value
 

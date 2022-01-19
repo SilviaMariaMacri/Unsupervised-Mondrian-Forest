@@ -4,92 +4,68 @@ from scipy.spatial.distance import cdist
 
 
 
-def distance_matrix(X):
+def cut_ensemble(X):
 
-
-
-	if isinstance(X,pd.DataFrame):
-		X = np.array(X)
 	
-	n_d = len(X[0]) # numero dimensioni 
+	# number of dimensions
+	n_d = len(X[0]) 
 	
-	
-	dist = cdist(X,X)
-	
+	# index order 
 	i1, i2 = np.tril_indices(len(X), k=-1) 
 	
-	# coppie di punti
-	X1 = []
-	X2 = []
+	# cut point  
 	X_cut = []
 	for i in range(n_d):
 		x1 = np.take(X[:,i],i1)
 		x2 = np.take(X[:,i],i2)
-		X1.append(x1)
-		X2.append(x2)
 		X_cut.append((x1+x2)/2)
-
-	coord1 = pd.DataFrame(X1).T
-	coord1.columns = [*['x1_'+str(i) for i in range(n_d)]]
-
-	coord2 = pd.DataFrame(X2).T
-	coord2.columns = [*['x2_'+str(i) for i in range(n_d)]]
+	cut_point =	np.array(X_cut).T
 	
-	coord_cut = pd.DataFrame(X_cut).T
-	coord_cut.columns = [*['x_cut_'+str(i) for i in range(n_d)]]
-	
-	
-	# versore piano perpendicolare a distanza
-	versori_coord = []
+	# vector orthogonal to the cutting hyperplane 
+	dist = cdist(X,X)
+	cut_vector = []
 	for i in range(n_d):
 		d = np.subtract.outer(X[:,i],X[:,i]) 
 		d_norm = d[i1, i2]/dist[i1, i2]
-		versori_coord.append(d_norm)
-		
-	versori_iperpiani_df = pd.DataFrame(versori_coord).T
-	versori_iperpiani_df.columns = [*['norm_vect_'+str(i) for i in range(n_d)]]
+		cut_vector.append(d_norm)
+	
+	cut_vector = np.array(cut_vector).T
 					
-	versori_iperpiani = np.array(versori_iperpiani_df)
+	magnitude_cut_vector = cut_vector*cut_point
+	magnitude_cut_vector = np.sum(magnitude_cut_vector,axis=1)
+	
+	# point - hyperplane distance  (rows,columns = points,hyperplanes)
+	point_cut_distance = cut_vector@X.T
+	point_cut_distance = point_cut_distance.T - magnitude_cut_vector
+	
+	point_cut_distance = np.vstack([point_cut_distance.T,np.arange(len(point_cut_distance))]).T
 	
 	
-	magnitude_norm_vect = versori_iperpiani*np.array(coord_cut)
-	magnitude_norm_vect = np.sum(magnitude_norm_vect,axis=1)
-	#magnitude_norm_vect = np.diag(versori_iperpiani@(np.array(coord_cut).T))
+	# output dataframe of indexed data
+	index = np.arange(len(X))
+	data = np.vstack([X.T,index]).T
+	data_index = pd.DataFrame(data)
+	columns = list(data_index.columns)
+	columns[-1] = 'index'
+	data_index.columns = [str(i) for i in columns]
+	data_index['index'] = data_index['index'].astype(int)
 
+	# output dataframe of hyperplanes 
+	cut_matrix = np.vstack([i1, i2,np.arange(len(i1)),magnitude_cut_vector,cut_vector.T])
+	cut_matrix = cut_matrix.T
+	columns = ['index1','index2','cut_index','magnitude_norm_vect']
+	for i in range(n_d):
+		columns.append('norm_vect_'+str(i))
+	cut_matrix = pd.DataFrame(cut_matrix)
+	cut_matrix.columns = columns
+	cut_matrix[['index1','index2','cut_index']] = cut_matrix[['index1','index2','cut_index']].astype(int)
 	
-	matrix = np.stack([i1.astype(int), i2.astype(int), dist[i1, i2],magnitude_norm_vect]).T
-	matrix = pd.DataFrame(matrix)
-	matrix.columns = ['index1','index2','dist','magnitude_norm_vect']
-	matrix['index1'] = matrix['index1'].astype(int)
-	matrix['index2'] = matrix['index2'].astype(int)
-	
-	matrix['index_norm_vect'] = matrix.index
-
-	for i in [coord1,coord2,coord_cut,versori_iperpiani_df]:
-		matrix = pd.merge(matrix,i, left_index=True, right_index=True)
-	
-
-
-	matrix_copy = pd.DataFrame()
-	for i in range(len(X)):
-		#print(i)
-		
-		for j in range(len(X[i])):
-			matrix['point_'+str(j)] = X[i,j]
-		matrix['point_index'] = i
-		
-		matrix_copy = pd.concat([matrix,matrix_copy])
-	matrix = matrix_copy.copy()
-	matrix.index = np.arange(len(matrix))
-
-	i1_bis = np.array(matrix['index_norm_vect'])
-	i2_bis = np.array(matrix['point_index'])
+	# output dataframe of cut - point distances
+	columns = [*['cut_index_'+str(i) for i in range(len(cut_matrix))]]
+	columns.append('point_index')
+	point_cut_distance = pd.DataFrame(point_cut_distance)
+	point_cut_distance.columns = columns
+	point_cut_distance['point_index'] = point_cut_distance['point_index'].astype(int)
 	
 	
-	dist_point_cut = versori_iperpiani@X.T
-	dist_point_cut = dist_point_cut[i1_bis,i2_bis] - np.array(matrix['magnitude_norm_vect'])
-	matrix['dist_point_cut'] = dist_point_cut
-	
-	
-	
-	return matrix
+	return data_index,cut_matrix,point_cut_distance

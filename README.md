@@ -2,7 +2,7 @@ This repository contains an implementation of a clustering technique whose struc
 
 The whole code consists of six files:
 - Mondrian.py
-- Metric.py
+- Metrics.py
 - Matrix.py
 - Partitioning.py
 - Merging.py
@@ -10,16 +10,15 @@ The whole code consists of six files:
  
 Mondrian.py contains the main functions used to apply the clustering tree and forest to a given dataset; it imports all the other files, except Plot.py. This latter file allows to visualize the space and dataset clusterization. 
 
-The *example* folder contains two .ipynb files, showing two applications of the clustering algorithm to 2 and 3 dimension datasets; the .json and .txt files are automatically created in phase of application of the algorithm, in order to store the clustering outcomes.
+The *example* folder contains two .ipynb files, showing two applications of the clustering algorithm to 2 and 3 dimension datasets.
 
 # Brief description of the code
 
 ## Matrix.py
-It consists of the function *distance_matrix*. It takes as input the array of the initial dataset and gives as output a dataframe; the following quantities are computed for each pair of samples:
-- the distance between the two samples
-- the midpoint of the distance
-- the hyperplane orthogonal to the distance and cutting the segment in its midpoint, that is represented by its orthogonal single norm vector and its distance from the origin of the axes
-- the distance between the hyperplane and each of the other points of the dataset
+It consists of the function *distance_matrix*. It takes as input the array of the initial dataset and gives as output three dataframes: 
+- *data_index* stores the indexed samples
+- *cut_matrix* stores the hyperplanes associated to each pair of samples (each hyperplane is characterized by its normal vector coordinates and magnitude and an index)
+- *point_cut_distance* stores the distances between all the samples and each hyperplane (each columns corresponds to a hyperplane and each row to a sample)
 
 
 ## Partitioning.py
@@ -80,16 +79,18 @@ It applies the *merge_two_polytopes* function to each polytope containing a sing
 It calculates the similarity metric for each pair of neighboring polytopes. The two subspaces with the lower value of the metric are merged in the same iteration.
 
 ## Metrics.py
-Contains three functions that define the metrics evaluating the similarity of two groups of points. The functions are imported in Partitioning.py and Merging.py. 
+
+### *variance_metric*, *centroid_metric*, *min_dist_metric*
+They compute the similarity metric (defined in different ways), given as input two datasets.
+
+### *compute_metric*
+Given as input two datasets and the string identifying the metric ('variance', 'centroid_diff', 'centroid_ratio', 'min' and 'min_corr'), it calculates the corresponding metric through the previously defined functions. It is imported in Partitioning.py and Merging.py. 
 
 
 ## Mondrian.py
 
 ### *mondrian_tree*
-It executes the *distance_matrix*, *partitioning* and *merging* functions and saves the outputs of the two latter ones in four .json files (two for each phase).
-
-### *read_tree*
-It reads the .json files obtained as output of the tree.
+It executes the *distance_matrix* , *partitioning* and *merging* functions and gives as outputs the outcomes of the two clustering phases.
 
 ### *class_assignment*
 It assigns a label to the clustered data, for each possible configuration of the space partitioning obtained as output of the tree (end of merging phase). 
@@ -98,9 +99,17 @@ It assigns a label to the clustered data, for each possible configuration of the
 It takes as input a list of sets of labels. Each element of the list is the output of the *class_assignment* function and corresponds to a specific tree result. For each possible number of clusters/polytopes in which the space is divided, the adjusted mutual information is computed for each pair of tree outcomes. It gives as output the list of AMI coefficients, their mean and their standard deviation.
 
 ### *mondrian_forest*
-Given as input the number of trees that will constitute the forest, it iterates the *mondrian_tree* and *class_assignment* functions. Then it computes the AMI coefficients through the *ami* function and saves its outputs into a .txt and a .json files.
+Given as input the number of trees that will constitute the forest, it executes the *distance_matrix* function and iterates the *partitioning*, *merging* and *class_assignment* functions. Then it computes the AMI coefficients through the *ami* function and gives as output the partitioning, merging outcome for each tree and the AMI coefficients.
+
+### *save_tree* and *save_forest*
+
+### *read_tree* and *read_forest*
+They read the .json/.txt files storing the tree/forest outcome.
 
 ## Plot.py
+
+### *compute_vertices*
+Given as input a polytope object, gives as otput its vertices (they are required by the plotting functions).
 
 ### *plot2D_partitioning*
 Plot of the space partitioning obtained after the first phase of the tree algorithm, in case of 2 dimension datasets.

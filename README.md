@@ -15,10 +15,20 @@ The *example* folder contains two .ipynb files, showing two applications of the 
 # Brief description of the code
 
 ## Matrix.py
-It consists of the function *distance_matrix*. It takes as input the array of the initial dataset and gives as output three dataframes: 
+It consists of the function *cut_ensemble*. It takes as input the array of the initial dataset and gives as output three dataframes: 
 - *data_index* stores the indexed samples
 - *cut_matrix* stores the hyperplanes associated to each pair of samples (each hyperplane is characterized by its normal vector coordinates and magnitude and an index)
 - *point_cut_distance* stores the distances between all the samples and each hyperplane (each columns corresponds to a hyperplane and each row to a sample)
+
+
+## Metrics.py
+
+### *variance_metric*, *centroid_metric*, *min_dist_metric*
+They compute the similarity metric (defined in different ways), given as input two datasets.
+
+### *compute_metric*
+Given as input two datasets, it calculates the corresponding metric through the previously defined functions. It is imported in Partitioning.py and Merging.py. Five different metrics are considered and the chosen one is determined by the input string parameter, that can be set equal to of the following strings: 'variance', 'centroid_diff', 'centroid_ratio', 'min' and 'min_corr'.
+
 
 
 ## Partitioning.py
@@ -27,26 +37,27 @@ It corresponds to the first phase of the clustering tree algorithm, where the da
 
 ### *recursive_process*
 It takes as input a polytope and the subset of data belonging to it and divides them into two parts giving as output the two new polytopes, the corresponding subsets of data and the time in which the cut is generated.
-The other input parameters are the initial time, the lifetime of the process, the distance matrix computed through the *distance_matrix* function, the string identifying the similarity metric and the value of the exponent at which the metric is raised.
+The other input parameters are the output of the *cut_ensemble* function, the initial time, the lifetime of the process, the string identifying the similarity metric and the value of the exponent at which the metric is raised.
 The function performs the following steps:
 - it generates the time of the cut
-- it reduces the distance matrix only to the points contained in the input polytope
 - it generates the cutting hyperplane through the *cut_choice* function
 - it determines the two new polytopes through the *space_splitting* function
 - it determines the two new subsets of data and associates them to the corresponding polytopes through the *data_assignment* function
 
 It doesn't perform the split if the number of points contained in the polytope is less or equal than two or if the time of the cut is higher than the lifetime.
 
+### *data_splitting*
+It takes as input the dataset, the index of the cutting hyperplane and the *point_cut_distance* dataframe. It divides the dataset into two subsets separated by the cut.
+
 ### *cut_choice*
-It takes as input the subset of data that will be splitted, the distance matrix restricted to the subset, the string identifying the similarity metric and the value of the exponent at which the metric is raised.
-For each possible cutting hyperplane (whose information is stored in the *distance_matrix* output), the metric, that evaluates the similarity of the two groups of points divided by the hyperplane, is computed. Five different metrics are considered and the chosen one is determined by the input string parameter, that can be set equal to of the following strings: 'variance', 'centroid_diff', 'centroid_ratio', 'min' and 'min_corr'.
-The cutting hyperplane is extracted with a probability proportional to the metric value and the function gives as output the orthogonal single norm vector identifiying the hyperplane, its distance from the origin of the axes and the restriction of the distance matrix containing the information of the distances between the hyperplane and all the points belonging to the subset of data given as input.
+It takes as input the subset of data that will be splitted, the output of the *cut_ensemble* function, the string identifying the similarity metric and the value of the exponent at which the metric is raised.
+For each possible cutting hyperplane (whose information is stored in the *cut_ensemble* output), the two subsets of point separated by the cut are obtained through the *data_splitting* function and the metric, that evaluates the similarity of the two groups of points, is computed through the *compute_metric* function. The cutting hyperplane is extracted with a probability proportional to the metric value and the function gives as output the orthogonal single norm vector identifiying the hyperplane, its distance from the origin of the axes and the restriction of the distance matrix containing the information of the distances between the hyperplane and all the points belonging to the subset of data given as input.
 
 ### *space_splitting*
 It takes as input the polytope that will be splitted and the two quantities that identify the cutting hyperplane and are obtained as output of the previously described function. It gives as output the two new polytopes, obtained by respectively intersecting the father space with one of the two half spaces created by the cutting hyperplane. 
 
 ### *data_assignment*
-It takes as input the two new polytopes, obtained by the *space_splitting* function, and the restriction of the distance matrix obtained as output of the *cut_choice* function. It divides the data into two subsets, according to the sign of their distances from the hyperplane, and assigns each of them to the polytope in which are contained.
+It takes as input the two new polytopes, obtained by the *space_splitting* function, the index of the extracted cut and the *point_cut_distance* output of the *cut_ensemble* function. It divides the data into two subsets through the *data_slitting* function  and assigns each of them to the polytope in which are contained.
 
 ### *partitioning*
 Given as input the dataset that has to be clustered, in addition to the other characteristic parameters of the process, it allows to iterate the *recursive_process* function, obtaining the hierarchical partitioning of the dataset and its underlying space. The single cutting process is associated to each element of the list *m*; each element identifies a polytope, the data contained in it and the time point at which the polytope has been created. The polytope and data corresponding to each element of the list are splitted into two parts through the *recursive_process* function and, after each split, the new pairs of polytopes/data are added to the list.
@@ -61,13 +72,13 @@ It corresponds to the second phase of the clustering tree algorithm, where the n
 It takes as input the outcome of the *partitioning* function and the string identifying the chosen metric. It performs the following steps:
 - it associates the neighboring subspaces to each leaf polytope, through the *neighbors* function
 - it merges the polytopes containing only one point with the nearest subspace, through the *merge_single_data* function.
-- it iteratively computes the metric for each pair of neighboring polytopes, through the *polytope_similarity* function, and merges the two nearest neighbors, through the *merge_two_polytopes* function; the iterative process stops when all the polytopes are merged.
+- it computes the metric for each pair of neighboring polytopes. through the *polytope_similarity* function.
+- it iteratively merges the two nearest neighbors, through the *merge_two_polytopes* function and updates the list of similarity metric values associated to each pair of polytopes through the *polytope_similarity_update* function; the iterative process stops when all the polytopes are merged.
  
 It gives as output two lists, with each element describing the division of the initial space/dataset after each iteration. Each element of the first list stores the characteristic numbers of the subspaces in which the initial space is divided and, for each subspace, it associates the neighboring polytopes and the subspaces that have been merged to the considered one in order to obtain the current space partition. Each element of the second list stores the data contained in each subspace considered in the previous list.
 
-
 ### *neighbors*
-Given as input the hierarchy of polytopes obtained from the *partitioning* function, it determines which leaf subspaces are neighbors.
+Given as input the hierarchy of polytopes obtained from the *partitioning* function (restricted to the leaves), it determines which leaf subspaces are neighbors.
 
 ### *merge_two_polytopes*
 It takes as input the objects, that describe the current partitioning of the space (and will be stored as elements of the the lists given as output of the *merging* function), and the characteristic numbers of the two subspaces that have to be merged. It merges the two subspaces and gives as output the updated input objects.
@@ -76,15 +87,10 @@ It takes as input the objects, that describe the current partitioning of the spa
 It applies the *merge_two_polytopes* function to each polytope containing a single sample and its nearest neighboring subspace.
 
 ### *polytope_similarity*
-It calculates the similarity metric for each pair of neighboring polytopes. The two subspaces with the lower value of the metric are merged in the same iteration.
+It calculates the similarity metric for each pair of neighboring polytopes, through the *compute_metric* function. The two subspaces with the lower value of the metric are merged in the same iteration.
 
-## Metrics.py
-
-### *variance_metric*, *centroid_metric*, *min_dist_metric*
-They compute the similarity metric (defined in different ways), given as input two datasets.
-
-### *compute_metric*
-Given as input two datasets and the string identifying the metric ('variance', 'centroid_diff', 'centroid_ratio', 'min' and 'min_corr'), it calculates the corresponding metric through the previously defined functions. It is imported in Partitioning.py and Merging.py. 
+### *polytope_similarity_update*
+It updates the output of the *polytope_similarity* function after a merging of two polytopes.
 
 
 ## Mondrian.py
@@ -102,6 +108,7 @@ It takes as input a list of sets of labels. Each element of the list is the outp
 Given as input the number of trees that will constitute the forest, it executes the *distance_matrix* function and iterates the *partitioning*, *merging* and *class_assignment* functions. Then it computes the AMI coefficients through the *ami* function and gives as output the partitioning, merging outcome for each tree and the AMI coefficients.
 
 ### *save_tree* and *save_forest*
+They save the output of each tree in four .json files. The adjusted mutual information values are saved two .json and .txt files
 
 ### *read_tree* and *read_forest*
 They read the .json/.txt files storing the tree/forest outcome.

@@ -5,8 +5,33 @@ from scipy.spatial.distance import cdist
 
 
 def cut_ensemble(X):
-
 	
+	'''
+	Compute the cutting hyperplanes associated to the input dataset and, for 
+	each of them, the sample-hyperplane distances
+	
+	Parameters:
+	----------
+	X : (n,m) array
+		array of n points in m dimensions 
+
+	Returns:
+	-------
+	data_index : dataframe with n rows and m+1 columns
+		it stores the indexed points
+	cut_matrix : dataframe 
+		for each pair of points, it stores the information of the hyperplane 
+		that separates them (each hyperplane is characterized by the normal 
+	    vector coordinates, the distance from the origin and the index) 	  
+	point_cut_distance : dataframe 
+		it stores the sample-hyperplane distances (each rows corresponds to 
+	    a sample and each column to a hyperplane)
+	'''
+
+	# drop double rows
+	X_drop,idx = np.unique(X, axis=0, return_index=True)	
+	X = X[np.sort(idx)].copy()
+
 	# number of dimensions
 	n_d = len(X[0]) 
 	

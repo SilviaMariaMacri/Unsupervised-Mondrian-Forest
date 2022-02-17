@@ -56,18 +56,20 @@ def save_tree(namefile,part,m,list_p,list_m_leaf):
 	
 	with open(namefile+'_m.json', 'w') as f:
 		f.write(json.dumps([df.to_dict() for df in m]))
-			
-	for k in range(len(list_p)):
-		list_p[k]['part_number'] = list_p[k]['part_number'].astype(float)
-		list_p[k]['neighbors'] = [list(map(float, i)) for i in list_p[k]['neighbors']]
-		list_p[k]['merged_part'] = [list(map(float, i)) for i in list_p[k]['merged_part']]
-	with open(namefile+'_p.json', 'w') as f:
-		f.write(json.dumps([df.to_dict() for df in list_p]))
 	
-	for k in range(len(list_m_leaf)):
-		list_m_leaf[k] = [i.to_dict() for i in list_m_leaf[k]]
+	list_p_copy = list_p.copy()		
+	for k in range(len(list_p_copy)):
+		list_p_copy[k]['part_number'] = list_p_copy[k]['part_number'].astype(float)
+		list_p_copy[k]['neighbors'] = [list(map(float, i)) for i in list_p_copy[k]['neighbors']]
+		list_p_copy[k]['merged_part'] = [list(map(float, i)) for i in list_p_copy[k]['merged_part']]
+	with open(namefile+'_p.json', 'w') as f:
+		f.write(json.dumps([df.to_dict() for df in list_p_copy]))
+	
+	list_m_leaf_copy = list_m_leaf.copy()
+	for k in range(len(list_m_leaf_copy)):
+		list_m_leaf_copy[k] = [i.to_dict() for i in list_m_leaf_copy[k]]
 	with open(namefile+'_m_leaf.json', 'w') as f:
-		f.write(json.dumps([df for df in list_m_leaf]))
+		f.write(json.dumps([df for df in list_m_leaf_copy]))
 
 	return
 
@@ -148,7 +150,7 @@ def ami(list_classified_data):
 	ami_mean = list(pd.DataFrame(ami).mean())
 	ami_std = list(pd.DataFrame(ami).std())	
 	
-	return ami,ami_mean,ami_std
+	return ami_mean,ami_std,ami
 	
 
 
@@ -192,7 +194,7 @@ def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
 
 
 
-def save_forest(namefile,list_part,list_m,list_p_tot,list_m_leaf_tot,c_mean,c_std,c_tot):
+def save_forest(namefile,list_part,list_m,list_p_tot,list_m_leaf_tot,ami_mean,ami_std,ami_tot):
 	
 	'''
 	Save the mondrian_forest output in .json files
@@ -207,12 +209,12 @@ def save_forest(namefile,list_part,list_m,list_p_tot,list_m_leaf_tot,c_mean,c_st
 		save_tree(namefile+'_'+str(i),part,m,list_p,list_m_leaf)
 	
 	#save AMI
-	df = {'AMI_mean':c_mean,'AMI_std':c_std}
+	df = {'AMI_mean':ami_mean,'AMI_std':ami_std}
 	df = pd.DataFrame(df)
 	df.to_csv(namefile+'_AMI.txt',sep='\t',index=False)
 	
 	with open(namefile+'_AMI.json', 'w') as f:
-		f.write(json.dumps([k for k in c_tot]))	
+		f.write(json.dumps([k for k in ami_tot]))	
 
 	return
 

@@ -11,6 +11,21 @@ import Matrix
 
 
 
+
+
+
+def test_find_equal_columns():
+	
+	matrix = np.array([[1,1,1,1,0,1],[1,1,0,0,0,0],[1,1,1,1,0,0]])
+	equal_columns,equal_column_index = Matrix.find_equal_columns(matrix)
+	
+	assert equal_columns.tolist() == [0,1,4,2,3,5]
+	assert equal_column_index.tolist() == [0,0,0,1,1,2]
+
+
+
+
+
 @given(l=st.integers(min_value=-1e+10,max_value=1e+10))
 def test_cut_ensemble_three_samples(l):
 	

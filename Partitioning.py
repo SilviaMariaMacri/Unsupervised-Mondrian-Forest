@@ -24,7 +24,7 @@ def data_splitting(data,cut_index,point_cut_distance):
 		the points are divided on the basis of the sign of the point-hyperplane 
 		distances (positive for data_pos and negative for data_neg) 
 	'''
-			
+	
 	dist_positive = point_cut_distance[point_cut_distance['cut_index_'+str(int(cut_index))]>0]['point_index'].copy()
 	dist_negative = point_cut_distance[point_cut_distance['cut_index_'+str(int(cut_index))]<=0]['point_index'].copy()
 		
@@ -64,13 +64,20 @@ def cut_choice(data,cut_matrix,point_cut_distance,metric,exp):
 	'''
 	
 	cut_matrix_reduced = cut_matrix.query('index1=='+str(list(data['index']))+' and index2=='+str(list(data['index'])))	.copy()
-	cut_index = np.array(cut_matrix_reduced['cut_index'])
+	equivalent_cut_index = np.array(cut_matrix_reduced['equivalent_cut_index'].unique())
 	
-	metric_value_list = []
-	for i in cut_index:
-		data1,data2 = data_splitting(data,i,point_cut_distance)	
+	metric_value_list = np.array([],dtype=int)
+	for i in equivalent_cut_index:
+		#print(i)
+		cut_matrix_reduced_i = cut_matrix_reduced.query('equivalent_cut_index == '+str(i)).copy()
+		cut_index_i = cut_matrix_reduced_i.iloc[0]['cut_index']
+
+		data1,data2 = data_splitting(data,cut_index_i,point_cut_distance)	
 		metric_value = compute_metric(metric,data1,data2)
-		metric_value_list.append(metric_value)
+		metric_value_list = np.concatenate((metric_value_list,metric_value*np.ones((len(cut_matrix_reduced_i)))))
+	
+	cut_matrix_reduced = cut_matrix_reduced.sort_values(by='equivalent_cut_index')
+	cut_index = np.array(cut_matrix_reduced['cut_index'])
 	 
 	if (len(set(metric_value_list)) == 1) and (np.isnan(metric_value_list[0])):
 		return 
@@ -237,7 +244,7 @@ def recursive_process(p,data,cut_matrix,point_cut_distance,t0,lifetime,metric,ex
 	if len(data) <= 2: 
 		return
 	
-	time_cut = np.random.exponential(1/p.volume)
+	time_cut = np.random.exponential(1/len(data))#p.volume
 	t0 += time_cut
 	
 	if t0 > lifetime:
@@ -340,7 +347,7 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 	count=0
 	for i in m:
 		count += 1
-		#print('split ',count)
+		
 
 		try:
 
@@ -362,6 +369,8 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 			# se voglio fermarmi al primo taglio
 			#if len(m)==3:
 			#	break
+		
+			print('split ',count)
 
 		except  TypeError:
 			count -= 1

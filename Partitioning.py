@@ -6,7 +6,7 @@ from Metrics import compute_metric
 
 
 
-def data_splitting(data,cut_index,point_cut_distance):
+def data_splitting(data_index,cut_index,point_cut_distance):
 	
 	'''
 	Divides the input dataset into two subsets separated by the input hyperplane
@@ -25,19 +25,24 @@ def data_splitting(data,cut_index,point_cut_distance):
 		distances (positive for data_pos and negative for data_neg) 
 	'''
 	
-	dist_positive = point_cut_distance[point_cut_distance['cut_index_'+str(int(cut_index))]>0]['point_index'].copy()
-	dist_negative = point_cut_distance[point_cut_distance['cut_index_'+str(int(cut_index))]<=0]['point_index'].copy()
-		
-	data_pos = data.query('index=='+str(list(dist_positive))).copy()
-	data_neg = data.query('index=='+str(list(dist_negative))).copy()
-	data_pos.index = np.arange(len(data_pos))
-	data_neg.index = np.arange(len(data_neg))
+	point_cut_distance = point_cut_distance.query('point_index == '+str(data_index)).copy()
+	
+	#dist_positive = 
+	data_pos = point_cut_distance[point_cut_distance['cut_index_'+str(int(cut_index))]>0]['point_index'].copy()
+	data_pos = data_pos.tolist()
+	#dist_negative = 
+	data_neg = point_cut_distance[point_cut_distance['cut_index_'+str(int(cut_index))]<=0]['point_index'].copy()
+	data_neg = data_neg.tolist()	
+	#data_pos = data.query('index=='+str(list(dist_positive))).copy()
+	#data_neg = data.query('index=='+str(list(dist_negative))).copy()
+	#data_pos.index = np.arange(len(data_pos))
+	#data_neg.index = np.arange(len(data_neg))
 		
 	return data_pos,data_neg
 
 
 
-def cut_choice(data,cut_matrix,point_cut_distance,metric,exp):
+def cut_choice(data,data_index,cut_matrix,point_cut_distance,metric,exp):
 	
 	'''
 	Random extraction of the cutting hyperplane, with probability of extraction
@@ -63,7 +68,7 @@ def cut_choice(data,cut_matrix,point_cut_distance,metric,exp):
 	chosen_cut_index : hyperplane index
 	'''
 	
-	cut_matrix_reduced = cut_matrix.query('index1=='+str(list(data['index']))+' and index2=='+str(list(data['index'])))	.copy()
+	cut_matrix_reduced = cut_matrix.query('index1=='+str(data_index)+' and index2=='+str(data_index)).copy()
 	equivalent_cut_index = np.array(cut_matrix_reduced['equivalent_cut_index'].unique())
 	
 	metric_value_list = np.array([],dtype=int)
@@ -72,7 +77,9 @@ def cut_choice(data,cut_matrix,point_cut_distance,metric,exp):
 		cut_matrix_reduced_i = cut_matrix_reduced.query('equivalent_cut_index == '+str(i)).copy()
 		cut_index_i = cut_matrix_reduced_i.iloc[0]['cut_index']
 
-		data1,data2 = data_splitting(data,cut_index_i,point_cut_distance)	
+		data1_index,data2_index = data_splitting(data_index,cut_index_i,point_cut_distance)	
+		data1 = data.query('index=='+str(data1_index))
+		data2 = data.query('index=='+str(data2_index))
 		metric_value = compute_metric(metric,data1,data2)
 		metric_value_list = np.concatenate((metric_value_list,metric_value*np.ones((len(cut_matrix_reduced_i)))))
 	
@@ -152,7 +159,7 @@ def space_splitting(p,hyperplane_direction,hyperplane_distance):
 
 
 
-def data_assignment(p1,p2,data_pos,data_neg):
+def data_assignment(p1,p2,data,data_pos_index,data_neg_index):
 	
 	'''
 	Given as input two polytopes and two datasets belonging to them, it assigns
@@ -174,6 +181,10 @@ def data_assignment(p1,p2,data_pos,data_neg):
 	data1 : dataframe of indexed points belonging to p1
 	data2 : dataframe of indexed points belonging to p2 
 	'''
+	
+	data_pos = data.query('index=='+str(data_pos_index))
+	data_neg = data.query('index=='+str(data_neg_index))
+	
 
 	for i in range(len(data_pos)):		
 		point_pos = data_pos.iloc[i].copy()
@@ -200,14 +211,17 @@ def data_assignment(p1,p2,data_pos,data_neg):
 					data2 = data_neg.copy()
 					data1 = data_pos.copy()
 					break
+				
+	data1_index = data1['index'].tolist()
+	data2_index = data2['index'].tolist()
 	
-	return data1,data2
+	return data1_index,data2_index
 
 
  
 
 
-def recursive_process(p,data,cut_matrix,point_cut_distance,t0,lifetime,metric,exp):
+def recursive_process(p,data,data_index,cut_matrix,point_cut_distance,t0,lifetime,metric,exp):
 
 	'''
 	It takes as input a polytope and the subset of data belonging to it and 
@@ -241,24 +255,24 @@ def recursive_process(p,data,cut_matrix,point_cut_distance,t0,lifetime,metric,ex
 	t0 : time of generation of the cut
 	'''
 	
-	if len(data) <= 2: 
+	if len(data_index) <= 2: 
 		return
 	
-	time_cut = np.random.exponential(1/len(data))#p.volume
+	time_cut = np.random.exponential(1/len(data_index))#p.volume
 	t0 += time_cut
 	
 	if t0 > lifetime:
 		return
 
 	try:
-		hyperplane_direction,hyperplane_distance,chosen_cut_index  = cut_choice(data,cut_matrix,point_cut_distance,metric,exp)
+		hyperplane_direction,hyperplane_distance,chosen_cut_index  = cut_choice(data,data_index,cut_matrix,point_cut_distance,metric,exp)
 	except TypeError:
 		return
 	
 	p1,p2 = space_splitting(p,hyperplane_direction,hyperplane_distance)
 	
-	data_pos,data_neg = data_splitting(data,chosen_cut_index,point_cut_distance)	
-	data1,data2 = data_assignment(p1,p2,data_pos,data_neg) 
+	data_pos,data_neg = data_splitting(data_index,chosen_cut_index,point_cut_distance)	
+	data1,data2 = data_assignment(p1,p2,data,data_pos,data_neg) 
 
 	
 	return p1,data1,p2,data2,t0
@@ -329,7 +343,7 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 
 	m=[]
 	count_part_number = 0 	
-	m0 = [ t0,count_part_number,p,data ] 
+	m0 = [ t0,count_part_number,p,data['index'].tolist() ] 
 	m.append(m0)
 	
 	time = []
@@ -352,7 +366,7 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 		try:
 
 			father = i[1]
-			p1,data1,p2,data2,t0 = recursive_process(i[2],i[3],cut_matrix,point_cut_distance,i[0],lifetime,metric,exp)
+			p1,data1,p2,data2,t0 = recursive_process(i[2],data,i[3],cut_matrix,point_cut_distance,i[0],lifetime,metric,exp)
 			
 			count_part_number += 1
 			m.append([t0,count_part_number,p1,data1])
@@ -392,6 +406,7 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 	part = part[['time', 'father', 'part_number', 'leaf', 'polytope']]
 	
 	m = list(np.array(m,dtype=object)[:,3])
+	#m_index = [i['index'].tolist() for i in m]
 	
 	
-	return part,m
+	return part,m#,m_index

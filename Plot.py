@@ -27,7 +27,7 @@ def compute_vertices(poly):
 
 
 
-def plot2D_partitioning(m,part):
+def plot2D_partitioning(data,part):
 	
 	p = part.query('leaf==True').copy()
 	
@@ -42,7 +42,7 @@ def plot2D_partitioning(m,part):
 		y_avg = np.mean(np.array(vert)[:,1])
 		ax.text(x_avg,y_avg,p['part_number'].iloc[i])
 			
-	data = m[0].copy()
+	#data = m[0].copy()
 	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
 	
 	plt.show()
@@ -54,7 +54,7 @@ def plot2D_partitioning(m,part):
 
 
 
-def plot2D_merging(m,part,list_p,number_of_clusters):
+def plot2D_merging(data,part,list_p,number_of_clusters):
 
 	p = list_p[number_of_clusters-1].copy()
 	
@@ -81,7 +81,7 @@ def plot2D_merging(m,part,list_p,number_of_clusters):
 			y_avg = np.mean(np.array(vert)[:,1])
 			ax.text(x_avg,y_avg,j)
 
-	data = m[0].copy()
+	#data = m[0].copy()
 	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
 		
 	return
@@ -89,7 +89,7 @@ def plot2D_merging(m,part,list_p,number_of_clusters):
 
 
 
-def plot3D(part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space):
+def plot3D(data,part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space):
 	
 	p = list_p[number_of_clusters-1].copy()
 	
@@ -100,7 +100,7 @@ def plot3D(part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space):
 		ax = plt.axes(projection='3d')
 		color=cm.rainbow(np.linspace(0,1,len(p)))
 		for i in range(len(p)):
-			data = list_m_leaf[number_of_clusters-1][i]
+			data = data.query('index=='+str(list_m_leaf[number_of_clusters-1][i])).copy()
 			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color=color[i])
 		plt.show()	
 
@@ -139,7 +139,7 @@ def plot3D(part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space):
 					f.set_alpha(0.1)
 					ax.add_collection3d(f)
 					
-		data = list_m_leaf[0][0].copy()
+		#data = list_m_leaf[0][0].copy()
 		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
 		
 		plt.show()
@@ -176,7 +176,7 @@ def plot3D(part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space):
 					f.set_alpha(0.1)
 					ax.add_collection3d(f)
 					
-			data = list_m_leaf[0][0].copy()
+			#data = list_m_leaf[0][0].copy()
 			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
 		
 		plt.show()

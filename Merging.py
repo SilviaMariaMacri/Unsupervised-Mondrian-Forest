@@ -88,8 +88,8 @@ def merge_two_polytopes(p_init,m_leaf_init,part_to_remove,part_to_merge):
 	#unisco i dati in m_leaf
 	data1 = m_leaf[index1].copy()
 	data2 = m_leaf[index2].copy()
-	data2 = pd.concat([data2,data1])
-	data2.index = np.arange(len(data2))
+	data2 = data1+data2#pd.concat([data2,data1])
+	#data2.index = np.arange(len(data2))
 	m_leaf[index2] = data2.copy()
 	
 	neigh = copy.deepcopy(list(p['neighbors']))
@@ -128,7 +128,7 @@ def merge_two_polytopes(p_init,m_leaf_init,part_to_remove,part_to_merge):
 
 
 #unisce partizione con solo un dato a quella più vicina
-def merge_single_data(p_init,m_leaf_init): 
+def merge_single_data(p_init,m_leaf_init,data): 
 	
 	'''
 	Given as input a specific partition of the dataset/space, it merges each 
@@ -162,19 +162,19 @@ def merge_single_data(p_init,m_leaf_init):
 	list_part = list(p['part_number']).copy()
 	for i in list_part:
 		index1 = p[p['part_number']==i].index[0].copy()
-		data1 = m_leaf[index1].copy()
+		data1_index = m_leaf[index1].copy()
 		#considero solo partizioni con unico dato all'interno
-		if len(data1) > 1:
+		if len(data1_index) > 1:
 			continue
-		data1 = data1.drop('index',axis=1) 
-		data1 = np.array(data1)
+		data1 = data.query('index=='+str(data1_index)).copy()
+		data1 = np.array(data1.drop('index',axis=1) )
 		#cerco minima distanza con part vicine
 		metric = []
 		for j in p['neighbors'].iloc[index1]:
-			data2 = m_leaf[p[p['part_number']==j].index[0]].copy()
-			if len(data2) > 1:
-				data2 = data2.drop('index',axis=1)
-				data2 = np.array(data2)
+			data2_index = m_leaf[p[p['part_number']==j].index[0]].copy()
+			if len(data2_index) > 1:
+				data2 = data.query('index=='+str(data2_index)).copy()
+				data2 = np.array(data2.drop('index',axis=1))
 				min_dist_between_subspaces,mean,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
 				metric.append(min_dist_between_subspaces + min_dist2)
 			else:
@@ -192,7 +192,7 @@ def merge_single_data(p_init,m_leaf_init):
 
 
 
-def polytope_similarity(p,m_leaf,metric):
+def polytope_similarity(p,m_leaf,metric,data):
 	
 	'''
 	Computation of the similarity metric of each pair of neighboring polytopes
@@ -222,8 +222,8 @@ def polytope_similarity(p,m_leaf,metric):
 	for i in range(len(p)):
 		for j in p.iloc[i]['neighbors']:
 			
-			data1 = m_leaf[i]
-			data2 = m_leaf[p[p['part_number']==j].index[0]]
+			data1 = data.query('index=='+str(m_leaf[i])).copy()
+			data2 = data.query('index=='+str(m_leaf[p[p['part_number']==j].index[0]])).copy()
 			metric_value = compute_metric(metric,data1,data2)
 			score.append(metric_value)
 			
@@ -242,7 +242,7 @@ def polytope_similarity(p,m_leaf,metric):
 
 
 
-def polytope_similarity_update(p,m_leaf,metric,removed_part,merged_part,part_links):
+def polytope_similarity_update(p,m_leaf,metric,removed_part,merged_part,part_links,data):
 	
 	'''
 	Update of the dataframe storing the similarity metric values computed for
@@ -282,9 +282,9 @@ def polytope_similarity_update(p,m_leaf,metric,removed_part,merged_part,part_lin
 	new_neighbors = list(p[p['part_number']==merged_part]['neighbors'])[0]
 	merged_part_list = []
 	score = []
-	data1 = m_leaf[p[p['part_number']==merged_part].index[0]]
+	data1 = data.query('index=='+str(m_leaf[p[p['part_number']==merged_part].index[0]])).copy()
 	for i in new_neighbors:
-		data2 = m_leaf[p[p['part_number']==i].index[0]]
+		data2 = data.query('index=='+str(m_leaf[p[p['part_number']==i].index[0]])).copy()
 		metric_value = compute_metric(metric,data1,data2)
 		score.append(metric_value)
 		merged_part_list.append(merged_part)
@@ -302,7 +302,7 @@ def polytope_similarity_update(p,m_leaf,metric,removed_part,merged_part,part_lin
 
 
 
-def merging(part,m,metric):
+def merging(part,m,metric,data):
 	
 	'''
 	Given as input the final result of the partitioning phase, it progressively
@@ -347,14 +347,16 @@ def merging(part,m,metric):
 	m_leaf = np.delete(np.array(m_leaf,dtype=object), list(part.query('leaf==False')['part_number'])).tolist()
 
 
-	p,m_leaf =  merge_single_data(p,m_leaf)
-	part_links = polytope_similarity(p,m_leaf,metric)
+	p,m_leaf =  merge_single_data(p,m_leaf,data)
+	part_links = polytope_similarity(p,m_leaf,metric,data)
 		
 	print('range of possible number of clusters: '+str(1)+'-'+str(len(p)))
 	list_p = []
 	list_m_leaf = []
+	#list_m_leaf_index = []
 	list_p.append(p)
 	list_m_leaf.append(m_leaf)
+	#list_m_leaf_index.append(m_leaf['index'].tolist())
 	
 	l = len(p)-1
 	for i in range(l):
@@ -363,7 +365,9 @@ def merging(part,m,metric):
 		p,m_leaf = merge_two_polytopes(p,m_leaf,part1,part2)
 		list_p.append(p)
 		list_m_leaf.append(m_leaf)
+		#m_leaf_index = [i['index'].tolist() for i in m_leaf]
+		#list_m_leaf_index.append(m_leaf_index)
 		
-		part_links = polytope_similarity_update(p,m_leaf,metric,part1,part2,part_links)
+		part_links = polytope_similarity_update(p,m_leaf,metric,part1,part2,part_links,data)
 		 
-	return list_p,list_m_leaf
+	return list_p,list_m_leaf#_index

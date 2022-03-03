@@ -32,12 +32,13 @@ def mondrian_tree(X,t0,lifetime,exp,metric):
 	'''
 
 	cut_ensemble = Matrix.cut_ensemble(X)
+	data = cut_ensemble[0].copy()
 	
 	print('PARTITIONING:')	 
 	part,m = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
 	
 	print('MERGING:')
-	list_p,list_m_leaf = Merging.merging(part,m,metric)
+	list_p,list_m_leaf = Merging.merging(part,m,metric,data)
 	list_p.reverse()
 	list_m_leaf.reverse()
 	
@@ -98,10 +99,13 @@ def read_tree(namefile):
 		list_p[k]['merged_part'] = [list(map(int, i)) for i in list_p[k]['merged_part']]	
 	
 	list_m_leaf = json.load(open(namefile+'_m_leaf.json','r'))
+	columns = np.arange(len(list_m_leaf[0][0])-1).astype(int).tolist()
+	columns.append('index')
 	for k in range(len(list_m_leaf)):
 		list_m_leaf[k] = [pd.DataFrame(i) for i in list_m_leaf[k]]
-		list_m_leaf[k] = [i[i.columns[0:-1]].astype(int) for i in list_m_leaf[k]]
-		
+		for j in list_m_leaf[k]:
+			j.columns = columns		
+	
 	return part,m,list_p,list_m_leaf
 
 
@@ -160,6 +164,7 @@ def ami(list_classified_data):
 def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
 
 	cut_ensemble = Matrix.cut_ensemble(X)
+	data = cut_ensemble[0].copy()
 	
 	list_part = []
 	list_m = []
@@ -172,7 +177,7 @@ def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
 		print('PARTITIONING:')	 
 		part,m = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
 		print('MERGING:')
-		list_p,list_m_leaf = Merging.merging(part,m,metric)
+		list_p,list_m_leaf = Merging.merging(part,m,metric,data)
 		list_p.reverse()
 		list_m_leaf.reverse()
 

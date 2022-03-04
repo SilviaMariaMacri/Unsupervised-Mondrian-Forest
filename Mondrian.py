@@ -38,25 +38,27 @@ def mondrian_tree(X,t0,lifetime,exp,metric):
 	part,m = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
 	
 	print('MERGING:')
-	list_p,list_m_leaf = Merging.merging(part,m,metric,data)
+	list_p,classified_data = Merging.merging(part,m,metric,data)
 	list_p.reverse()
-	list_m_leaf.reverse()
+	classified_data.reverse()
 	
-	return part,m,list_p,list_m_leaf
+	return data,part,m,list_p,classified_data
 
 
 
 
-def save_tree(namefile,part,m,list_p,list_m_leaf):
+def save_tree(namefile,data,part,m,list_p,classified_data):
 	
 	'''
-	Save the mondrian_tree output in four .json files
+	Save the mondrian_tree output in four .json files and one .txt file
 	'''
+	
+	data.to_csv(namefile+'_data.txt',sep='\t',index=False)
 	
 	part.to_json(namefile+'_part.json')
 	
 	with open(namefile+'_m.json', 'w') as f:
-		f.write(json.dumps([df.to_dict() for df in m]))
+		f.write(json.dumps(m))
 	
 	list_p_copy = list_p.copy()		
 	for k in range(len(list_p_copy)):
@@ -66,12 +68,9 @@ def save_tree(namefile,part,m,list_p,list_m_leaf):
 	with open(namefile+'_p.json', 'w') as f:
 		f.write(json.dumps([df.to_dict() for df in list_p_copy]))
 	
-	list_m_leaf_copy = list_m_leaf.copy()
-	for k in range(len(list_m_leaf_copy)):
-		list_m_leaf_copy[k] = [i.to_dict() for i in list_m_leaf_copy[k]]
-	with open(namefile+'_m_leaf.json', 'w') as f:
-		f.write(json.dumps([df for df in list_m_leaf_copy]))
-
+	with open(namefile+'_classified_data.json', 'w') as f:
+		f.write(json.dumps(classified_data))
+		
 	return
 
 
@@ -84,12 +83,13 @@ def read_tree(namefile):
 	Read the four .json files storing the mondrian_tree output
 	'''
 	
+	data = pd.read_csv(namefile+'_data.txt',sep='\t')
+	
 	part = json.load(open(namefile+'_part.json','r'))
 	part = pd.DataFrame(part)
 	part['polytope'] = [pc.Polytope(np.array(part['polytope'].iloc[i]['A']), np.array(part['polytope'].iloc[i]['b'])) for i in np.arange(len(part))]
 	
 	m = json.load(open(namefile+'_m.json','r'))
-	m = [pd.DataFrame(i) for i in m]
 	
 	list_p = json.load(open(namefile+'_p.json','r'))
 	list_p = [pd.DataFrame(i) for i in list_p]
@@ -98,37 +98,12 @@ def read_tree(namefile):
 		list_p[k]['neighbors'] = [list(map(int, i)) for i in list_p[k]['neighbors']]
 		list_p[k]['merged_part'] = [list(map(int, i)) for i in list_p[k]['merged_part']]	
 	
-	list_m_leaf = json.load(open(namefile+'_m_leaf.json','r'))
-	columns = np.arange(len(list_m_leaf[0][0])-1).astype(int).tolist()
-	columns.append('index')
-	for k in range(len(list_m_leaf)):
-		list_m_leaf[k] = [pd.DataFrame(i) for i in list_m_leaf[k]]
-		for j in list_m_leaf[k]:
-			j.columns = columns		
+	classified_data = json.load(open(namefile+'_classified_data.json','r'))
 	
-	return part,m,list_p,list_m_leaf
+	return data,part,m,list_p,classified_data
 
 
 
-
-def class_assignment(list_m_leaf):
-
-	classified_data = []
-	for i in range(len(list_m_leaf)):
-		classes = np.zeros(len(list_m_leaf[i][0]),dtype=int)
-		indices = np.array(list_m_leaf[i][0]['index'])
-		for j in range(1,len(list_m_leaf[i])):
-			classes_j = j*np.ones(len(list_m_leaf[i][j]),dtype=int)
-			classes = np.hstack([classes,classes_j])
-			indices_j = np.array(list_m_leaf[i][j]['index'])
-			indices = np.hstack([indices,indices_j])
-		df = {'index':indices,'class':classes}
-		df = pd.DataFrame(df)
-		df = df.sort_values(by='index')
-		classes_new = list(df['class'])
-		classified_data.append(classes_new)	
-		
-	return classified_data
 
 
 
@@ -169,49 +144,46 @@ def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
 	list_part = []
 	list_m = []
 	list_p_tot = []
-	list_m_leaf_tot = []
-	class_data_tot = []
+	list_classified_data = []
 	for k in range(number_of_iterations):
 		
 		print('Tree number '+str(k+1))
 		print('PARTITIONING:')	 
 		part,m = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
 		print('MERGING:')
-		list_p,list_m_leaf = Merging.merging(part,m,metric,data)
+		list_p,classified_data = Merging.merging(part,m,metric,data)
 		list_p.reverse()
-		list_m_leaf.reverse()
+		classified_data.reverse()
 
 		list_part.append(part)
 		list_m.append(m)
 		list_p_tot.append(list_p)
-		list_m_leaf_tot.append(list_m_leaf)	
-
-		#associo una classe
-		classified_data = class_assignment(list_m_leaf)
-		class_data_tot.append(classified_data)	
+		list_classified_data.append(classified_data)	
 		
-	ami_mean,ami_std,ami_tot = ami(class_data_tot)
+	ami_mean,ami_std,ami_tot = ami(list_classified_data)
 
 		
-	return list_part,list_m,list_p_tot,list_m_leaf_tot,ami_mean,ami_std,ami_tot
+	return data,list_part,list_m,list_p_tot,list_classified_data,ami_mean,ami_std,ami_tot#,list_m_leaf_tot
 
 
 
 
 
-def save_forest(namefile,list_part,list_m,list_p_tot,list_m_leaf_tot,ami_mean,ami_std,ami_tot):
+def save_forest(namefile,data,list_part,list_m,list_p_tot,list_classified_data,ami_mean,ami_std,ami_tot):
 	
 	'''
 	Save the mondrian_forest output in .json files
 	'''
+	
+	data.to_csv(namefile+'_data.txt',sep='\t',index=False)
 	
 	l = len(list_part)
 	for i in range(l):
 		part = list_part[i]
 		m = list_m[i]
 		list_p = list_p_tot[i]
-		list_m_leaf = list_m_leaf_tot[i]
-		save_tree(namefile+'_'+str(i),part,m,list_p,list_m_leaf)
+		classified_data = list_classified_data[i]
+		save_tree(namefile+'_'+str(i),data,part,m,list_p,classified_data)
 	
 	#save AMI
 	df = {'AMI_mean':ami_mean,'AMI_std':ami_std}
@@ -233,23 +205,62 @@ def read_forest(namefile,number_of_iterations):
 	Read the .json files storing the mondrian_forest output
 	'''
 	
+	data = pd.read_csv(namefile+'_data.txt',sep='\t')
+	
 	list_part = []
 	list_m = []
 	list_p_tot = []
 	list_m_leaf_tot = []
 	for i in range(number_of_iterations):
-		part,m,list_p,list_m_leaf = read_tree(namefile+'_'+str(i))
+		
+		part = json.load(open(namefile+'_'+str(i)+'_part.json','r'))
+		part = pd.DataFrame(part)
+		part['polytope'] = [pc.Polytope(np.array(part['polytope'].iloc[i]['A']), np.array(part['polytope'].iloc[i]['b'])) for i in np.arange(len(part))]
+	
+		m = json.load(open(namefile+'_'+str(i)+'_m.json','r'))
+	
+		list_p = json.load(open(namefile+'_'+str(i)+'_p.json','r'))
+		list_p = [pd.DataFrame(i) for i in list_p]
+		for k in range(len(list_p)):
+			list_p[k]['part_number'] = list_p[k]['part_number'].astype(int)
+			list_p[k]['neighbors'] = [list(map(int, i)) for i in list_p[k]['neighbors']]
+			list_p[k]['merged_part'] = [list(map(int, i)) for i in list_p[k]['merged_part']]	
+	
+		classified_data = json.load(open(namefile+'_'+str(i)+'_classified_data.json','r'))
+
 		list_part.append(part)
 		list_m.append(m)
 		list_p_tot.append(list_p)
-		list_m_leaf_tot.append(list_m_leaf)
+		list_classified_data.append(classified_data)
 	
 	ami_tot = json.load(open(namefile+'_AMI.json','r'))
 	df = pd.read_csv(namefile+'_AMI.txt',sep='\t')
 	ami_mean = list(df['AMI_mean'])
 	ami_std = list(df['AMI_std'])
 	
-	return list_part,list_m,list_p_tot,list_m_leaf_tot,ami_mean,ami_std,ami_tot
+	return data,list_part,list_m,list_p_tot,list_classified_data,ami_mean,ami_std,ami_tot
+
 
 #namefile = name+'_lambda'+str(lifetime)+'_exp'+str(exp)+'_'+metric+'_'+str(k+1)
 	
+'''
+def class_assignment(list_m_leaf):
+
+	classified_data = []
+	for i in range(len(list_m_leaf)):
+		classes = np.zeros(len(list_m_leaf[i][0]),dtype=int)
+		indices = np.array(list_m_leaf[i][0]).copy()#['index'])
+		for j in range(1,len(list_m_leaf[i])):
+			classes_j = j*np.ones(len(list_m_leaf[i][j]),dtype=int)
+			classes = np.hstack([classes,classes_j])
+			indices_j = np.array(list_m_leaf[i][j]).copy()#['index'])
+			indices = np.hstack([indices,indices_j])
+		df = {'index':indices,'class':classes}
+		df = pd.DataFrame(df)
+		df = df.sort_values(by='index')
+		classes_new = list(df['class'])
+		classified_data.append(classes_new)	
+		
+	return classified_data
+'''
+

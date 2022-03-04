@@ -86,7 +86,8 @@ def cut_choice(data,data_index,cut_matrix,point_cut_distance,metric,exp):
 	cut_matrix_reduced = cut_matrix_reduced.sort_values(by='equivalent_cut_index')
 	cut_index = np.array(cut_matrix_reduced['cut_index'])
 	 
-	if (len(set(metric_value_list)) == 1) and (np.isnan(metric_value_list[0])):
+	check_nan = np.isnan(metric_value_list)
+	if list(set(check_nan))[0] == True: #(len(set(metric_value_list)) == 1) and (np.isnan(metric_value_list[0])):
 		return 
 	metric_value_list = np.array(metric_value_list)
 	index_to_remove = np.where(np.logical_or(np.isnan(metric_value_list),np.isinf(metric_value_list)))
@@ -384,7 +385,7 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 			#if len(m)==3:
 			#	break
 		
-			print('split ',count)
+			#print('split ',count)
 
 		except  TypeError:
 			count -= 1

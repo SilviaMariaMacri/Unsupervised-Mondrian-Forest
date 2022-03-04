@@ -86,8 +86,14 @@ def merge_two_polytopes(p_init,m_leaf_init,part_to_remove,part_to_merge):
 	index2 = p[p['part_number']==part_to_merge].index[0]
 	
 	#unisco i dati in m_leaf
-	data1 = m_leaf[index1].copy()
-	data2 = m_leaf[index2].copy()
+	if isinstance(m_leaf[index1],list):
+		data1 = m_leaf[index1].copy()
+	else:
+		data1 = [m_leaf[index1]]
+	if isinstance(m_leaf[index2],list):
+		data2 = m_leaf[index2].copy()
+	else:
+		data2 = [m_leaf[index2]]
 	data2 = data1+data2#pd.concat([data2,data1])
 	#data2.index = np.arange(len(data2))
 	m_leaf[index2] = data2.copy()
@@ -302,6 +308,27 @@ def polytope_similarity_update(p,m_leaf,metric,removed_part,merged_part,part_lin
 
 
 
+def class_assignment(m_leaf):
+
+	classes = np.array([])
+	indices = np.array([])
+	for j in range(len(m_leaf)):
+		classes_j = j*np.ones(len(m_leaf[j]),dtype=int)
+		classes = np.hstack([classes,classes_j])
+		indices_j = np.array(m_leaf[j]).copy()
+		indices = np.hstack([indices,indices_j])
+	df = {'index':indices,'class':classes}
+	df = pd.DataFrame(df)
+	df = df.sort_values(by='index').astype(int)
+	classified_data = list(df['class'])
+		
+	return classified_data
+
+
+
+
+
+
 def merging(part,m,metric,data):
 	
 	'''
@@ -346,17 +373,17 @@ def merging(part,m,metric,data):
 	m_leaf = copy.deepcopy(m)
 	m_leaf = np.delete(np.array(m_leaf,dtype=object), list(part.query('leaf==False')['part_number'])).tolist()
 
-
 	p,m_leaf =  merge_single_data(p,m_leaf,data)
 	part_links = polytope_similarity(p,m_leaf,metric,data)
 		
 	print('range of possible number of clusters: '+str(1)+'-'+str(len(p)))
 	list_p = []
-	list_m_leaf = []
-	#list_m_leaf_index = []
+	#list_m_leaf = []
+	classified_data = []
 	list_p.append(p)
-	list_m_leaf.append(m_leaf)
-	#list_m_leaf_index.append(m_leaf['index'].tolist())
+	#list_m_leaf.append(m_leaf)
+	classified_data_i = class_assignment(m_leaf)
+	classified_data.append(classified_data_i)
 	
 	l = len(p)-1
 	for i in range(l):
@@ -364,10 +391,11 @@ def merging(part,m,metric,data):
 		part2 = part_links['part2'].iloc[0]
 		p,m_leaf = merge_two_polytopes(p,m_leaf,part1,part2)
 		list_p.append(p)
-		list_m_leaf.append(m_leaf)
-		#m_leaf_index = [i['index'].tolist() for i in m_leaf]
-		#list_m_leaf_index.append(m_leaf_index)
+		#list_m_leaf.append(m_leaf)
+		
+		classified_data_i = class_assignment(m_leaf)
+		classified_data.append(classified_data_i)
 		
 		part_links = polytope_similarity_update(p,m_leaf,metric,part1,part2,part_links,data)
 		 
-	return list_p,list_m_leaf#_index
+	return list_p,classified_data#,list_m_leaf

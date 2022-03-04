@@ -89,10 +89,10 @@ def plot2D_merging(data,part,list_p,number_of_clusters):
 
 
 
-def plot3D(data,part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space):
+def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_space):
 	
 	p = list_p[number_of_clusters-1].copy()
-	
+	cl_data = classified_data[number_of_clusters-1]
 	
 	if plot_data == True:
 		
@@ -100,8 +100,9 @@ def plot3D(data,part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space)
 		ax = plt.axes(projection='3d')
 		color=cm.rainbow(np.linspace(0,1,len(p)))
 		for i in range(len(p)):
-			data = data.query('index=='+str(list_m_leaf[number_of_clusters-1][i])).copy()
-			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color=color[i])
+			data['cl'] = cl_data
+			data_i = data.query('cl=='+str(i)).copy()
+			ax.scatter(data_i['0'],data_i['1'],data_i['2'],s=10,alpha=0.7,color=color[i])
 		plt.show()	
 
 
@@ -139,7 +140,6 @@ def plot3D(data,part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space)
 					f.set_alpha(0.1)
 					ax.add_collection3d(f)
 					
-		#data = list_m_leaf[0][0].copy()
 		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
 		
 		plt.show()
@@ -176,7 +176,6 @@ def plot3D(data,part,list_p,list_m_leaf,number_of_clusters,plot_data,plot_space)
 					f.set_alpha(0.1)
 					ax.add_collection3d(f)
 					
-			#data = list_m_leaf[0][0].copy()
 			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
 		
 		plt.show()

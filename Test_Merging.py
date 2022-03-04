@@ -151,11 +151,12 @@ def test_merge_two_polytopes(part_numbers):
 	p_init = {'part_number':part_number,'neighbors':neighbors,'merged_part':merged_part}
 	p_init = pd.DataFrame(p_init)
 	
-	m_leaf_init = []
-	for i in range(5):
-		m_leaf_i = {'x':[i]}
-		m_leaf_i = pd.DataFrame(m_leaf_i)
-		m_leaf_init.append(m_leaf_i)
+	#m_leaf_init = []
+	#for i in range(5):
+	#	m_leaf_i = {'x':[i]}
+	#	m_leaf_i = pd.DataFrame(m_leaf_i)
+	#	m_leaf_init.append(m_leaf_i)
+	m_leaf_init = [0,1,2,3,4]
 	
 	part_to_remove = part_numbers[0]
 	part_to_merge = part_numbers[1]
@@ -207,16 +208,17 @@ def test_merge_two_polytopes(part_numbers):
 	index_part_to_remove = p_init[p_init['part_number']==part_to_remove].index[0]
 	
 	#8
-	merged_data = pd.concat([m_leaf_init[index_part_to_merge],m_leaf_init[index_part_to_remove]])
-	merged_data.index = np.arange(len(merged_data))
-	assert m_leaf[index_merged_part].equals(merged_data)
+	merged_data = [m_leaf_init[index_part_to_remove],m_leaf_init[index_part_to_merge]] #pd.concat([m_leaf_init[index_part_to_merge],m_leaf_init[index_part_to_remove]])
+	#merged_data.index = np.arange(len(merged_data))
+	assert m_leaf[index_merged_part] == merged_data #.equals(merged_data)
 	
 	#9
 	for i in range(len(m_leaf)):
 		if (i < part_to_remove) and (i != part_to_merge):
-			assert m_leaf[i].equals(m_leaf_init[i]) 
+			assert m_leaf[i] == m_leaf_init[i] #.equals(m_leaf_init[i]) 
 		if (i > part_to_remove) and (i != part_to_merge):
-			assert m_leaf[i].equals(m_leaf_init[i+1]) 
+			assert m_leaf[i] == m_leaf_init[i+1] #.equals(m_leaf_init[i+1]) 
+	
 	
 
 
@@ -249,23 +251,14 @@ def test_merge_single_data():
 	p_init = {'part_number':part_number,'neighbors':neighbors,'merged_part':merged_part}
 	p_init = pd.DataFrame(p_init)
 	
-	m_leaf_init = []
-	index = 0
-	for i in range(5):
-		if i in [0,1,3]:
-			m_leaf_i = {'x':[i,i+0.1]}
-			m_leaf_i = pd.DataFrame(m_leaf_i)
-			m_leaf_i['index'] = [index,index+1]
-			m_leaf_init.append(m_leaf_i)
-			index += 2
-		else:
-			m_leaf_i = {'x':[i]}
-			m_leaf_i = pd.DataFrame(m_leaf_i)
-			m_leaf_i['index'] = [index]
-			m_leaf_init.append(m_leaf_i)
-			index += 1			
+	x = [0.,0.1,1.,1.1,2,3.,3.1,4.]
+	index = np.arange(8)
+	m_leaf_init = [[0, 1], [2, 3], [4], [5, 6], [7]]
+	data = {'x':x,'index':index}
+	data = pd.DataFrame(data)
 
-	p,m_leaf = Merging.merge_single_data(p_init,m_leaf_init)
+	
+	p,m_leaf = Merging.merge_single_data(p_init,m_leaf_init,data)
 
 	assert 2 not in list(p['part_number'])
 	assert 4 not in list(p['part_number'])

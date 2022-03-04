@@ -41,11 +41,12 @@ def test_data_splitting():
 	data,cut_matrix,point_cut_distance = Matrix.cut_ensemble(X)
 	
 	cut_index = 0
-	data_pos,data_neg = Partitioning.data_splitting(data,cut_index,point_cut_distance)
+	data_index = data['index'].tolist() 
+	data_pos,data_neg = Partitioning.data_splitting(data_index,cut_index,point_cut_distance)
 	
 	assert ((len(data_pos) == 11) and (len(data_neg) == 12)) or ((len(data_pos) == 12) and (len(data_neg) == 11))
-	assert (np.array(data_pos[['0','1']])[1:].tolist()== X_pos.tolist()) or (np.array(data_pos[['0','1']])[1:].tolist()== X_neg.tolist())
-	assert (np.array(data_neg[['0','1']])[1:].tolist()== X_neg.tolist()) or (np.array(data_neg[['0','1']])[1:].tolist()== X_pos.tolist())
+	assert (np.array(data.query('index=='+str(data_pos))[['0','1']])[1:].tolist()== X_pos.tolist()) or (np.array(data.query('index=='+str(data_pos))[['0','1']])[1:].tolist()== X_neg.tolist())
+	assert (np.array(data.query('index=='+str(data_neg))[['0','1']])[1:].tolist()== X_neg.tolist()) or (np.array(data.query('index=='+str(data_neg))[['0','1']])[1:].tolist()== X_pos.tolist())
 
 
 
@@ -211,18 +212,20 @@ def test_data_assignment(data_pos,data_neg):
 	b2 = np.array([10,0,10,0,10,0])
 	p2 = pc.Polytope(A2,b2)
 	
-	data_pos = pd.DataFrame(data_pos)
-	data_pos['index'] = np.arange(len(data_pos))
-	data_neg = pd.DataFrame(data_neg)
-	data_neg['index'] = np.arange(len(data_neg))
+	data = np.vstack([data_pos,data_neg])
+	data = pd.DataFrame(data)
+	data['index'] = np.arange(len(data))
 	
-	data1a,data2a = Partitioning.data_assignment(p1,p2,data_pos,data_neg)
-	assert data_pos.equals(data1a)
-	assert data_neg.equals(data2a)
+	data_pos_index = data['index'].tolist()[0:len(data_pos)]
+	data_neg_index = data['index'].tolist()[len(data_pos):]
 	
-	data1b,data2b = Partitioning.data_assignment(p1,p2,data_neg,data_pos)
-	assert data_pos.equals(data1b)
-	assert data_neg.equals(data2b)
+	data1a,data2a = Partitioning.data_assignment(p1,p2,data,data_pos_index,data_neg_index)
+	assert data_pos_index == data1a
+	assert data_neg_index == data2a
+	
+	data1b,data2b = Partitioning.data_assignment(p1,p2,data,data_neg_index,data_pos_index)
+	assert data_pos_index == data1b
+	assert data_neg_index == data2b
 	
 	
 	 
@@ -261,21 +264,20 @@ def test_data_assignment_limit_case():
 	limit_point_neg = np.array([[-10,5]])
 	limit_point_middle = np.array([[0,5]])
 	
-	data_pos = np.vstack([limit_point_middle,limit_point_pos])
-	data_pos = pd.DataFrame(data_pos)
-	data_pos['index'] = np.arange(len(data_pos))
+	data = np.vstack([limit_point_middle,limit_point_pos,limit_point_neg])
+	data = pd.DataFrame(data)
+	data['index'] = np.arange(len(data))
 	
-	data_neg = np.vstack([limit_point_middle,limit_point_neg])
-	data_neg = pd.DataFrame(data_neg)
-	data_neg['index'] = np.arange(len(data_neg))
+	data_pos_index = [0,1]
+	data_neg_index = [0,2]
 	
-	data1a,data2a = Partitioning.data_assignment(p1,p2,data_pos,data_neg)
-	assert data_pos.equals(data1a)
-	assert data_neg.equals(data2a)
+	data1a,data2a = Partitioning.data_assignment(p1,p2,data,data_pos_index,data_neg_index)
+	assert data_pos_index == data1a
+	assert data_neg_index == data2a
 	
-	data1b,data2b = Partitioning.data_assignment(p1,p2,data_neg,data_pos)
-	assert data_pos.equals(data1b)
-	assert data_neg.equals(data2b)
+	data1b,data2b = Partitioning.data_assignment(p1,p2,data,data_neg_index,data_pos_index)
+	assert data_pos_index == data1b
+	assert data_neg_index == data2b
 
 
 
@@ -310,6 +312,7 @@ def test_recursive_process(X,metric_index):
 	'''
 	
 	data,cut_matrix,point_cut_distance = Matrix.cut_ensemble(X)
+	data_index = data['index'].tolist()
 	
 	# initial space
 	n_d = len(data.columns)-1
@@ -330,7 +333,7 @@ def test_recursive_process(X,metric_index):
 	p = pc.Polytope(np.array(A_init_space), np.array(b_init_space))
 	
 	metric = ['variance','centroid_ratio','centroid_diff','min','min_corr']
-	rec_process_result = Partitioning.recursive_process(p,data,cut_matrix,point_cut_distance,0,1e+5,metric[metric_index],5)
+	rec_process_result = Partitioning.recursive_process(p,data,data_index,cut_matrix,point_cut_distance,0,1e+5,metric[metric_index],5)
 	
 	if isinstance(rec_process_result, list):
 		p1,data1,p2,data2,t0 = rec_process_result
@@ -345,7 +348,6 @@ def test_recursive_process(X,metric_index):
 
 
 
-
 def test_recursive_process_2samples():
 	
 	'''
@@ -357,6 +359,7 @@ def test_recursive_process_2samples():
 	
 	X = np.array([[1,1],[3,4]])
 	data,cut_matrix,point_cut_distance = Matrix.cut_ensemble(X)
+	data_index = data['index'].tolist()
 	
 	# initial space
 	n_d = len(data.columns)-1
@@ -376,7 +379,7 @@ def test_recursive_process_2samples():
 		b_init_space.append(b_i2)
 	p = pc.Polytope(np.array(A_init_space), np.array(b_init_space))
 	
-	rec_process_result = Partitioning.recursive_process(p,data,cut_matrix,point_cut_distance,0,1e+5,'min_corr',5)
+	rec_process_result = Partitioning.recursive_process(p,data,data_index,cut_matrix,point_cut_distance,0,1e+5,'min_corr',5)
 	
 	assert rec_process_result == None		
 
@@ -397,6 +400,7 @@ def test_recursive_process_lifetime():
 	
 	X = np.array([[1,1],[3,4],[6,7]])
 	data,cut_matrix,point_cut_distance = Matrix.cut_ensemble(X)
+	data_index = data['index'].tolist()
 	
 	# initial space
 	n_d = len(data.columns)-1
@@ -416,6 +420,6 @@ def test_recursive_process_lifetime():
 		b_init_space.append(b_i2)
 	p = pc.Polytope(np.array(A_init_space), np.array(b_init_space))
 	
-	rec_process_result = Partitioning.recursive_process(p,data,cut_matrix,point_cut_distance,t0,lifetime,'min_corr',5)
+	rec_process_result = Partitioning.recursive_process(p,data,data_index,cut_matrix,point_cut_distance,t0,lifetime,'min_corr',5)
 	
 	assert rec_process_result == None						

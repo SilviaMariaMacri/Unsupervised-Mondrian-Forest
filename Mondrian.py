@@ -169,7 +169,7 @@ def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
 
 
 
-def save_forest(namefile,data,list_part,list_m,list_p_tot,list_classified_data,ami_mean,ami_std,ami_tot):
+def save_forest(namefile,starting_namefile_number,data,list_part,list_m,list_p_tot,list_classified_data,ami_mean,ami_std,ami_tot):
 	
 	'''
 	Save the mondrian_forest output in .json files
@@ -183,7 +183,7 @@ def save_forest(namefile,data,list_part,list_m,list_p_tot,list_classified_data,a
 		m = list_m[i]
 		list_p = list_p_tot[i]
 		classified_data = list_classified_data[i]
-		save_tree(namefile+'_'+str(i),data,part,m,list_p,classified_data)
+		save_tree(namefile+'_'+str(starting_namefile_number+i),data,part,m,list_p,classified_data)
 	
 	#save AMI
 	df = {'AMI_mean':ami_mean,'AMI_std':ami_std}

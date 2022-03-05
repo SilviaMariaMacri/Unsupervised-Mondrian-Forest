@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import copy
 import polytope as pc 
+from scipy.spatial.distance import cdist,pdist
 
 from Metrics import compute_metric,min_dist_metric
 
@@ -178,13 +179,17 @@ def merge_single_data(p_init,m_leaf_init,data):
 		metric = []
 		for j in p['neighbors'].iloc[index1]:
 			data2_index = m_leaf[p[p['part_number']==j].index[0]].copy()
-			if len(data2_index) > 1:
-				data2 = data.query('index=='+str(data2_index)).copy()
-				data2 = np.array(data2.drop('index',axis=1))
-				min_dist_between_subspaces,mean,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
-				metric.append(min_dist_between_subspaces + min_dist2)
-			else:
-				metric.append(np.inf)
+			#if len(data2_index) > 1:
+			#	data2 = data.query('index=='+str(data2_index)).copy()
+			#	data2 = np.array(data2.drop('index',axis=1))
+			#	min_dist_between_subspaces,mean,min_dist1,min_dist2,mean1,mean2 = min_dist_metric(data1,data2)
+			#	metric.append(min_dist_between_subspaces + min_dist2)
+			#else:
+			#	metric.append(np.inf)
+			data2 = data.query('index=='+str(data2_index)).copy()
+			data2 = np.array(data2.drop('index',axis=1))
+			min_dist = min(cdist(data1,data2)[0])
+			metric.append(min_dist)
 		min_metric = min(metric)
 		index_nearest_part = metric.index(min_metric)
 		part_to_merge = p['neighbors'].iloc[index1][index_nearest_part]

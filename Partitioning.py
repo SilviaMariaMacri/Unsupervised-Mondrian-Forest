@@ -185,7 +185,7 @@ def data_assignment(p1,p2,data,data_pos_index,data_neg_index):
 	
 	data_pos = data.query('index=='+str(data_pos_index))
 	data_neg = data.query('index=='+str(data_neg_index))
-	
+
 
 	for i in range(len(data_pos)):		
 		point_pos = data_pos.iloc[i].copy()

@@ -1,5 +1,5 @@
 import numpy as np
-import pandas as pd
+#import pandas as pd
 from scipy.spatial.distance import cdist
 
 
@@ -46,15 +46,23 @@ def cut_ensemble(X):
 
 	Returns:
 	-------
-	data_index : dataframe with n rows and m+1 columns
-		it stores the indexed points
-	cut_matrix : dataframe 
+	data : array with n rows and m+1 columns
+		it stores the indexed points (with indexes in the last column)
+	cut_matrix : array 
 		for each pair of points, it stores the information of the hyperplane 
-		that separates them (each hyperplane is characterized by the normal 
-	    vector coordinates, the distance from the origin and the index) 	  
-	point_cut_distance : dataframe 
-		it stores the sample-hyperplane distances (each rows corresponds to 
-	    a sample and each column to a hyperplane)
+		that separates them.
+		The array columns store the following information:
+		- column 1 and 2 : index of the two samples
+		- column 3 : index of the hyperplane separating the two samples
+		- column 4 : index of the hyperplane family (the hyperplanes dividing
+	      the dataset in the same subgroups belong to the same family of 
+		  hyperplanes, that is characterized by an index)
+		- column 5 : magnitude of the normal vector that identifies the hyperplane
+		- remaining columns : coordinates of the normal vector
+	distance_matrix : array 
+		it stores the sample-hyperplane distances with each row corresponding  
+	    to a sample and each column to a hyperplane; the last column stores 
+		the point indexes
 	'''
 
 	# drop double rows
@@ -99,48 +107,24 @@ def cut_ensemble(X):
 	# point - hyperplane distance  (rows,columns = points,hyperplanes)
 	point_cut_distance = cut_vector@X.T
 	point_cut_distance = point_cut_distance.T - magnitude_cut_vector
+	distance_matrix = np.vstack([point_cut_distance.T,np.arange(len(point_cut_distance))]).T
 	
 	# equivalent_hyperplanes
 	splitted_data_matrix = point_cut_distance.copy()
 	splitted_data_matrix = np.where(splitted_data_matrix<=0, False, splitted_data_matrix)
 	splitted_data_matrix = np.where(splitted_data_matrix>0, True, splitted_data_matrix)
 	splitted_data_matrix = splitted_data_matrix.astype(int)
-	
 	cut_index,equivalent_cut_index = find_equal_columns(splitted_data_matrix)
-	equivalent_cut = {'cut_index':cut_index,'equivalent_cut_index':equivalent_cut_index}	
-	equivalent_cut = pd.DataFrame(equivalent_cut)
-	#equivalent_cut = equivalent_cut.sort_values(by='cut_index')
+	eq_cut = np.hstack([cut_index.reshape(len(cut_index),1),equivalent_cut_index.reshape(len(cut_index),1)])
+	eq_cut = eq_cut[eq_cut[:,0].argsort()]
+	equivalent_cut = eq_cut[:,1].tolist()
+
+	# hyperplane matrix
+	cut_matrix = np.vstack([i1, i2,np.arange(len(i1)),equivalent_cut,magnitude_cut_vector,cut_vector.T])
+	cut_matrix = cut_matrix.T 
+	
+	# indexed data
+	data = np.hstack([X,np.arange(len(X)).reshape(len(X),1)])
 	
 
-	
-	# output dataframe of indexed data
-	index = np.arange(len(X))
-	data = np.vstack([X.T,index]).T
-	data_index = pd.DataFrame(data)
-	columns = list(data_index.columns)
-	columns[-1] = 'index'
-	data_index.columns = [str(i) for i in columns]
-	data_index['index'] = data_index['index'].astype(int)
-
-	# output dataframe of hyperplanes 
-	cut_matrix = np.vstack([i1, i2,np.arange(len(i1)),magnitude_cut_vector,cut_vector.T])
-	cut_matrix = cut_matrix.T
-	columns = ['index1','index2','cut_index','magnitude_norm_vect']
-	for i in range(n_d):
-		columns.append('norm_vect_'+str(i))
-	cut_matrix = pd.DataFrame(cut_matrix)
-	cut_matrix.columns = columns
-	cut_matrix[['index1','index2','cut_index']] = cut_matrix[['index1','index2','cut_index']].astype(int)
-	cut_matrix = pd.merge(cut_matrix,equivalent_cut,left_on='cut_index',right_on='cut_index')
-	
-	
-	# output dataframe of cut - point distances
-	columns = [*['cut_index_'+str(i) for i in range(len(cut_matrix))]]
-	columns.append('point_index')
-	point_cut_distance = np.vstack([point_cut_distance.T,np.arange(len(point_cut_distance))]).T
-	point_cut_distance = pd.DataFrame(point_cut_distance)
-	point_cut_distance.columns = columns
-	point_cut_distance['point_index'] = point_cut_distance['point_index'].astype(int)
-	
-	
-	return data_index,cut_matrix,point_cut_distance
+	return data,cut_matrix,distance_matrix

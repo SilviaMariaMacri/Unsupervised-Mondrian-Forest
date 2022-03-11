@@ -6,43 +6,45 @@ from Metrics import compute_metric
 
 
 
-def data_splitting(data_index,cut_index,point_cut_distance):
+def data_splitting(data_index,cut_index,distance_matrix):
 	
 	'''
 	Divides the input dataset into two subsets separated by the input hyperplane
 	
 	Parameters:
 	----------
-	data : dataframe of indexed points
+	data_index : array of point indexes
 	cut_index : integer 
 		it represents the index of the cutting hyperplane 
-	point_cut_distance : output dataframe of Matrix.cut_ensemble
+	distance_matrix : output array of Matrix.cut_ensemble
 		it stores the sample-hyperplane distances
+		
 	Returns:
 	-------
-	data_pos,data_neg : dataframes of indexed points
+	data_index_pos,data_index_neg : arrays of point indexes
 		the points are divided on the basis of the sign of the point-hyperplane 
-		distances (positive for data_pos and negative for data_neg) 
+		distances (positive for data_index_pos and negative for data_index_neg) 
 	'''
 	
-	point_cut_distance = point_cut_distance.query('point_index == '+str(data_index)).copy()
+	# select rows
+	distance_matrix_reduced = distance_matrix[data_index.astype(int)].copy()
+	# select column
+	distance_matrix_reduced = np.vstack([distance_matrix_reduced[:,int(cut_index)].T,distance_matrix_reduced[:,-1].T]).T
 	
-	#dist_positive = 
-	data_pos = point_cut_distance[point_cut_distance['cut_index_'+str(int(cut_index))]>0]['point_index'].copy()
-	data_pos = data_pos.tolist()
-	#dist_negative = 
-	data_neg = point_cut_distance[point_cut_distance['cut_index_'+str(int(cut_index))]<=0]['point_index'].copy()
-	data_neg = data_neg.tolist()	
-	#data_pos = data.query('index=='+str(list(dist_positive))).copy()
-	#data_neg = data.query('index=='+str(list(dist_negative))).copy()
-	#data_pos.index = np.arange(len(data_pos))
-	#data_neg.index = np.arange(len(data_neg))
-		
-	return data_pos,data_neg
+	#data_index_pos = np.argwhere(distance_matrix_reduced[:,0] > 0)
+	#data_index_pos = data_index_pos.reshape(1,len(data_index_pos))[0]
+	#data_index_neg = np.argwhere(distance_matrix_reduced <= 0)
+	#data_index_neg = data_index_neg.reshape(1,len(data_index_neg))[0]
+	distance_matrix_reduced_pos = distance_matrix_reduced[distance_matrix_reduced[:,0] > 0] 
+	data_index_pos = distance_matrix_reduced_pos[:,1]
+	distance_matrix_reduced_neg = distance_matrix_reduced[distance_matrix_reduced[:,0] <= 0] 
+	data_index_neg = distance_matrix_reduced_neg[:,1]
+	
+	return data_index_pos,data_index_neg
 
 
 
-def cut_choice(data,data_index,cut_matrix,point_cut_distance,metric,exp):
+def cut_choice(data,data_index,cut_matrix,distance_matrix,metric,exp):
 	
 	'''
 	Random extraction of the cutting hyperplane, with probability of extraction
@@ -50,12 +52,13 @@ def cut_choice(data,data_index,cut_matrix,point_cut_distance,metric,exp):
 	
 	Parameters:
 	----------
-	data : dataframe of indexed points
-	cut_matrix : output dataframe of Matrix.cut_ensemble
+	data : complete array of points 
+	data_index : array of selected point indexes
+	cut_matrix : output array of Matrix.cut_ensemble
 		for each pair of points, it stores the information of the hyperplane 
 		that separates them	  
-	point_cut_distance : output dataframe of Matrix.cut_ensemble	 
-		it stores the sample-hyperplane distances
+	distance_matrix : output array of Matrix.cut_ensemble	 
+		it stores the point-hyperplane distances
 	metric: string identifying the chosen metric 
 		('variance','centroid_ratio','centroid_diff','min','min_corr')
 	exp : power to which the metric is raised in order to obtain the 
@@ -68,28 +71,27 @@ def cut_choice(data,data_index,cut_matrix,point_cut_distance,metric,exp):
 	chosen_cut_index : hyperplane index
 	'''
 	
-	cut_matrix_reduced = cut_matrix.query('index1=='+str(data_index)+' and index2=='+str(data_index)).copy()
-	equivalent_cut_index = np.array(cut_matrix_reduced['equivalent_cut_index'].unique())
+	selected_rows = np.isin(cut_matrix[:,0:2], data_index)
+	cut_matrix_reduced = cut_matrix[np.logical_and(selected_rows[:,0],selected_rows[:,1])].copy()
+	cut_matrix_reduced = cut_matrix_reduced[cut_matrix_reduced[:,3].argsort()]
+	cut_index = cut_matrix_reduced[:,2].copy()
+	equivalent_cut_index = np.unique(cut_matrix_reduced[:,3])
 	
 	metric_value_list = np.array([],dtype=int)
 	for i in equivalent_cut_index:
 		#print(i)
-		cut_matrix_reduced_i = cut_matrix_reduced.query('equivalent_cut_index == '+str(i)).copy()
-		cut_index_i = cut_matrix_reduced_i.iloc[0]['cut_index']
+		cut_matrix_reduced_i = cut_matrix_reduced[cut_matrix_reduced[:,3]==i].copy()
+		cut_index_i = cut_matrix_reduced_i[0,2]
 
-		data1_index,data2_index = data_splitting(data_index,cut_index_i,point_cut_distance)	
-		data1 = data.query('index=='+str(data1_index))
-		data2 = data.query('index=='+str(data2_index))
+		data1_index,data2_index = data_splitting(data_index,cut_index_i,distance_matrix)	
+		data1 = data[data1_index.astype(int)]
+		data2 = data[data2_index.astype(int)]
 		metric_value = compute_metric(metric,data1,data2)
 		metric_value_list = np.concatenate((metric_value_list,metric_value*np.ones((len(cut_matrix_reduced_i)))))
 	
-	cut_matrix_reduced = cut_matrix_reduced.sort_values(by='equivalent_cut_index')
-	cut_index = np.array(cut_matrix_reduced['cut_index'])
-	 
 	check_nan = np.isnan(metric_value_list)
-	if list(set(check_nan))[0] == True: #(len(set(metric_value_list)) == 1) and (np.isnan(metric_value_list[0])):
+	if (list(set(check_nan))[0] == True) and (len(list(set(check_nan))) == 1): #(len(set(metric_value_list)) == 1) and (np.isnan(metric_value_list[0])):
 		return 
-	metric_value_list = np.array(metric_value_list)
 	index_to_remove = np.where(np.logical_or(np.isnan(metric_value_list),np.isinf(metric_value_list)))
 	metric_value_list = np.delete(metric_value_list,index_to_remove)
 	cut_index = np.delete(cut_index,index_to_remove)
@@ -103,16 +105,11 @@ def cut_choice(data,data_index,cut_matrix,point_cut_distance,metric,exp):
 		q = metric_value_list
 		weight = q/q.sum()
 		chosen_cut_index = np.random.choice(cut_index,p=weight)
+	chosen_cut = cut_matrix[cut_matrix[:,2]==chosen_cut_index].copy()
 
-	chosen_cut = cut_matrix.query('cut_index=='+str(chosen_cut_index)).copy()
-		
-	n_d = len(data.iloc[0])-1
-	names_norm_vect = []
-	for i in range(n_d):
-		names_norm_vect.append('norm_vect_'+str(i))
-	hyperplane_direction = chosen_cut[names_norm_vect].iloc[0] 
-	hyperplane_distance = chosen_cut['magnitude_norm_vect'].iloc[0]
-	
+	n_d = len(data[0])
+	hyperplane_direction = chosen_cut[:,-n_d:][0] 
+	hyperplane_distance = chosen_cut[:,-n_d-1]
 
 	return hyperplane_direction,hyperplane_distance,chosen_cut_index
 
@@ -135,32 +132,28 @@ def space_splitting(p,hyperplane_direction,hyperplane_distance):
 	p1,p2 : polytope.Polytope objects
 	'''
 	
-	A_hyperplane_1 = list(hyperplane_direction) 
+	A_hyperplane_1 = hyperplane_direction 
 	b_hyperplane_1 = hyperplane_distance  
-	A_hyperplane_2 = list(-hyperplane_direction) 
+	A_hyperplane_2 = -hyperplane_direction 
 	b_hyperplane_2 = -hyperplane_distance
 
-	A1 = list(p.A)
-	A1.append(A_hyperplane_1)
-	b1 = list(p.b)
-	b1.append(b_hyperplane_1)
-	p1 = pc.Polytope(np.array(A1), np.array(b1))
+	A1 = np.vstack([p.A,A_hyperplane_1])
+	b1 = np.hstack([p.b,b_hyperplane_1])
+	p1 = pc.Polytope(A1,b1)
 	p1 = pc.reduce(p1)
 	
-	A2 = list(p.A)
-	A2.append(A_hyperplane_2)
-	b2 = list(p.b)
-	b2.append(b_hyperplane_2)
-	p2 = pc.Polytope(np.array(A2), np.array(b2))
+	A2 = np.vstack([p.A,A_hyperplane_2])
+	b2 = np.hstack([p.b,b_hyperplane_2])
+	p2 = pc.Polytope(A2,b2)
 	p2 = pc.reduce(p2)
 	
 	return p1,p2
 
- 
 
 
 
-def data_assignment(p1,p2,data,data_pos_index,data_neg_index):
+
+def data_assignment(p1,p2,data,data_index_A,data_index_B):
 	
 	'''
 	Given as input two polytopes and two datasets belonging to them, it assigns
@@ -175,7 +168,7 @@ def data_assignment(p1,p2,data,data_pos_index,data_neg_index):
 	Parameters:
 	----------
 	p1,p2 : polytope.Polytope objects
-	data_pos,data_neg : dataframes of indexed points
+	data_index_A,data_index_B : arrays of point indexes
 		
 	Returns:
 	-------
@@ -183,46 +176,41 @@ def data_assignment(p1,p2,data,data_pos_index,data_neg_index):
 	data2 : dataframe of indexed points belonging to p2 
 	'''
 	
-	data_pos = data.query('index=='+str(data_pos_index))
-	data_neg = data.query('index=='+str(data_neg_index))
+	data_A = data[data_index_A.astype(int)]
+	data_B = data[data_index_B.astype(int)]
 
-
-	for i in range(len(data_pos)):		
-		point_pos = data_pos.iloc[i].copy()
-		point_pos = list(point_pos[0:-1])
+	for i in range(len(data_A)):		
+		point_A = data_A[i].copy()
 		
-		if ((point_pos in p1) == True) and ((point_pos in p2) == False):
-			data1 = data_pos.copy()
-			data2 = data_neg.copy()
+		if ((point_A in p1) == True) and ((point_A in p2) == False):
+			data1 = data_index_A.copy()
+			data2 = data_index_B.copy()
 			break
-		if ((point_pos in p2) == True) and ((point_pos in p1) == False):
-			data2 = data_pos.copy()
-			data1 = data_neg.copy()
+		if ((point_A in p2) == True) and ((point_A in p1) == False):
+			data2 = data_index_A.copy()
+			data1 = data_index_B.copy()
 			break
-		if ((point_pos in p1) == True) and ((point_pos in p2) == True):
-			for j in range(len(data_neg)):		
-				point_neg = data_neg.iloc[j].copy()
-				point_neg = list(point_neg[0:-1])
+		if ((point_A in p1) == True) and ((point_A in p2) == True):
+			for j in range(len(data_B)):		
+				point_B = data_B[j].copy()
 				
-				if ((point_neg in p1) == True) and ((point_neg in p2) == False):
-					data1 = data_neg.copy()
-					data2 = data_pos.copy()
+				if ((point_B in p1) == True) and ((point_B in p2) == False):
+					data1 = data_index_B.copy()
+					data2 = data_index_A.copy()
 					break
-				if ((point_neg in p2) == True) and ((point_neg in p1) == False):
-					data2 = data_neg.copy()
-					data1 = data_pos.copy()
+				if ((point_B in p2) == True) and ((point_B in p1) == False):
+					data2 = data_index_B.copy()
+					data1 = data_index_A.copy()
 					break
 				
-	data1_index = data1['index'].tolist()
-	data2_index = data2['index'].tolist()
-	
-	return data1_index,data2_index
+	return data1,data2
 
 
  
 
-
-def recursive_process(p,data,data_index,cut_matrix,point_cut_distance,t0,lifetime,metric,exp):
+#recursive_process(i[2],data,i[3],cut_matrix,point_cut_distance,i[0],lifetime,metric,exp)
+			
+def recursive_process(p,data,data_index,cut_matrix,distance_matrix,t0,lifetime,metric,exp):
 
 	'''
 	It takes as input a polytope and the subset of data belonging to it and 
@@ -266,13 +254,13 @@ def recursive_process(p,data,data_index,cut_matrix,point_cut_distance,t0,lifetim
 		return
 
 	try:
-		hyperplane_direction,hyperplane_distance,chosen_cut_index  = cut_choice(data,data_index,cut_matrix,point_cut_distance,metric,exp)
+		hyperplane_direction,hyperplane_distance,chosen_cut_index  = cut_choice(data,data_index,cut_matrix,distance_matrix,metric,exp)
 	except TypeError:
 		return
 	
 	p1,p2 = space_splitting(p,hyperplane_direction,hyperplane_distance)
 	
-	data_pos,data_neg = data_splitting(data_index,chosen_cut_index,point_cut_distance)	
+	data_pos,data_neg = data_splitting(data_index,chosen_cut_index,distance_matrix)	
 	data1,data2 = data_assignment(p1,p2,data,data_pos,data_neg) 
 
 	
@@ -315,12 +303,12 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 		whose information is stored in each row of the part dataframe
 	'''
 
-	data = cut_ensemble[0]
+	data = cut_ensemble[0][:,0:-1]
+	data_index = cut_ensemble[0][:,-1]
 	cut_matrix = cut_ensemble[1]
-	point_cut_distance = cut_ensemble[2]
+	distance_matrix = cut_ensemble[2]
 	
-	n_d = len(data.columns)-1
-	
+	n_d = len(data[0])
 	# initial space
 	A_init_space = []
 	b_init_space = []
@@ -332,9 +320,9 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 		A_init_space.append(A_i1)
 		A_init_space.append(A_i2)
 
-		length_i = data[str(i)].max() - data[str(i)].min()
-		b_i1 = data[str(i)].max()+length_i*0.05
-		b_i2 = -(data[str(i)].min()-length_i*0.05)
+		length_i = data[:,i].max() - data[:,i].min()
+		b_i1 = data[:,i].max()+length_i*0.05
+		b_i2 = -(data[:,i].min()-length_i*0.05)
 		b_init_space.append(b_i1)		
 		b_init_space.append(b_i2)
 		
@@ -344,7 +332,7 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 
 	m=[]
 	count_part_number = 0 	
-	m0 = [ t0,count_part_number,p,data['index'].tolist() ] 
+	m0 = [ t0,count_part_number,p,data_index ] 
 	m.append(m0)
 	
 	time = []
@@ -356,9 +344,9 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 	father_list.append('nan')
 	part_number.append(count_part_number)
 	polytope.append(p)
-	
 
-	
+
+
 	count=0
 	for i in m:
 		count += 1
@@ -367,7 +355,7 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 		try:
 
 			father = i[1]
-			p1,data1,p2,data2,t0 = recursive_process(i[2],data,i[3],cut_matrix,point_cut_distance,i[0],lifetime,metric,exp)
+			p1,data1,p2,data2,t0 = recursive_process(i[2],data,i[3],cut_matrix,distance_matrix,i[0],lifetime,metric,exp)
 			
 			count_part_number += 1
 			m.append([t0,count_part_number,p1,data1])
@@ -410,4 +398,4 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 	#m_index = [i['index'].tolist() for i in m]
 	
 	
-	return part,m#,m_index
+	return part,m

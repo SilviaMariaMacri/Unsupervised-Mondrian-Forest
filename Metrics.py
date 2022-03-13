@@ -85,11 +85,6 @@ def min_dist_metric(data1,data2):
 
 def compute_metric(metric,data1,data2):
 	
-	data1 = data1.drop('index',axis=1)
-	data2 = data2.drop('index',axis=1)
-	data1 = np.array(data1)
-	data2 = np.array(data2)
-	
 	if metric == 'variance':	
 		var_ratio = variance_metric(data1,data2)
 		metric_value = var_ratio

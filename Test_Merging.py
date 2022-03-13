@@ -54,14 +54,14 @@ def test_neighbors_2D_case():
 	
 	polytope_list = [p1,p2,p3,p4]
 	part_number_list = np.arange(len(polytope_list))
-	p = {'part_number':part_number_list,'polytope':polytope_list}
+	p = {'id_number':part_number_list,'polytope':polytope_list}
 	p = pd.DataFrame(p)
 	
-	p = Merging.neighbors(p)
-	neighbor_list = [[1,3],[0,2],[1],[0]]
+	neighbor_list = Merging.neighbors(p)
+	neighbor_list_true = [[1,3],[0,2],[1],[0]]
 	
 	for i in range(len(p)):
-		assert list(p['neighbors'].iloc[i]) == neighbor_list[i]
+		assert neighbor_list == neighbor_list_true
 		
 		
 		
@@ -90,15 +90,15 @@ def test_neighbors_2(X):
 	'''
 
 	cut_ensemble = Matrix.cut_ensemble(X)
-	part,m = Partitioning.partitioning(cut_ensemble,0,5,'min_corr',5)
+	part_space,part_data = Partitioning.partitioning(cut_ensemble,0,5,'min_corr',5)
 	
-	p = part.query('leaf==True').copy()
+	p = part_space.query('leaf==True').copy()
 	p.index = np.arange(len(p))
-	p = Merging.neighbors(p)
+	poly_number = p['id_number'].tolist()
+	neighbor_list = Merging.neighbors(p)
 	for i in range(len(p)):
-		for j in p['neighbors'].iloc[i]:
-			assert p['part_number'].iloc[i] in list(p[p['part_number']==j]['neighbors'])[0]
-
+		for j in neighbor_list[i]:
+			assert poly_number[i] in neighbor_list[poly_number.index(j)]
 
 
 
@@ -119,8 +119,9 @@ def test_merge_two_polytopes(part_numbers):
 	
 	merge_two_polytope input:
 	------------------------
-	p_init,m_init : specific five polytope case, with fixed neighbor and 
-		merged polytope list; each polytope contains one point
+	poly_number_input,neigh_poly_input,merged_poly_input,merg_data_input : 
+		specific five polytope case, with fixed neighbor and merged polytope 
+		list; each polytope contains one point
 	part_numbers : variable tuple of two integers
 		the two numbers correspond to the input parameters part_to_remove
 		and part_to_merge
@@ -144,80 +145,72 @@ def test_merge_two_polytopes(part_numbers):
 	
 	assume(part_numbers[0] != part_numbers[1])
 	
-	part_number = np.arange(5).tolist()
-	neighbors = [[1],[0,2],[1,3],[2,4],[3]]
-	merged_part = [[5],[6],[7],[8],[9]]
+	poly_number_input = np.arange(5).tolist()
+	neigh_poly_input = [[1],[0,2],[1,3],[2,4],[3]]
+	merged_poly_input = [[5],[6],[7],[8],[9]]
 	
-	p_init = {'part_number':part_number,'neighbors':neighbors,'merged_part':merged_part}
-	p_init = pd.DataFrame(p_init)
-	
-	#m_leaf_init = []
-	#for i in range(5):
-	#	m_leaf_i = {'x':[i]}
-	#	m_leaf_i = pd.DataFrame(m_leaf_i)
-	#	m_leaf_init.append(m_leaf_i)
-	m_leaf_init = [0,1,2,3,4]
+	merg_data_input = [np.array([0]),np.array([1]),np.array([2]),np.array([3]),np.array([4])]
 	
 	part_to_remove = part_numbers[0]
 	part_to_merge = part_numbers[1]
-	assume(part_to_merge in list(p_init[p_init['part_number']==part_to_remove]['neighbors'])[0])
+	assume(part_to_merge in neigh_poly_input[poly_number_input.index(part_to_remove)])
 	
-	p,m_leaf = Merging.merge_two_polytopes(p_init,m_leaf_init,part_to_remove,part_to_merge)
+	poly_number,neigh_poly,merged_poly,merg_data = Merging.merge_two_polytopes(poly_number_input,neigh_poly_input,merged_poly_input,merg_data_input,part_to_remove,part_to_merge)
 	
 	#1
-	assert part_to_remove not in list(p['part_number'])
+	assert part_to_remove not in poly_number
 	#2
-	assert len(p) == len(p_init)-1
+	assert len(poly_number) == len(poly_number_input)-1
 	#3
-	assert p['part_number'].unique().tolist() == list(p['part_number'])
+	assert np.unique(poly_number).tolist() == poly_number
 	
 	#4
-	neighbors_new = list(p[p['part_number']==part_to_merge]['neighbors'])[0]
-	neighbors_part_to_remove = list(p_init[p_init['part_number']==part_to_remove]['neighbors'])[0]
-	neighbors_part_to_merge = list(p_init[p_init['part_number']==part_to_merge]['neighbors'])[0]
+	neighbors_new = neigh_poly[poly_number.index(part_to_merge)]
+	neighbors_part_to_remove = neigh_poly_input[poly_number_input.index(part_to_remove)]
+	neighbors_part_to_merge = neigh_poly_input[poly_number_input.index(part_to_merge)]
 	neighbors_new_true = list(set(neighbors_part_to_remove + neighbors_part_to_merge))
+	
 	neighbors_new_true.remove(part_to_remove)
 	neighbors_new_true.remove(part_to_merge)
 	assert sorted(neighbors_new) == neighbors_new_true
 	
 	#5
-	merged_part_new = list(p[p['part_number']==part_to_merge]['merged_part'])[0]
-	merged_part_to_remove = list(p_init[p_init['part_number']==part_to_remove]['merged_part'])[0]
-	merged_part_to_merge = list(p_init[p_init['part_number']==part_to_merge]['merged_part'])[0]
+	merged_part_new = merged_poly[poly_number.index(part_to_merge)]
+	merged_part_to_remove = merged_poly_input[poly_number_input.index(part_to_remove)]
+	merged_part_to_merge = merged_poly_input[poly_number_input.index(part_to_merge)]
 	assert merged_part_new == merged_part_to_merge + merged_part_to_remove + [part_to_remove]
 	
 	#6
-	p_init_not_changed = p_init.query('part_number!='+str(part_to_merge)+' and part_number!='+str(part_to_remove)).copy()
-	p_init_not_changed.index = np.arange(len(p_init_not_changed))
-	p_not_changed = p.query('part_number!='+str(part_to_merge)).copy()
-	p_not_changed.index = np.arange(len(p_not_changed))
-	assert p_init_not_changed[['part_number','merged_part']].equals(p_not_changed[['part_number','merged_part']])
-	
-	for i in range(len(p_init_not_changed)):
-		if part_to_remove in list(p_init_not_changed['neighbors'].iloc[i]):
-			list_to_change = sorted(list(p_init_not_changed['neighbors'].iloc[i]))
+	poly_number_input_not_changed = np.delete(poly_number_input,[poly_number_input.index(part_to_merge),poly_number_input.index(part_to_remove)])
+	poly_number_not_changed = np.delete(poly_number,poly_number.index(part_to_merge))
+	assert (poly_number_input_not_changed == poly_number_not_changed).all()
+
+	neigh_poly_input_not_changed = np.delete(neigh_poly_input,[poly_number_input.index(part_to_merge),poly_number_input.index(part_to_remove)])
+	neigh_poly_not_changed = np.delete(neigh_poly,poly_number.index(part_to_merge))	
+	for i in range(len(poly_number_input_not_changed)):
+		if part_to_remove in neigh_poly_input_not_changed[i]:
+			list_to_change = sorted(neigh_poly_input_not_changed[i])
 			list_to_change = [part_to_merge if value==part_to_remove else value for value in list_to_change]
-			assert list_to_change == sorted(list(p_not_changed['neighbors'].iloc[i]))
+			assert list_to_change == sorted(neigh_poly_not_changed[i])
 		else:
-			assert list(p_init_not_changed['neighbors'].iloc[i]) == sorted(list(p_not_changed['neighbors'].iloc[i]))
+			assert neigh_poly_input_not_changed[i] == sorted(neigh_poly_not_changed[i])
 	
 	#7
-	assert len(m_leaf) == len(m_leaf_init)-1
-	index_merged_part = p[p['part_number']==part_to_merge].index[0]
-	index_part_to_merge = p_init[p_init['part_number']==part_to_merge].index[0]
-	index_part_to_remove = p_init[p_init['part_number']==part_to_remove].index[0]
+	assert len(merg_data) == len(merg_data_input)-1
 	
 	#8
-	merged_data = [m_leaf_init[index_part_to_remove],m_leaf_init[index_part_to_merge]] #pd.concat([m_leaf_init[index_part_to_merge],m_leaf_init[index_part_to_remove]])
-	#merged_data.index = np.arange(len(merged_data))
-	assert m_leaf[index_merged_part] == merged_data #.equals(merged_data)
+	index_merged_part = poly_number.index(part_to_merge)
+	index_part_to_merge = poly_number_input.index(part_to_merge)
+	index_part_to_remove = poly_number_input.index(part_to_remove)
+	merged_data = [merg_data_input[index_part_to_remove][0],merg_data_input[index_part_to_merge][0]] 
+	assert (merg_data[index_merged_part] == merged_data).all()
 	
 	#9
-	for i in range(len(m_leaf)):
+	for i in range(len(merg_data)):
 		if (i < part_to_remove) and (i != part_to_merge):
-			assert m_leaf[i] == m_leaf_init[i] #.equals(m_leaf_init[i]) 
+			assert merg_data[i] == merg_data_input[i]
 		if (i > part_to_remove) and (i != part_to_merge):
-			assert m_leaf[i] == m_leaf_init[i+1] #.equals(m_leaf_init[i+1]) 
+			assert merg_data[i] == merg_data_input[i+1] 
 	
 	
 
@@ -235,33 +228,27 @@ def test_merge_single_data():
 	
 	merge_single_data input:
 	------------------------
-	p_init : specific five polytope case
-	m_init : list of datasets associated to each polytope
-		two of them have one point and three of them have two points
+	poly_number_input,neigh_poly_input,merged_poly_input : 
+		specific five polytope case
+	merg_data_input : list of dataset indexes associated to each polytope
+	    two of them have one point and three of them have two points
 	
 	Tests:
 	-----
 	if the polytopes containing a single point have been merged
 	'''
 	
-	part_number = np.arange(5).tolist()
-	neighbors = [[1],[0,2],[1,3],[2,4],[3]]
-	merged_part = [[5],[6],[7],[8],[9]]
+	poly_number_input = np.arange(5).tolist()
+	neigh_poly_input = [[1],[0,2],[1,3],[2,4],[3]]
+	merged_poly_input = [[5],[6],[7],[8],[9]]
 	
-	p_init = {'part_number':part_number,'neighbors':neighbors,'merged_part':merged_part}
-	p_init = pd.DataFrame(p_init)
-	
-	x = [0.,0.1,1.,1.1,2,3.,3.1,4.]
-	index = np.arange(8)
-	m_leaf_init = [[0, 1], [2, 3], [4], [5, 6], [7]]
-	data = {'x':x,'index':index}
-	data = pd.DataFrame(data)
+	data = np.array([0.,0.1,1.,1.1,2,3.,3.1,4.])
+	index = np.arange(len(data))
+	data = np.vstack([data,index]).T
+	merg_data_input = [np.array([0, 1]), np.array([2, 3]), np.array([4]), np.array([5, 6]), np.array([7])]
 
-	
-	p,m_leaf = Merging.merge_single_data(p_init,m_leaf_init,data)
+	poly_number,neigh_poly,merged_poly,merg_data = Merging.merge_single_data(poly_number_input,neigh_poly_input,merged_poly_input,merg_data_input,data)
 
-	assert 2 not in list(p['part_number'])
-	assert 4 not in list(p['part_number'])
-	assert len(p) == 3
-	
-
+	assert 2 not in poly_number
+	assert 4 not in poly_number
+	assert len(poly_number) == 3

@@ -31,14 +31,10 @@ def data_splitting(data_index,cut_index,distance_matrix):
 	# select column
 	distance_matrix_reduced = np.vstack([distance_matrix_reduced[:,int(cut_index)].T,distance_matrix_reduced[:,-1].T]).T
 	
-	#data_index_pos = np.argwhere(distance_matrix_reduced[:,0] > 0)
-	#data_index_pos = data_index_pos.reshape(1,len(data_index_pos))[0]
-	#data_index_neg = np.argwhere(distance_matrix_reduced <= 0)
-	#data_index_neg = data_index_neg.reshape(1,len(data_index_neg))[0]
 	distance_matrix_reduced_pos = distance_matrix_reduced[distance_matrix_reduced[:,0] > 0] 
-	data_index_pos = distance_matrix_reduced_pos[:,1]
+	data_index_pos = distance_matrix_reduced_pos[:,1].astype(int)
 	distance_matrix_reduced_neg = distance_matrix_reduced[distance_matrix_reduced[:,0] <= 0] 
-	data_index_neg = distance_matrix_reduced_neg[:,1]
+	data_index_neg = distance_matrix_reduced_neg[:,1].astype(int)
 	
 	return data_index_pos,data_index_neg
 
@@ -52,7 +48,7 @@ def cut_choice(data,data_index,cut_matrix,distance_matrix,metric,exp):
 	
 	Parameters:
 	----------
-	data : complete array of points 
+	data : array storing the total number of points 
 	data_index : array of selected point indexes
 	cut_matrix : output array of Matrix.cut_ensemble
 		for each pair of points, it stores the information of the hyperplane 
@@ -172,8 +168,8 @@ def data_assignment(p1,p2,data,data_index_A,data_index_B):
 		
 	Returns:
 	-------
-	data1 : dataframe of indexed points belonging to p1
-	data2 : dataframe of indexed points belonging to p2 
+	data1 : array of indexes related to the points belonging to p1
+	data2 : array of indexes related to the points belonging to p2 
 	'''
 	
 	data_A = data[data_index_A.astype(int)]
@@ -208,8 +204,6 @@ def data_assignment(p1,p2,data,data_index_A,data_index_B):
 
  
 
-#recursive_process(i[2],data,i[3],cut_matrix,point_cut_distance,i[0],lifetime,metric,exp)
-			
 def recursive_process(p,data,data_index,cut_matrix,distance_matrix,t0,lifetime,metric,exp):
 
 	'''
@@ -223,11 +217,12 @@ def recursive_process(p,data,data_index,cut_matrix,distance_matrix,t0,lifetime,m
 	Parameters:
 	----------
 	p : polytope.Polytope object
-	data : dataframe of indexed points
- 	cut_matrix : output dataframe of Matrix.cut_ensemble
+	data : array storing the total number of points
+	data_index : array of selected point indexes
+ 	cut_matrix : output array of Matrix.cut_ensemble
 		for each pair of points, it stores the information of the hyperplane 
 		that separates them	  
-	point_cut_distance : output dataframe of Matrix.cut_ensemble	 
+	distance_matrix : output array of Matrix.cut_ensemble	 
 		it stores the sample-hyperplane distances
 	t0 : inital time
 	lifetime : final time of the process
@@ -239,15 +234,15 @@ def recursive_process(p,data,data_index,cut_matrix,distance_matrix,t0,lifetime,m
 	Returns:
 	-------
 	p1,p2 : polytope.Polytope objects
-	data1,data2 : dataframes of indexed points
-		data1 belongs to p1 and data2 belongs to p2
+	data1,data2 : arrays of point indexes
+		data1 points belong to p1 and data2 points belong to p2
 	t0 : time of generation of the cut
 	'''
 	
 	if len(data_index) <= 2: 
 		return
 	
-	time_cut = np.random.exponential(1/len(data_index))#p.volume
+	time_cut = np.random.exponential(1/len(data_index))
 	t0 += time_cut
 	
 	if t0 > lifetime:
@@ -260,10 +255,9 @@ def recursive_process(p,data,data_index,cut_matrix,distance_matrix,t0,lifetime,m
 	
 	p1,p2 = space_splitting(p,hyperplane_direction,hyperplane_distance)
 	
-	data_pos,data_neg = data_splitting(data_index,chosen_cut_index,distance_matrix)	
-	data1,data2 = data_assignment(p1,p2,data,data_pos,data_neg) 
+	data_index_pos,data_index_neg = data_splitting(data_index,chosen_cut_index,distance_matrix)	
+	data1,data2 = data_assignment(p1,p2,data,data_index_pos,data_index_neg) 
 
-	
 	return p1,data1,p2,data2,t0
 
 
@@ -282,7 +276,7 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 	
 	Parameters:
 	----------
-	cut_ensemble: lists of dataframes - complete output of Matrix.cut_ensemble
+	cut_ensemble: lists of arrays - complete output of Matrix.cut_ensemble
 	t0 : inital time
 	lifetime : final time of the process
 	metric: string identifying the chosen metric 
@@ -292,19 +286,19 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 
 	Returns:
 	-------
-	part : dataframe
+	part_space : dataframe
 		each row represents a polytope created during the hierarchical splitting;
 		for each polytope, the dataframe stores the information about its 
 		characteristic number, its creation time, the father polytope from 
 		which it has been generated and if it is a leaf of the corresponding 
 		tree structure.		
-	m : list of dataframes
-		each dataframe contains the points belonging to a specific polytope, 
-		whose information is stored in each row of the part dataframe
+	part_data : list of unidimensional arrays
+		each array contains the indexes of the points belonging to a specific 
+		polytope, whose information is stored in each row of part_space 
 	'''
 
 	data = cut_ensemble[0][:,0:-1]
-	data_index = cut_ensemble[0][:,-1]
+	data_index = cut_ensemble[0][:,-1].astype(int)
 	cut_matrix = cut_ensemble[1]
 	distance_matrix = cut_ensemble[2]
 	
@@ -381,21 +375,16 @@ def partitioning(cut_ensemble,t0,lifetime,metric,exp):
 	
 	print('total number of splits: '+str(count))
 	
-	part = {'time':time,'father':father_list,'part_number':part_number,'polytope':polytope}
-	part = pd.DataFrame(part)
-
 	leaf = []
-	for i in range(len(part)):
-		if part['part_number'].iloc[i] not in part['father'].unique():
+	for i in range(len(part_number)):
+		if part_number[i] not in father_list:
 			leaf.append(True)
 		else:
 			leaf.append(False)
-	part['leaf'] = leaf
+			
+	part_space = {'time':time,'father':father_list,'id_number':part_number,'leaf':leaf,'polytope':polytope}
+	part_space = pd.DataFrame(part_space)
 
-	part = part[['time', 'father', 'part_number', 'leaf', 'polytope']]
-	
-	m = list(np.array(m,dtype=object)[:,3])
-	#m_index = [i['index'].tolist() for i in m]
-	
-	
-	return part,m
+	part_data = list(np.array(m,dtype=object)[:,3])
+
+	return part_space,part_data

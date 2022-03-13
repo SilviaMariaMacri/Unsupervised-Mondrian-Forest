@@ -4,6 +4,7 @@ from sklearn.metrics.cluster import adjusted_mutual_info_score
 from itertools import combinations
 import polytope as pc
 import json
+import copy
 
 import Matrix
 import Partitioning
@@ -35,41 +36,43 @@ def mondrian_tree(X,t0,lifetime,exp,metric):
 	data = cut_ensemble[0].copy()
 	
 	print('PARTITIONING:')	 
-	part,m = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
+	part_space,part_data = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
 	
 	print('MERGING:')
-	list_p,classified_data = Merging.merging(part,m,metric,data)
-	list_p.reverse()
-	classified_data.reverse()
+	merg_space,merg_data = Merging.merging(part_space,part_data,metric,data)
+	merg_space.reverse()
+	merg_data.reverse()
 	
-	return data,part,m,list_p,classified_data
+	return data,part_space,part_data,merg_space,merg_data
 
 
 
 
-def save_tree(namefile,data,part,m,list_p,classified_data):
+def save_tree(namefile,data,part_space,part_data,merg_space,merg_data):
 	
 	'''
 	Save the mondrian_tree output in four .json files and one .txt file
 	'''
 	
-	data.to_csv(namefile+'_data.txt',sep='\t',index=False)
+	with open(namefile+'_data.json', 'w') as f:
+		f.write(json.dumps(data.tolist()))
 	
-	part.to_json(namefile+'_part.json')
+	part_space.to_json(namefile+'_part_space.json')
 	
-	with open(namefile+'_m.json', 'w') as f:
-		f.write(json.dumps(m))
+	part_data = [i.tolist() for i in part_data]
+	with open(namefile+'_part_data.json', 'w') as f:
+		f.write(json.dumps(part_data))
 	
-	list_p_copy = list_p.copy()		
-	for k in range(len(list_p_copy)):
-		list_p_copy[k]['part_number'] = list_p_copy[k]['part_number'].astype(float)
-		list_p_copy[k]['neighbors'] = [list(map(float, i)) for i in list_p_copy[k]['neighbors']]
-		list_p_copy[k]['merged_part'] = [list(map(float, i)) for i in list_p_copy[k]['merged_part']]
-	with open(namefile+'_p.json', 'w') as f:
-		f.write(json.dumps([df.to_dict() for df in list_p_copy]))
+	merg_space_copy = copy.deepcopy(merg_space)		
+	for k in range(len(merg_space_copy)):
+		merg_space_copy[k]['id_number'] = merg_space_copy[k]['id_number'].astype(float)
+		merg_space_copy[k]['neighbors'] = [list(map(float, i)) for i in merg_space_copy[k]['neighbors']]
+		merg_space_copy[k]['merged'] = [list(map(float, i)) for i in merg_space_copy[k]['merged']]
+	with open(namefile+'_merg_space.json', 'w') as f:
+		f.write(json.dumps([df.to_dict() for df in merg_space_copy]))
 	
-	with open(namefile+'_classified_data.json', 'w') as f:
-		f.write(json.dumps(classified_data))
+	with open(namefile+'_merg_data.json', 'w') as f:
+		f.write(json.dumps(merg_data))
 		
 	return
 
@@ -83,24 +86,26 @@ def read_tree(namefile):
 	Read the four .json files storing the mondrian_tree output
 	'''
 	
-	data = pd.read_csv(namefile+'_data.txt',sep='\t')
+	data = json.load(open(namefile+'_data.json','r'))
+	data = np.array(data)
 	
-	part = json.load(open(namefile+'_part.json','r'))
-	part = pd.DataFrame(part)
-	part['polytope'] = [pc.Polytope(np.array(part['polytope'].iloc[i]['A']), np.array(part['polytope'].iloc[i]['b'])) for i in np.arange(len(part))]
+	part_space = json.load(open(namefile+'_part_space.json','r'))
+	part_space = pd.DataFrame(part_space)
+	part_space['polytope'] = [pc.Polytope(np.array(part_space['polytope'].iloc[i]['A']), np.array(part_space['polytope'].iloc[i]['b'])) for i in np.arange(len(part_space))]
 	
-	m = json.load(open(namefile+'_m.json','r'))
+	part_data = json.load(open(namefile+'_part_data.json','r'))
+	part_data = [np.array(i) for i in part_data]
 	
-	list_p = json.load(open(namefile+'_p.json','r'))
-	list_p = [pd.DataFrame(i) for i in list_p]
-	for k in range(len(list_p)):
-		list_p[k]['part_number'] = list_p[k]['part_number'].astype(int)
-		list_p[k]['neighbors'] = [list(map(int, i)) for i in list_p[k]['neighbors']]
-		list_p[k]['merged_part'] = [list(map(int, i)) for i in list_p[k]['merged_part']]	
+	merg_space = json.load(open(namefile+'_merg_space.json','r'))
+	merg_space = [pd.DataFrame(i) for i in merg_space]
+	for k in range(len(merg_space)):
+		merg_space[k]['id_number'] = merg_space[k]['id_number'].astype(np.int64)
+		merg_space[k]['neighbors'] = [list(map(np.int64, i)) for i in merg_space[k]['neighbors']]
+		merg_space[k]['merged'] = [list(map(int, i)) for i in merg_space[k]['merged']]	
 	
-	classified_data = json.load(open(namefile+'_classified_data.json','r'))
+	merg_data = json.load(open(namefile+'_merg_data.json','r'))
 	
-	return data,part,m,list_p,classified_data
+	return data,part_space,part_data,merg_space,merg_data
 
 
 
@@ -141,50 +146,69 @@ def mondrian_forest(X,t0,lifetime,exp,metric,number_of_iterations):
 	cut_ensemble = Matrix.cut_ensemble(X)
 	data = cut_ensemble[0].copy()
 	
-	list_part = []
-	list_m = []
-	list_p_tot = []
-	list_classified_data = []
+	part_space_list = []
+	part_data_list = []
+	merg_space_list = []
+	merg_data_list = []
 	for k in range(number_of_iterations):
 		
 		print('Tree number '+str(k+1))
 		print('PARTITIONING:')	 
-		part,m = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
+		part_space,part_data = Partitioning.partitioning(cut_ensemble,t0,lifetime,metric,exp)
 		print('MERGING:')
-		list_p,classified_data = Merging.merging(part,m,metric,data)
-		list_p.reverse()
-		classified_data.reverse()
+		merg_space,merg_data = Merging.merging(part_space,part_data,metric,data)
+		merg_space.reverse()
+		merg_data.reverse()
 
-		list_part.append(part)
-		list_m.append(m)
-		list_p_tot.append(list_p)
-		list_classified_data.append(classified_data)	
+		part_space_list.append(part_space)
+		part_data_list.append(part_data)
+		merg_space_list.append(merg_space)
+		merg_data_list.append(merg_data)	
 		
-	ami_mean,ami_std,ami_tot = ami(list_classified_data)
+	ami_mean,ami_std,ami_tot = ami(merg_data_list)
 
 		
-	return data,list_part,list_m,list_p_tot,list_classified_data,ami_mean,ami_std,ami_tot#,list_m_leaf_tot
+	return data,part_space_list,part_data_list,merg_space_list,merg_data_list,ami_mean,ami_std,ami_tot
 
 
 
 
 
-def save_forest(namefile,starting_namefile_number,data,list_part,list_m,list_p_tot,list_classified_data,ami_mean,ami_std,ami_tot):
+def save_forest(namefile,starting_namefile_number,data,part_space_list,part_data_list,merg_space_list,merg_data_list,ami_mean,ami_std,ami_tot):
 	
 	'''
 	Save the mondrian_forest output in .json files
 	'''
 	
-	data.to_csv(namefile+'_data.txt',sep='\t',index=False)
-	
-	l = len(list_part)
+	with open(namefile+'_data.json', 'w') as f:
+		f.write(json.dumps(data.tolist()))
+			
+	l = len(part_space_list)
 	for i in range(l):
-		part = list_part[i]
-		m = list_m[i]
-		list_p = list_p_tot[i]
-		classified_data = list_classified_data[i]
-		save_tree(namefile+'_'+str(starting_namefile_number+i),data,part,m,list_p,classified_data)
-	
+		
+		name = namefile+'_'+str(starting_namefile_number+i)
+		part_space = part_space_list[i]
+		part_data = part_data_list[i]
+		merg_space = merg_space_list[i]
+		merg_data = merg_data_list[i]
+
+		part_space.to_json(name+'_part_space.json')
+		
+		part_data = [i.tolist() for i in part_data]
+		with open(name+'_part_data.json', 'w') as f:
+			f.write(json.dumps(part_data))
+		
+		merg_space_copy = copy.deepcopy(merg_space)		
+		for k in range(len(merg_space_copy)):
+			merg_space_copy[k]['id_number'] = merg_space_copy[k]['id_number'].astype(float)
+			merg_space_copy[k]['neighbors'] = [list(map(float, i)) for i in merg_space_copy[k]['neighbors']]
+			merg_space_copy[k]['merged'] = [list(map(float, i)) for i in merg_space_copy[k]['merged']]
+		with open(name+'_merg_space.json', 'w') as f:
+			f.write(json.dumps([df.to_dict() for df in merg_space_copy]))
+		
+		with open(name+'_merg_data.json', 'w') as f:
+			f.write(json.dumps(merg_data))
+
 	#save AMI
 	df = {'AMI_mean':ami_mean,'AMI_std':ami_std}
 	df = pd.DataFrame(df)
@@ -199,46 +223,49 @@ def save_forest(namefile,starting_namefile_number,data,list_part,list_m,list_p_t
 
 
 
-def read_forest(namefile,number_of_iterations):
+def read_forest(namefile,starting_namefile_number,number_of_iterations):
 
 	'''
 	Read the .json files storing the mondrian_forest output
 	'''
 	
-	data = pd.read_csv(namefile+'_data.txt',sep='\t')
+	data = json.load(open(namefile+'_data.json','r'))
+	data = np.array(data)
 	
-	list_part = []
-	list_m = []
-	list_p_tot = []
-	list_m_leaf_tot = []
+	part_space_list = []
+	part_data_list = []
+	merg_space_list = []
+	merg_data_list = []
 	for i in range(number_of_iterations):
+		name = namefile+'_'+str(starting_namefile_number+i)
+				
+		part_space = json.load(open(name+'_part_space.json','r'))
+		part_space = pd.DataFrame(part_space)
+		part_space['polytope'] = [pc.Polytope(np.array(part_space['polytope'].iloc[i]['A']), np.array(part_space['polytope'].iloc[i]['b'])) for i in np.arange(len(part_space))]
 		
-		part = json.load(open(namefile+'_'+str(i)+'_part.json','r'))
-		part = pd.DataFrame(part)
-		part['polytope'] = [pc.Polytope(np.array(part['polytope'].iloc[i]['A']), np.array(part['polytope'].iloc[i]['b'])) for i in np.arange(len(part))]
-	
-		m = json.load(open(namefile+'_'+str(i)+'_m.json','r'))
-	
-		list_p = json.load(open(namefile+'_'+str(i)+'_p.json','r'))
-		list_p = [pd.DataFrame(i) for i in list_p]
-		for k in range(len(list_p)):
-			list_p[k]['part_number'] = list_p[k]['part_number'].astype(int)
-			list_p[k]['neighbors'] = [list(map(int, i)) for i in list_p[k]['neighbors']]
-			list_p[k]['merged_part'] = [list(map(int, i)) for i in list_p[k]['merged_part']]	
-	
-		classified_data = json.load(open(namefile+'_'+str(i)+'_classified_data.json','r'))
-
-		list_part.append(part)
-		list_m.append(m)
-		list_p_tot.append(list_p)
-		list_classified_data.append(classified_data)
+		part_data = json.load(open(name+'_part_data.json','r'))
+		part_data = [np.array(i) for i in part_data]
+		
+		merg_space = json.load(open(name+'_merg_space.json','r'))
+		merg_space = [pd.DataFrame(i) for i in merg_space]
+		for k in range(len(merg_space)):
+			merg_space[k]['id_number'] = merg_space[k]['id_number'].astype(np.int64)
+			merg_space[k]['neighbors'] = [list(map(np.int64, i)) for i in merg_space[k]['neighbors']]
+			merg_space[k]['merged'] = [list(map(int, i)) for i in merg_space[k]['merged']]	
+		
+		merg_data = json.load(open(name+'_merg_data.json','r'))
+		
+		part_space_list.append(part_space)
+		part_data_list.append(part_data)
+		merg_space_list.append(merg_space)
+		merg_data_list.append(merg_data)
 	
 	ami_tot = json.load(open(namefile+'_AMI.json','r'))
 	df = pd.read_csv(namefile+'_AMI.txt',sep='\t')
 	ami_mean = list(df['AMI_mean'])
 	ami_std = list(df['AMI_std'])
 	
-	return data,list_part,list_m,list_p_tot,list_classified_data,ami_mean,ami_std,ami_tot
+	return data,part_space_list,part_data_list,merg_space_list,merg_data_list,ami_mean,ami_std,ami_tot
 
 
 #namefile = name+'_lambda'+str(lifetime)+'_exp'+str(exp)+'_'+metric+'_'+str(k+1)

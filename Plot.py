@@ -6,6 +6,7 @@ from scipy.spatial import ConvexHull
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import pypoman
 import math
+import pandas as pd
 
 
 
@@ -27,9 +28,9 @@ def compute_vertices(poly):
 
 
 
-def plot2D_partitioning(data,part):
+def plot2D_partitioning(data,part_space):
 	
-	p = part.query('leaf==True').copy()
+	p = part_space.query('leaf==True').copy()
 	
 	fig,ax = plt.subplots()
 	for i in range(len(p)):
@@ -40,10 +41,9 @@ def plot2D_partitioning(data,part):
 			
 		x_avg = np.mean(np.array(vert)[:,0])
 		y_avg = np.mean(np.array(vert)[:,1])
-		ax.text(x_avg,y_avg,p['part_number'].iloc[i])
+		ax.text(x_avg,y_avg,p['id_number'].iloc[i])
 			
-	#data = m[0].copy()
-	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+	ax.scatter(data[:,0],data[:,1],s=10,alpha=0.5,color='b')
 	
 	plt.show()
 	
@@ -54,25 +54,25 @@ def plot2D_partitioning(data,part):
 
 
 
-def plot2D_merging(data,part,list_p,number_of_clusters):
+def plot2D_merging(data,part_space,merg_space,number_of_clusters):
 
-	p = list_p[number_of_clusters-1].copy()
+	p = merg_space[number_of_clusters-1].copy()
 	
 	color = cm.rainbow(np.linspace(0,1,len(p)))
 	fig,ax = plt.subplots()
 	for i in range(len(p)):
-		part_number = p['part_number'].iloc[i]
-		poly = list(part[part['part_number']==part_number]['polytope'])[0]
+		poly_number = p['id_number'].iloc[i]
+		poly = list(part_space[part_space['id_number']==poly_number]['polytope'])[0]
 		vert = compute_vertices(poly)
 		poly_for_plot = Polygon(vert, facecolor=color[i], alpha=0.3, edgecolor='black')
 		ax.add_patch(poly_for_plot)
 		
 		x_avg = np.mean(np.array(vert)[:,0])
 		y_avg = np.mean(np.array(vert)[:,1])
-		ax.text(x_avg,y_avg,part_number)
+		ax.text(x_avg,y_avg,poly_number)
 
-		for j in p['merged_part'].iloc[i]:
-			poly = list(part[part['part_number']==j]['polytope'])[0]
+		for j in p['merged'].iloc[i]:
+			poly = list(part_space[part_space['id_number']==j]['polytope'])[0]
 			vert = compute_vertices(poly)
 			poly_for_plot = Polygon(vert, facecolor=color[i], alpha=0.3, edgecolor='black')
 			ax.add_patch(poly_for_plot)
@@ -82,17 +82,19 @@ def plot2D_merging(data,part,list_p,number_of_clusters):
 			ax.text(x_avg,y_avg,j)
 
 	#data = m[0].copy()
-	ax.scatter(data['0'],data['1'],s=10,alpha=0.5,color='b')
+	ax.scatter(data[:,0],data[:,1],s=10,alpha=0.5,color='b')
 		
 	return
 
 
 
 
-def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_space):
+def plot3D(data,part_space,merg_space,merg_data,number_of_clusters,plot_data,plot_space):
 	
-	p = list_p[number_of_clusters-1].copy()
-	cl_data = classified_data[number_of_clusters-1]
+	p = merg_space[number_of_clusters-1].copy()
+	cl_data = merg_data[number_of_clusters-1]
+	data = data[:,0:-1]
+	data = pd.DataFrame(data)
 	
 	if plot_data == True:
 		
@@ -102,7 +104,7 @@ def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_sp
 		for i in range(len(p)):
 			data['cl'] = cl_data
 			data_i = data.query('cl=='+str(i)).copy()
-			ax.scatter(data_i['0'],data_i['1'],data_i['2'],s=10,alpha=0.7,color=color[i])
+			ax.scatter(data_i[0],data_i[1],data_i[2],s=10,alpha=0.7,color=color[i])
 		plt.show()	
 
 
@@ -112,8 +114,8 @@ def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_sp
 		ax = plt.axes(projection='3d')
 		color=cm.rainbow(np.linspace(0,1,len(p)))
 		for i in range(len(p)):
-			part_number = p['part_number'].iloc[i]
-			poly = list(part[part['part_number']==part_number]['polytope'])[0]
+			part_number = p['id_number'].iloc[i]
+			poly = list(part_space[part_space['id_number']==part_number]['polytope'])[0]
 			verts = compute_vertices(poly)
 			hull = ConvexHull(verts)
 			faces = hull.simplices
@@ -126,8 +128,8 @@ def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_sp
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)
 			
-			for j in p['merged_part'].iloc[i]:
-				poly = list(part[part['part_number']==j]['polytope'])[0]
+			for j in p['merged'].iloc[i]:
+				poly = list(part_space[part_space['id_number']==j]['polytope'])[0]
 				verts = compute_vertices(poly)
 				hull = ConvexHull(verts)
 				faces = hull.simplices
@@ -140,7 +142,7 @@ def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_sp
 					f.set_alpha(0.1)
 					ax.add_collection3d(f)
 					
-		ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
+		ax.scatter(data[0],data[1],data[2],s=10,alpha=0.7,color='b')
 		
 		plt.show()
 		
@@ -149,8 +151,8 @@ def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_sp
 		for i in range(len(p)):
 			fig = plt.figure()
 			ax = plt.axes(projection='3d')
-			part_number = p['part_number'].iloc[i]
-			poly = list(part[part['part_number']==part_number]['polytope'])[0]
+			part_number = p['id_number'].iloc[i]
+			poly = list(part_space[part_space['id_number']==part_number]['polytope'])[0]
 			verts = compute_vertices(poly)
 			hull = ConvexHull(verts)
 			faces = hull.simplices
@@ -162,8 +164,8 @@ def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_sp
 				f.set_color(color[i])
 				f.set_alpha(0.1)
 				ax.add_collection3d(f)
-			for j in p['merged_part'].iloc[i]:
-				poly = list(part[part['part_number']==j]['polytope'])[0]
+			for j in p['merged'].iloc[i]:
+				poly = list(part_space[part_space['id_number']==j]['polytope'])[0]
 				verts = compute_vertices(poly)
 				hull = ConvexHull(verts)
 				faces = hull.simplices
@@ -176,7 +178,7 @@ def plot3D(data,part,list_p,classified_data,number_of_clusters,plot_data,plot_sp
 					f.set_alpha(0.1)
 					ax.add_collection3d(f)
 					
-			ax.scatter(data['0'],data['1'],data['2'],s=10,alpha=0.7,color='b')
+			ax.scatter(data[0],data[1],data[2],s=10,alpha=0.7,color='b')
 		
 		plt.show()
 
